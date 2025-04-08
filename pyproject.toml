@@ -1,0 +1,24 @@
+[project]
+name = "agentic-ai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.8"
+dependencies = [
+    "fastapi>=0.115.12",
+    "litellm>=1.65.4.post1",
+    "loguru>=0.7.3",
+    "python-dotenv>=1.1.0",
+    "smolagents>=1.13.0",
+]
+
+[project.scripts]
+app = "src.agent.entrypoint.app:app"
+main = "src.agent.entrypoint.main"
+
+
+[dependency-groups]
+dev = [
+    "ipdb>=0.13.13",
+    "pytest>=8.3.5",
+]
