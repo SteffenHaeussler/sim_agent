@@ -13,13 +13,15 @@ You can run the service in dev mode by default:
 
 via fastapi app:
 ```
-make api
+make dev
 ```
+and access via [http://127.0.0.1:5000/docs](http://127.0.0.1:5000/docs)
 
 via cli:
 
 ```
 make run Q="how are you?"
+```
 
 
 
@@ -27,7 +29,15 @@ make run Q="how are you?"
 
 
 ```
+make up
 ```
+
+and to shut down the service:
+
+```
+make down
+```
+
 
 ## Local querying
 

@@ -10,6 +10,7 @@ dependencies = [
     "loguru>=0.7.3",
     "python-dotenv>=1.1.0",
     "smolagents>=1.13.0",
+    "uvicorn>=0.34.0",
 ]
 
 

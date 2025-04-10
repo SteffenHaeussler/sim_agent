@@ -7,12 +7,6 @@ import src.agent.service_layer.handlers as handlers
 from src.agent.bootstrap import bootstrap
 from src.agent.domain.commands import Question
 
-# print("Current Working Directory:", os.getcwd())
-# import ipdb
-
-# ipdb.set_trace()
-
-
 app = FastAPI()
 
 bus = bootstrap()
