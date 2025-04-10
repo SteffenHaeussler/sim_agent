@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5050:5050"
+    environment:
+      - PYTHONUNBUFFERED=1  # optional, helps with logs
+    volumes:
+      - .:/app  # optional: mounts local code for live dev (careful with uv workers!)
+    command: ["--host", "0.0.0.0", "--port", "5050"]  # override CMD if needed
