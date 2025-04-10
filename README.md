@@ -11,8 +11,15 @@ To run the service manually in debug mode install the required python dependenci
 
 You can run the service in dev mode by default:
 
+via fastapi app:
 ```
+make api
 ```
+
+via cli:
+
+```
+make run Q="how are you?"
 
 
 

@@ -12,10 +12,6 @@ dependencies = [
     "smolagents>=1.13.0",
 ]
 
-[project.scripts]
-app = "src.agent.entrypoint.app:app"
-main = "src.agent.entrypoint.main"
-
 
 [dependency-groups]
 dev = [
