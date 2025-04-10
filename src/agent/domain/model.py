@@ -9,6 +9,7 @@ class Agent:
 
         self.question = question.question
         self.q_id = question.q_id
+        self.enhancement = None
         self.tool_answer = None
         self.response = None
 

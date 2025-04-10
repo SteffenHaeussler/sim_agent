@@ -1,13 +1,17 @@
 from abc import ABC
 
-from src.agent.adapters import db, llm, model, tools
+from src.agent.adapters import agent_tools, db, llm, transformer
 from src.agent.domain import commands, model
 
 
 class AbstractAgent(ABC):
     def __init__(self):
         self.seen = set()
-        return None
+        self.db = db.AbstractDB()
+        self.llm = llm.AbstractLLM()
+        self.tools = agent_tools.AbstractTools()
+        self.rerank = transformer.AbstractModel()
+        self.retrieve = db.AbstractDB()
 
     def add(self, agent: model.Agent):
         self.seen.add(agent)
@@ -17,15 +21,13 @@ class AbstractAgent(ABC):
             while agent.events:
                 yield agent.events.pop(0)
 
+    def answer(self, command: commands.Command) -> str:
+        raise NotImplementedError("Not implemented yet")
+
 
 class AgentAdapter(AbstractAgent):
     def __init__(self):
         super().__init__()
-        self.db = db.AbstractDB()
-        self.llm = llm.AbstractLLM()
-        self.tools = tools.AbstractTools()
-        self.rerank = model.AbstractRerank()
-        self.retrieve = db.AbstractDB()
 
     def answer(self, command: commands.Command) -> str:
         if type(command) is commands.Check:
