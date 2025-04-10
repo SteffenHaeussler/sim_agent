@@ -16,10 +16,10 @@ def answer(command: commands.Question, agent: AbstractAgent) -> str:
     agent_model = model.Agent(command)
     agent.add(agent_model)
 
-    response = agent.answer(agent.enhancement)
+    response = agent.answer(agent_model.enhancement)
     agent.use_tools(response)
 
-    response = agent.answer(agent.tool_answer)
+    response = agent.answer(agent_model.tool_answer)
 
     return agent.response
 

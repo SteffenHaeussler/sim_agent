@@ -1,7 +1,7 @@
 from abc import ABC
 
 
-class AbstractRerank(ABC):
+class AbstractModel(ABC):
     def __init__(self):
         pass
 
