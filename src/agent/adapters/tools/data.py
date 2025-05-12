@@ -92,3 +92,24 @@ class GetData(BaseTool):
             aggregation = "d"
 
         return aggregation
+
+
+class CompareData(BaseTool):
+    name = "compare_data"
+    description = """Compare data from two assets."""
+    inputs = {
+        "data": {"type": "dataframe", "description": "asset id data"},
+    }
+    outputs = {"data": {"type": "dataframe", "description": "compared sensor data"}}
+    output_type = "dict"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def forward(self, data: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        if data.empty:
+            comparison = pd.DataFrame()
+        else:
+            comparison = data.describe()
+
+        return {"data": comparison}

@@ -1,7 +1,9 @@
 import unittest
 from unittest.mock import patch
 
-from src.agent.adapters.tools import GetData
+import pandas as pd
+
+from src.agent.adapters.tools import CompareData, GetData
 from tests.mock_object import data_mock_response
 
 
@@ -94,3 +96,21 @@ class TestMapAggregation(unittest.TestCase):
         data = GetData()
         with self.assertRaises(ValueError):
             data.map_aggregation("invalid")
+
+
+class TestCompareData(unittest.TestCase):
+    def test_compare_no_data(self):
+        compare = CompareData()
+        out = compare.forward(pd.DataFrame())
+        self.assertEqual(out["data"].shape, (0, 0))
+
+    def test_compare_data(self):
+        _input = pd.DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [1, 2, 3],
+            }
+        )
+        compare = CompareData()
+        out = compare.forward(_input)
+        self.assertEqual(out["data"].shape, (8, 2))
