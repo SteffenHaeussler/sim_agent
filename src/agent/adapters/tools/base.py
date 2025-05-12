@@ -1,9 +1,27 @@
 import json
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 
 import httpx
+from dateutil import parser
 from loguru import logger
 from smolagents import Tool, tools
+
+TARGET_FORMAT = "%Y-%m-%dT%H:%M:%S"
+
+FALLBACK_FORMATS = [
+    "%Y-%m-%d %H:%M:%S.%f",  # With microseconds
+    "%Y-%m-%d %H:%M:%S",
+    "%Y/%m/%d %H:%M:%S",
+    "%d/%m/%Y %H:%M:%S",  # Day first
+    "%m/%d/%Y %H:%M:%S",  # Month first
+    "%d-%b-%Y %I:%M:%S %p",  # e.g., 31-Dec-2025 11:59:00 PM
+    "%Y-%m-%d",  # Date only
+    "%d/%m/%Y",  # Date only (Day first)
+    "%m/%d/%Y",  # Date only (Month first)
+    "%b %d %Y",  # e.g., Dec 31 2025
+    "%B %d, %Y",  # e.g., December 31, 2025
+]
 
 ## monkey patching
 
@@ -20,6 +38,7 @@ tools.AUTHORIZED_TYPES = [
     "null",
     "list",
     "dict",
+    "dataframe",
 ]
 
 
@@ -27,6 +46,7 @@ class BaseTool(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.base_url = kwargs.get("base_url")
+        self.limit = kwargs.get("limit", 100)
 
     @staticmethod
     def format_input(ids: List[str]):
@@ -35,25 +55,98 @@ class BaseTool(Tool):
 
         return ids
 
+    def call_api(self, api_url, body={}):
+        all_results = []
+        current_offset = 0
+
+        while True:
+            body.update(
+                {
+                    "offset": current_offset,
+                    "limit": self.limit,
+                }
+            )
+
+            try:
+                logger.info(f"Fetching data from {api_url} with params: {body}")
+                response = httpx.get(api_url, params=body, timeout=30.0)  # Add timeout
+
+                response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+
+                page_results = response.json()  # Expecting a list of Data objects
+
+                all_results.extend(page_results)
+
+                # --- Pagination Logic ---
+                if len(page_results) < self.limit:
+                    # If we received fewer items than we asked for, this must be the last page
+                    logger.info("Reached the last page.")
+                    break
+                else:
+                    # Otherwise, prepare for the next page
+                    current_offset += self.limit
+
+            except httpx.HTTPStatusError as e:
+                logger.debug(
+                    f"HTTP error fetching name for {api_url}: {e.response.status_code} - {e.response.text}"
+                )
+                break
+            except httpx.RequestError as e:
+                logger.debug(f"Request error fetching name for {api_url}: {e}")
+                break
+            except json.JSONDecodeError as e:
+                logger.debug(
+                    f"JSON decode error for {api_url}. Response text: {response.text}. Error: {e}"
+                )
+                break
+            except Exception as e:  # Catch any other unexpected errors
+                logger.debug(f"An unexpected error occurred for {api_url}: {e}")
+                break
+        return all_results
+
     @staticmethod
-    def call_api(api_url, body=None):
+    def convert_to_iso_format(date_string: str) -> Optional[str]:
+        """
+        Tries to parse a date string from various common formats and
+        converts it to the target ISO-like format: YYYY-MM-DDTHH:MM:SS.
+
+        Args:
+            date_string: The string representation of the date/time.
+
+        Returns:
+            The formatted date string or None if parsing fails.
+        """
+        if not isinstance(date_string, str):
+            raise ValueError(f"Input '{date_string}' is not a string.")
+
+        dt_object = None
+
         try:
-            out = httpx.get(api_url)
-            out.raise_for_status()
+            # dayfirst=None (default): Infer from context, often US-style (MM/DD) for ambiguous cases.
+            dt_object = parser.parse(date_string)
+        except (parser.ParserError, ValueError, TypeError):
+            pass  # Continue to fallback methods
 
-            return out.json()
+        # 2. If dateutil.parser failed, try with a list of specific formats
+        if dt_object is None:
+            for fmt in FALLBACK_FORMATS:
+                try:
+                    dt_object = datetime.strptime(date_string, fmt)
+                    break  # Successfully parsed
+                except ValueError:
+                    continue  # Try next format
 
-        except httpx.HTTPStatusError as e:
-            logger.debug(
-                f"HTTP error fetching name for {api_url}: {e.response.status_code} - {e.response.text}"
+        try:
+            dt_object = dt_object.strftime(TARGET_FORMAT)
+        except (
+            ValueError
+        ):  # Can happen for dates before year 1900 with some strftime directives
+            # print(f"Error formatting datetime object for '{date_string}': {e}")
+            dt_object = None
+
+        if not dt_object:
+            raise ValueError(
+                f"Could not parse date string: '{date_string}' with any known format."
             )
-        except httpx.RequestError as e:
-            logger.debug(f"Request error fetching name for {api_url}: {e}")
-        except json.JSONDecodeError as e:
-            logger.debug(
-                f"JSON decode error for {api_url}. Response text: {out.text}. Error: {e}"
-            )
-        except Exception as e:  # Catch any other unexpected errors
-            logger.debug(f"An unexpected error occurred for {api_url}: {e}")
 
-        return None
+        return dt_object
