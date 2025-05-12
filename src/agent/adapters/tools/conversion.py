@@ -26,7 +26,7 @@ class ConvertNameToId(BaseTool):
             out = self.call_api(api_url)
 
             if out:
-                response.append(out)
+                response.extend(out)
             else:
                 logger.warning(f"No name found for asset id {name}")
 
@@ -54,7 +54,7 @@ class ConvertIdToName(BaseTool):
             out = self.call_api(api_url)
 
             if out:
-                response.append(out)
+                response.extend(out)
             else:
                 logger.warning(f"No name found for asset id {_id}")
 

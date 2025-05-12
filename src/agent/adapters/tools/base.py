@@ -55,7 +55,7 @@ class BaseTool(Tool):
 
         return ids
 
-    def call_api(self, api_url, body={}):
+    def call_api(self, api_url, body={}) -> List[dict]:
         all_results = []
         current_offset = 0
 
@@ -75,8 +75,10 @@ class BaseTool(Tool):
 
                 page_results = response.json()  # Expecting a list of Data objects
 
-                all_results.extend(page_results)
-
+                if isinstance(page_results, list):
+                    all_results.extend(page_results)
+                else:
+                    all_results.append(page_results)
                 # --- Pagination Logic ---
                 if len(page_results) < self.limit:
                     # If we received fewer items than we asked for, this must be the last page
@@ -102,6 +104,7 @@ class BaseTool(Tool):
             except Exception as e:  # Catch any other unexpected errors
                 logger.debug(f"An unexpected error occurred for {api_url}: {e}")
                 break
+
         return all_results
 
     @staticmethod

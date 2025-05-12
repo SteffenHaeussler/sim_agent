@@ -26,7 +26,7 @@ class GetInformation(BaseTool):
             out = self.call_api(api_url)
 
             if out:
-                response.append(out)
+                response.extend(out)
             else:
                 logger.warning(f"No information found for asset id {asset_id}")
 
