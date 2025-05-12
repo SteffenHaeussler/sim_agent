@@ -1,14 +1,15 @@
 from typing import Dict, List
 
 from loguru import logger
+
 from src.agent.adapters.tools.base import BaseTool
 
 
-class ConvertIdToName(BaseTool):
-    name = "id_to_name"
-    description = """Converts asset ids to the asset names."""
+class GetNeighbors(BaseTool):
+    name = "get_neighbors"
+    description = """Get neighbors of an asset."""
     inputs = {"asset_ids": {"type": "list", "description": "list of asset ids"}}
-    outputs = {"names": {"type": "list", "description": "list of asset names"}}
+    outputs = {"asset_ids": {"type": "list", "description": "list of neighbor ids"}}
     output_type = "dict"
 
     def __init__(self, **kwargs):
@@ -19,14 +20,14 @@ class ConvertIdToName(BaseTool):
 
         response = []
 
-        for _id in asset_ids:
-            api_url = f"{self.base_url}/v1/name_from_id/{_id}"
+        for asset_id in asset_ids:
+            api_url = f"{self.base_url}/v1/neighbor/{asset_id}"
 
             out = self.call_api(api_url)
 
             if out:
                 response.append(out)
             else:
-                logger.warning(f"No name found for asset id {_id}")
+                logger.warning(f"No neighbors found for asset id {asset_id}")
 
-        return {"names": response}
+        return {"asset_ids": response}
