@@ -84,6 +84,21 @@ def neighbor_mock_response(*args, **kwargs):
 
 
 def data_mock_response(*args, **kwargs):
+    test_result = [
+        {
+            "asset_id": "1",
+            "timestamp": "2025-04-01T00:00:00",
+            "value": 5.34,
+            "pk_id": "2",
+        },
+        {
+            "asset_id": "1",
+            "timestamp": "2025-04-01T00:01:00",
+            "value": 2.46,
+            "pk_id": "2",
+        },
+    ]
+
     mock_resp = Mock()
     url_called = args[0]
 
@@ -99,21 +114,10 @@ def data_mock_response(*args, **kwargs):
         )
     else:
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "data": [
-                {
-                    "asset_id": "1",
-                    "timestamp": "2025-04-01T00:00:00",
-                    "value": 5.34,
-                    "pk_id": "2",
-                },
-                {
-                    "asset_id": "1",
-                    "timestamp": "2025-04-01T00:01:00",
-                    "value": 2.46,
-                    "pk_id": "2",
-                },
-            ]
-        }
+
+        if kwargs.get("params").get("last_value"):
+            mock_resp.json.return_value = [test_result[-1]]
+        else:
+            mock_resp.json.return_value = test_result
 
     return mock_resp
