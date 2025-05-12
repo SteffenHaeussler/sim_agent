@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from src.agent.adapters.tools.convert_name_to_id import ConvertNameToId
-from tests.mock_object import dynamic_mock_response
+from src.agent.adapters.tools import ConvertNameToId
+from tests.mock_object import conversion_mock_response
 
 
 class TestConvertNameToId(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestConvertNameToId(unittest.TestCase):
         ids = [12, "test", None]
         params = {"base_url": "http://mockapi.com"}
 
-        mock_httpx_get.side_effect = dynamic_mock_response
+        mock_httpx_get.side_effect = conversion_mock_response
 
         id2name = ConvertNameToId(**params)
 
@@ -22,7 +22,7 @@ class TestConvertNameToId(unittest.TestCase):
 
     @patch("httpx.get")
     def test_no_id(self, mock_httpx_get):
-        mock_httpx_get.side_effect = dynamic_mock_response
+        mock_httpx_get.side_effect = conversion_mock_response
 
         ids = [None]
         params = {"base_url": "mock"}
@@ -38,7 +38,7 @@ class TestConvertNameToId(unittest.TestCase):
 
     @patch("httpx.get")
     def test_raises_exception(self, mock_httpx_get):
-        mock_httpx_get.side_effect = dynamic_mock_response
+        mock_httpx_get.side_effect = conversion_mock_response
 
         ids = ["raise_error"]
         params = {"base_url": "http://mockapi.com"}
