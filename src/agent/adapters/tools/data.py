@@ -1,5 +1,8 @@
+import base64
+import io
 from typing import Dict, List, Optional
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -113,3 +116,51 @@ class CompareData(BaseTool):
             comparison = data.describe()
 
         return {"data": comparison}
+
+
+class PlotData(BaseTool):
+    name = "plot_data"
+    description = """Plot data from data."""
+    inputs = {
+        "data": {"type": "dataframe", "description": "asset id data"},
+    }
+    outputs = {"plot": {"type": "str", "description": "encoded plot"}}
+    output_type = "dict"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def forward(self, df: pd.DataFrame) -> Dict[str, str]:
+        if df.empty:
+            return {"plot": None}
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        for column_name in df.columns:
+            ax.plot(
+                df.index, df[column_name], label=column_name, marker="o", linestyle="--"
+            )
+            ax.set_xlabel("Date")
+            ax.set_ylabel("Value")
+            ax.set_title("Time Series Plot (Manual)")
+            ax.grid(True)
+            ax.legend(title="Series Name")
+
+        buf = io.BytesIO()
+
+        # Save the figure to the buffer in PNG format (or 'jpeg', 'svg', etc.)
+        # bbox_inches='tight' helps remove extra whitespace around the plot
+        fig.savefig(buf, format="png", bbox_inches="tight")
+
+        buf.seek(0)
+
+        # Read the binary data from the buffer
+        image_binary = buf.read()
+
+        base64_bytes = base64.b64encode(image_binary)
+        base64_string = base64_bytes.decode("utf-8")
+
+        buf.close()
+        plt.close(fig)
+
+        return {"plot": base64_string}
