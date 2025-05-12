@@ -45,7 +45,7 @@ class BaseTool(Tool):
 
         except httpx.HTTPStatusError as e:
             logger.debug(
-                f"HTTP error fetching name for {api_url}: {e.out.status_code} - {e.out.text}"
+                f"HTTP error fetching name for {api_url}: {e.response.status_code} - {e.response.text}"
             )
         except httpx.RequestError as e:
             logger.debug(f"Request error fetching name for {api_url}: {e}")
