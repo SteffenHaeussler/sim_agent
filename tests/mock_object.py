@@ -81,3 +81,39 @@ def neighbor_mock_response(*args, **kwargs):
         mock_resp.json.return_value = str(id_from_url) + "_neighbor"
 
     return mock_resp
+
+
+def data_mock_response(*args, **kwargs):
+    mock_resp = Mock()
+    url_called = args[0]
+
+    try:
+        id_from_url = url_called.split("/")[-1]
+    except IndexError:
+        id_from_url = "unknown_id_from_url"
+
+    if id_from_url == "raise_error":
+        mock_resp.status_code = 500
+        mock_resp.raise_for_status.side_effect = httpx.RequestError(
+            "Simulated network problem"
+        )
+    else:
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "data": [
+                {
+                    "asset_id": "1",
+                    "timestamp": "2025-04-01T00:00:00",
+                    "value": 5.34,
+                    "pk_id": "2",
+                },
+                {
+                    "asset_id": "1",
+                    "timestamp": "2025-04-01T00:01:00",
+                    "value": 2.46,
+                    "pk_id": "2",
+                },
+            ]
+        }
+
+    return mock_resp
