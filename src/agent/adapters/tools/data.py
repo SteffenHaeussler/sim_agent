@@ -110,6 +110,9 @@ class CompareData(BaseTool):
         super().__init__(**kwargs)
 
     def forward(self, data: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        if isinstance(data, list):
+            data = pd.concat(data, axis=1)
+
         if data.empty:
             comparison = pd.DataFrame()
         else:
@@ -130,15 +133,22 @@ class PlotData(BaseTool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def forward(self, df: pd.DataFrame) -> Dict[str, str]:
-        if df.empty:
+    def forward(self, data: pd.DataFrame) -> Dict[str, str]:
+        if isinstance(data, list):
+            data = pd.concat(data, axis=1)
+
+        if data.empty:
             return {"plot": None}
 
         fig, ax = plt.subplots(figsize=(12, 6))
 
-        for column_name in df.columns:
+        for column_name in data.columns:
             ax.plot(
-                df.index, df[column_name], label=column_name, marker="o", linestyle="--"
+                data.index,
+                data[column_name],
+                label=column_name,
+                marker="o",
+                linestyle="--",
             )
             ax.set_xlabel("Date")
             ax.set_ylabel("Value")
