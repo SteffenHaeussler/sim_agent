@@ -50,6 +50,9 @@ class BaseTool(Tool):
 
     @staticmethod
     def format_input(ids: List[str]):
+        if isinstance(ids, str):
+            ids = [ids]
+
         ids = [str(i) for i in ids if i]
         ids = list(set(ids))
 

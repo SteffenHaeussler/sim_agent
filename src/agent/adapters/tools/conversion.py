@@ -21,7 +21,7 @@ class ConvertNameToId(BaseTool):
         response = []
 
         for name in names:
-            api_url = f"{self.base_url}/v1/name_from_id/{name}"
+            api_url = f"{self.base_url}/v1/id_from_name/{name}"
 
             out = self.call_api(api_url)
 
