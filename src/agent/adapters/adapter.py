@@ -1,7 +1,7 @@
 from abc import ABC
 
+from src.agent import config
 from src.agent.adapters import agent_tools, db, llm, transformer
-from src.agent.config import get_tools_config
 from src.agent.domain import commands, model
 
 
@@ -31,38 +31,53 @@ class AgentAdapter(AbstractAdapter):
         super().__init__()
 
         self.tools = agent_tools.Tools(
-            kwargs=get_tools_config(),
+            kwargs=config.get_tools_config(),
+        )
+        self.llm = llm.LLM(
+            kwargs=config.get_llm_config(),
         )
 
-    def answer(self, command: commands.Command) -> str:
-        if type(command) is commands.Check:
-            response = self.check(command.question)
-        elif type(command) is commands.Question:
-            response = self.use(command.question)
-        elif type(command) is commands.Retrieve:
-            response = self.retrieve(command.question)
-        elif type(command) is commands.Rerank:
-            response = self.rerank(command.question)
+    def answer(self, command: commands.Command) -> commands.Command:
+        # if type(command) is commands.Check:
+        #     response = self.check(command.question)
+        if type(command) is commands.UseTools:
+            response = self.use(command)
+        # elif type(command) is commands.Retrieve:
+        #     response = self.retrieve(command.question)
+        # elif type(command) is commands.Rerank:
+        #     response = self.rerank(command.question)
+        elif type(command) is commands.LLMResponse:
+            response = self.finalize(command)
         else:
             raise NotImplementedError("Not implemented yet")
         return response
 
-    def check(self, question: str) -> str:
-        response = self.llm(question)
-        return response
+    # def check(self, question: str) -> str:
+    #     response = self.llm(question)
+    #     return response
 
-    def read(self, question):
-        response = self.db.read(question)
-        return response
+    def finalize(self, command: commands.LLMResponse) -> commands.LLMResponse:
+        response = self.llm.use(command.question, commands.LLMResponseModel)
 
-    def use(self, question):
-        response = self.tools.use(question)
-        return response
+        command.response = response.response
+        command.chain_of_thought = response.chain_of_thought
 
-    def retrieve(self, question):
-        response = self.retrieve.retrieve(question)
-        return response
+        return command
 
-    def rerank(self, question):
-        response = self.rerank.rerank(question)
-        return response
+    # def read(self, question):
+    #     response = self.db.read(question)
+    #     return response
+
+    def use(self, command: commands.UseTools) -> commands.UseTools:
+        response = self.tools.use(command.question)
+
+        command.response = response
+        return command
+
+    # def retrieve(self, question):
+    #     response = self.retrieve.retrieve(question)
+    #     return response
+
+    # def rerank(self, question):
+    #     response = self.rerank.rerank(question)
+    #     return response
