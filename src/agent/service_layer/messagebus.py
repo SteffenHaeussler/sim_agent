@@ -2,7 +2,7 @@ from typing import Callable, Dict, List, Type, Union
 
 from loguru import logger
 
-from src.agent.adapters import agent
+from src.agent.adapters import adapter
 from src.agent.domain import commands, events
 
 Message = Union[commands.Command, events.Event]
@@ -11,11 +11,11 @@ Message = Union[commands.Command, events.Event]
 class MessageBus:
     def __init__(
         self,
-        agent: agent.AbstractAgent,
+        adapter: adapter.AbstractAdapter,
         event_handlers: Dict[Type[events.Event], List[Callable]],
         command_handlers: Dict[Type[commands.Command], Callable],
     ):
-        self.agent = agent
+        self.adapter = adapter
         self.event_handlers = event_handlers
         self.command_handlers = command_handlers
 
@@ -41,7 +41,7 @@ class MessageBus:
             try:
                 logger.debug(f"handling event {str(event)} with handler {str(handler)}")
                 handler(event)
-                self.queue.extend(self.agent.collect_new_events())
+                self.queue.extend(self.adapter.collect_new_events())
             except Exception:
                 logger.exception(f"Exception handling event {event}")
                 continue
@@ -54,7 +54,7 @@ class MessageBus:
         try:
             handler = self.command_handlers[type(command)]
             handler(command)
-            self.queue.extend(self.agent.collect_new_events())
+            self.queue.extend(self.adapter.collect_new_events())
         except Exception:
             logger.exception("Exception handling command %s", command)
             raise

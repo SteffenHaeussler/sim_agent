@@ -45,7 +45,7 @@ tools.AUTHORIZED_TYPES = [
 class BaseTool(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.base_url = kwargs.get("base_url")
+        self.base_url = kwargs.get("tools_api_base")
         self.limit = kwargs.get("limit", 100)
 
     @staticmethod

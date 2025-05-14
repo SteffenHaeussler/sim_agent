@@ -1,10 +1,11 @@
 from abc import ABC
 
 from src.agent.adapters import agent_tools, db, llm, transformer
+from src.agent.config import get_tools_config
 from src.agent.domain import commands, model
 
 
-class AbstractAgent(ABC):
+class AbstractAdapter(ABC):
     def __init__(self):
         self.seen = set()
         self.db = db.AbstractDB()
@@ -13,7 +14,7 @@ class AbstractAgent(ABC):
         self.rerank = transformer.AbstractModel()
         self.retrieve = db.AbstractDB()
 
-    def add(self, agent: model.Agent):
+    def add(self, agent: model.BaseAgent):
         self.seen.add(agent)
 
     def collect_new_events(self):
@@ -25,9 +26,13 @@ class AbstractAgent(ABC):
         raise NotImplementedError("Not implemented yet")
 
 
-class AgentAdapter(AbstractAgent):
+class AgentAdapter(AbstractAdapter):
     def __init__(self):
         super().__init__()
+
+        self.tools = agent_tools.Tools(
+            kwargs=get_tools_config(),
+        )
 
     def answer(self, command: commands.Command) -> str:
         if type(command) is commands.Check:

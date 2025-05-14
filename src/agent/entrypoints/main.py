@@ -2,11 +2,12 @@ import argparse
 from uuid import uuid4
 
 import src.agent.service_layer.handlers as handlers
+from src.agent.adapters.adapter import AgentAdapter
 from src.agent.adapters.notifications import CliNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.domain.commands import Question
 
-bus = bootstrap(notifications=(CliNotifications()))
+bus = bootstrap(adapter=AgentAdapter(), notifications=(CliNotifications()))
 
 
 def answer(question: str, q_id: str) -> str:
