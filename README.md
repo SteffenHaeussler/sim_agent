@@ -20,7 +20,7 @@ and access via [http://127.0.0.1:5000/docs](http://127.0.0.1:5000/docs)
 via cli:
 
 ```
-make run Q="how are you?"
+make run Q="What is the daily maximum value of PI-P0017 in April 2025?"
 ```
 
 

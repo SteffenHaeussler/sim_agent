@@ -6,12 +6,28 @@ load_dotenv()
 
 
 def get_tools_config():
-    model_name = getenv("tools_llm_model_name", None)
+    llm_model_id = getenv("tools_model_id", None)
+    llm_api_base = getenv("tools_model_api_base", None)
+    max_steps = getenv("tools_max_steps", None)
+    prompts_file = getenv("tools_prompts_file", None)
+    tools_api_base = getenv("tools_api_base", None)
 
-    if model_name is None:
-        raise ValueError("tools_llm_model_name not set in environment variables")
+    if llm_model_id is None:
+        raise ValueError("tools_model_id not set in environment variables")
 
-    return dict(model_name=model_name)
+    if prompts_file is None:
+        raise ValueError("tools_prompts_file not set in environment variables")
+
+    if tools_api_base is None:
+        raise ValueError("tools_api_base not set in environment variables")
+
+    return dict(
+        llm_model_id=llm_model_id,
+        llm_api_base=llm_api_base,
+        max_steps=max_steps,
+        prompts_file=prompts_file,
+        tools_api_base=tools_api_base,
+    )
 
 
 def get_llm_config():

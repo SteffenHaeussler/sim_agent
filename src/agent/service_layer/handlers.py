@@ -1,4 +1,4 @@
-from src.agent.adapters.agent import AbstractAgent
+from src.agent.adapters.adapter import AbstractAdapter
 from src.agent.adapters.notifications import AbstractNotifications
 from src.agent.domain import commands, events, model
 
@@ -7,21 +7,24 @@ class InvalidQuestion(Exception):
     pass
 
 
-def answer(command: commands.Question, agent: AbstractAgent) -> str:
+def answer(
+    command: commands.Question, adapter: AbstractAdapter
+) -> events.Response | events.FailedRequest:
     """service layer has only one abstraction: uow"""
 
     if not command or not command.question:
         raise InvalidQuestion("No question asked")
 
-    agent_model = model.Agent(command)
-    agent.add(agent_model)
+    agent = model.BaseAgent(command)
+    adapter.add(agent)
 
-    response = agent.answer(agent_model.enhancement)
-    agent.use_tools(response)
+    while not agent.is_answered or command is None:
+        breakpoint()
+        response = adapter.answer(command)
+        command = agent.update(command, response)
 
-    response = agent.answer(agent_model.tool_answer)
-
-    return agent.response
+    event = adapter.response
+    return event
 
 
 def send_response(

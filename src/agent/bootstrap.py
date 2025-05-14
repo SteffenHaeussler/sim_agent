@@ -1,18 +1,18 @@
 import inspect
 
-from src.agent.adapters import agent
+from src.agent.adapters import adapter
 from src.agent.adapters.notifications import AbstractNotifications, CliNotifications
 from src.agent.service_layer import handlers, messagebus
 
 
 def bootstrap(
-    agent: agent.AbstractAgent = agent.AbstractAgent(),
+    adapter: adapter.AbstractAdapter = adapter.AbstractAdapter(),
     notifications: AbstractNotifications = None,
 ) -> messagebus.MessageBus:
     if notifications is None:
         notifications = CliNotifications()
 
-    dependencies = {"agent": agent, "notifications": notifications}
+    dependencies = {"adapter": adapter, "notifications": notifications}
 
     injected_event_handlers = {
         event_type: [
@@ -26,7 +26,7 @@ def bootstrap(
     }
 
     return messagebus.MessageBus(
-        agent=agent,
+        adapter=adapter,
         event_handlers=injected_event_handlers,
         command_handlers=injected_command_handlers,
     )
