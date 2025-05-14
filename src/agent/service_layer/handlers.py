@@ -19,9 +19,8 @@ def answer(
     adapter.add(agent)
 
     while not agent.is_answered or command is None:
-        breakpoint()
-        response = adapter.answer(command)
-        command = agent.update(command, response)
+        updated_command = adapter.answer(command)
+        command = agent.update(updated_command)
 
     event = adapter.response
     return event

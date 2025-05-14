@@ -31,9 +31,10 @@ def get_tools_config():
 
 
 def get_llm_config():
-    model_name = getenv("llm_model_name", None)
+    model_id = getenv("llm_model_id", None)
+    temperature = getenv("llm_temperature", 0.0)
 
-    if model_name is None:
-        raise ValueError("llm_model_name not set in environment variables")
+    if model_id is None:
+        raise ValueError("llm_model_id not set in environment variables")
 
-    return dict(model_name=model_name)
+    return dict(model_id=model_id, temperature=temperature)
