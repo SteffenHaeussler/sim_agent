@@ -13,7 +13,6 @@ class TestCLI(unittest.TestCase):
         mock_CodeAgent,
         mock_LLM,
     ):
-        # mock_agent_instance = mock_CodeAgent.return_value
         mock_CodeAgent.return_value = "agent test"
 
         mock_LLM.return_value = LLMResponseModel(
