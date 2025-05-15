@@ -40,5 +40,4 @@ class LLM(AbstractLLM):
                 "temperature": self.temperature,
             },
         )
-
         return response

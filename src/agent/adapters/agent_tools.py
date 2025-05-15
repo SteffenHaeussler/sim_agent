@@ -28,7 +28,7 @@ class Tools(AbstractTools):
         self.model = self.init_model(self.kwargs)
         self.prompt_templates = self.init_prompt_templates(self.kwargs)
 
-        self.code_agent = self.init_agent(self.kwargs)
+        self.agent = self.init_agent(self.kwargs)
 
     def init_model(self, kwargs: Dict):
         api_base = kwargs.get("llm_api_base", None)
@@ -71,5 +71,5 @@ class Tools(AbstractTools):
         return agent
 
     def use(self, question):
-        response = self.code_agent.run(question)
+        response = self.agent.run(question)
         return response
