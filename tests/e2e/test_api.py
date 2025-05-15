@@ -3,8 +3,8 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from agentic_ai.src.agent.domain.commands import LLMResponseModel
-from agentic_ai.src.agent.entrypoints.app import app
+from src.agent.domain.commands import LLMResponseModel
+from src.agent.entrypoints.app import app
 
 client = TestClient(app)
 
@@ -12,11 +12,7 @@ client = TestClient(app)
 class TestAPI(unittest.TestCase):
     @patch("src.agent.adapters.llm.LLM.use")
     @patch("src.agent.adapters.agent_tools.Tools.use")
-    def test_happy_path_returns_200_and_answers(
-        self,
-        mock_CodeAgent,
-        mock_LLM,
-    ):
+    def test_happy_path_returns_200_and_answers(self, mock_CodeAgent, mock_LLM):
         mock_CodeAgent.return_value = "agent test"
 
         mock_LLM.return_value = LLMResponseModel(
