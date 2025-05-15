@@ -1,6 +1,5 @@
 from abc import ABC
 from datetime import datetime
-from pathlib import Path
 from typing import Dict
 
 import yaml
@@ -39,11 +38,7 @@ class Tools(AbstractTools):
         return model
 
     def init_prompt_templates(self, kwargs: Dict):
-        ROOTDIR: str = str(Path(__file__).resolve().parents[3])
-
-        prompt_filename = kwargs.get("prompts_file")
-
-        prompt_path = Path(ROOTDIR, "src", "agent", "prompts", prompt_filename)
+        prompt_path = kwargs.get("prompt_path")
 
         with open(prompt_path, "r") as file:
             base_prompts = yaml.safe_load(file)

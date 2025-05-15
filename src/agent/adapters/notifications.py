@@ -10,3 +10,10 @@ class AbstractNotifications(ABC):
 class CliNotifications(AbstractNotifications):
     def send(self, destination, message):
         print("send notification:", message)
+
+
+class ApiNotifications(AbstractNotifications):
+    temp = {}
+
+    def send(self, destination, message):
+        self.temp[destination] = message

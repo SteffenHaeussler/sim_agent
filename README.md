@@ -15,7 +15,7 @@ via fastapi app:
 ```
 make dev
 ```
-and access via [http://127.0.0.1:5000/docs](http://127.0.0.1:5000/docs)
+and access via [http://127.0.0.1:5055/docs](http://127.0.0.1:5055/docs)
 
 via cli:
 

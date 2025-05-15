@@ -1,3 +1,6 @@
+from loguru import logger
+
+from src.agent import config
 from src.agent.adapters.adapter import AbstractAdapter
 from src.agent.adapters.notifications import AbstractNotifications
 from src.agent.domain import commands, events, model
@@ -7,23 +10,25 @@ class InvalidQuestion(Exception):
     pass
 
 
-def answer(
-    command: commands.Question, adapter: AbstractAdapter
-) -> events.Response | events.FailedRequest:
+def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
     """service layer has only one abstraction: uow"""
 
     if not command or not command.question:
         raise InvalidQuestion("No question asked")
 
-    agent = model.BaseAgent(command)
+    agent = model.BaseAgent(command, config.get_agent_config())
     adapter.add(agent)
 
-    while not agent.is_answered or command is None:
+    # adapter for execution and agent for internal logic
+    while not agent.is_answered and command is not None:
+        logger.info(f"Calling Adapter with command: {type(command)}")
         updated_command = adapter.answer(command)
         command = agent.update(updated_command)
 
-    event = adapter.response
-    return event
+    event = agent.response
+    agent.events.append(event)
+
+    return None
 
 
 def send_response(
@@ -31,7 +36,7 @@ def send_response(
     notifications: AbstractNotifications,
 ):
     message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}"
-    notifications.send(None, message)
+    notifications.send(event.q_id, message)
     return None
 
 
@@ -40,7 +45,7 @@ def send_failure(
     notifications: AbstractNotifications,
 ):
     message = f"\nQuestion:\n{event.question}\nException:\n{event.exception}"
-    notifications.send(None, message)
+    notifications.send(event.q_id, message)
 
     return None
 

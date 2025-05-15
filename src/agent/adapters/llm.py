@@ -9,7 +9,7 @@ class AbstractLLM(ABC):
     def __init__(self):
         pass
 
-    def __call__(self, question: str, response_model: BaseModel) -> BaseModel:
+    def use(self, question: str, response_model: BaseModel) -> BaseModel:
         pass
 
 
@@ -20,15 +20,20 @@ class LLM(AbstractLLM):
 
         self.model_id = kwargs.get("model_id")
         self.temperature = float(kwargs.get("temperature", 0.0))
-        self.llm = self.init_llm()
+        self.client = self.init_llm()
 
     def init_llm(self):
         client = instructor.from_litellm(completion)
         return client
 
-    def __call__(self, question: str, response_model: BaseModel) -> BaseModel:
+    def use(self, question: str, response_model: BaseModel) -> BaseModel:
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": question},
+        ]
+
         response = self.client.chat.completions.create(
-            messages=question,
+            messages=messages,
             response_model=response_model,
             model=self.model_id,
             generation_config={

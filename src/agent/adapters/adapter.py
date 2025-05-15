@@ -38,9 +38,11 @@ class AgentAdapter(AbstractAdapter):
         )
 
     def answer(self, command: commands.Command) -> commands.Command:
+        if type(command) is commands.Question:
+            response = self.question(command)
         # if type(command) is commands.Check:
         #     response = self.check(command.question)
-        if type(command) is commands.UseTools:
+        elif type(command) is commands.UseTools:
             response = self.use(command)
         # elif type(command) is commands.Retrieve:
         #     response = self.retrieve(command.question)
@@ -49,7 +51,9 @@ class AgentAdapter(AbstractAdapter):
         elif type(command) is commands.LLMResponse:
             response = self.finalize(command)
         else:
-            raise NotImplementedError("Not implemented yet")
+            raise NotImplementedError(
+                f"Not implemented in AgentAdapter: {type(command)}"
+            )
         return response
 
     # def check(self, question: str) -> str:
@@ -62,6 +66,9 @@ class AgentAdapter(AbstractAdapter):
         command.response = response.response
         command.chain_of_thought = response.chain_of_thought
 
+        return command
+
+    def question(self, command: commands.Question) -> commands.Question:
         return command
 
     # def read(self, question):

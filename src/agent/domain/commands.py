@@ -24,29 +24,30 @@ class Question(Command):
 @dataclass
 class Retrieve(Command):
     question: str
-    answer: Optional[List[Dict]] = None
     q_id: str
+    answer: Optional[List[Dict]] = None
 
 
 @dataclass
 class Rerank(Command):
     question: str
-    answer: Optional[List[Dict]] = None
     q_id: str
+    answer: Optional[List[Dict]] = None
 
 
 @dataclass
 class UseTools(Command):
     question: str
-    response: Optional[str] = None
     q_id: str
+    response: Optional[str] = None
 
 
+@dataclass
 class LLMResponse(Command):
     question: str
-    chain_of_thought: str
     q_id: str
     response: Optional[str] = None
+    chain_of_thought: Optional[str] = None
 
 
 ################################################################################

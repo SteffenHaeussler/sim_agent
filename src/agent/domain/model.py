@@ -1,10 +1,13 @@
-from typing import Optional
+from typing import Dict, Optional
+
+import yaml
 
 from src.agent.domain import commands, events
+from src.agent.utils import populate_template
 
 
 class BaseAgent:
-    def __init__(self, question: commands.Question):
+    def __init__(self, question: commands.Question, kwargs: Dict):
         if not question or not question.question:
             raise ValueError("Question is required to enhance")
 
@@ -16,6 +19,8 @@ class BaseAgent:
 
         self.is_answered = False
         self.previous_command = None
+
+        self.kwargs = kwargs
 
         # self.cls_guard = guardrails.Guardrails(self)
         # self.cls_rag = rag.RAG(self)
@@ -30,7 +35,7 @@ class BaseAgent:
 
     #     return None
 
-    def change_llm_response(self, command: commands.LLMResponse):
+    def change_llm_response(self, command: commands.LLMResponse) -> None:
         if self.tool_answer is None:
             raise ValueError("Tool answer is required to finalize")
 
@@ -38,15 +43,14 @@ class BaseAgent:
 
         response = events.Response(
             question=self.question,
-            answer=command.response,
+            response=command.response,
             q_id=self.q_id,
         )
 
         self.response = response
-
         return None
 
-    def change_question(self, command: commands.Question):
+    def change_question(self, command: commands.Question) -> commands.UseTools:
         # if self.enhancement is None:
         #     raise ValueError("Enhancement is required to use tools
 
@@ -57,11 +61,10 @@ class BaseAgent:
 
         return new_command
 
-    def change_use_tools(self, command: commands.UseTools):
+    def change_use_tools(self, command: commands.UseTools) -> commands.LLMResponse:
         self.tool_answer = command
 
         prompt = self.create_final_answer_prompt(command)
-
         new_command = commands.LLMResponse(
             question=prompt,
             q_id=command.q_id,
@@ -69,10 +72,25 @@ class BaseAgent:
 
         return new_command
 
-    def create_final_answer_prompt(self, command: commands.UseTools):
-        prompt = (
-            f"Question: {self.question}\nTool Answer: {self.tool_answer}\nFinal Answer:"
+    def create_final_answer_prompt(self, command: commands.UseTools) -> str:
+        prompt_path = self.kwargs["prompt_path"]
+
+        with open(prompt_path, "r") as file:
+            base_prompts = yaml.safe_load(file)
+
+        prompt = base_prompts.get("final_answer", {}).get("final_answer", None)
+
+        if prompt is None:
+            raise ValueError("final_answer prompt not found")
+
+        prompt = populate_template(
+            prompt,
+            {
+                "question": command.question,
+                "response": command.response,
+            },
         )
+
         return prompt
 
     # def rerank(self, question):
@@ -109,7 +127,6 @@ class BaseAgent:
     def update(self, command: commands.Command) -> Optional[commands.Command]:
         self._update_state(command)
 
-        breakpoint()
         if self.is_answered:
             return None
 
