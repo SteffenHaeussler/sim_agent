@@ -3,7 +3,7 @@ from unittest.mock import patch
 from instructor.client import Instructor
 
 from src.agent.adapters.llm import LLM
-from src.agent.domain import commands
+from src.agent.domain.commands import LLMResponseModel
 
 
 class TestLLM:
@@ -22,7 +22,7 @@ class TestLLM:
     @patch("src.agent.adapters.llm.instructor.from_litellm")
     def test_llm_call(self, mock_from_litellm):
         mock_client = mock_from_litellm.return_value
-        mock_response = commands.LLMResponseModel(
+        mock_response = LLMResponseModel(
             response="Test response",
             chain_of_thought="Test chain of thought",
         )
@@ -38,7 +38,7 @@ class TestLLM:
         )
 
         question = "What is the capital of France?"
-        response = llm.use(question, commands.LLMResponseModel)
+        response = llm.use(question, LLMResponseModel)
 
         assert response.response == "Test response"
         assert response.chain_of_thought == "Test chain of thought"

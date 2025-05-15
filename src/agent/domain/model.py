@@ -7,7 +7,7 @@ from src.agent.utils import populate_template
 
 
 class BaseAgent:
-    def __init__(self, question: commands.Question, kwargs: Dict):
+    def __init__(self, question: commands.Question, kwargs: Dict = None):
         if not question or not question.question:
             raise ValueError("Question is required to enhance")
 
@@ -37,7 +37,7 @@ class BaseAgent:
 
     def change_llm_response(self, command: commands.LLMResponse) -> None:
         if self.tool_answer is None:
-            raise ValueError("Tool answer is required to finalize")
+            raise ValueError("Tool answer is required for LLM response")
 
         self.is_answered = True
 
