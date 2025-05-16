@@ -45,8 +45,8 @@ tools.AUTHORIZED_TYPES = [
 class BaseTool(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.base_url = kwargs.get("tools_api_base")
-        self.limit = kwargs.get("limit", 100)
+        self.base_url = kwargs["tools_api_base"]
+        self.limit = int(kwargs["tools_api_limit"])
 
     @staticmethod
     def format_input(ids: List[str]):
