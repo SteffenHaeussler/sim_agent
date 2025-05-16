@@ -22,7 +22,7 @@ down:
 
 
 test:
-	uv run python -mpytest tests/ -v
+	uv run python -m pytest tests/ -s -v
 
 coverage:
-	uv run python -mpytest tests/ -v --cov=src --cov-report=term-missing
+	uv run python -mpytest tests/ -s -v --cov=src --cov-report=term-missing

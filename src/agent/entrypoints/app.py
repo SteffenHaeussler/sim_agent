@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from uuid import uuid4
 
@@ -13,7 +14,8 @@ from src.agent.domain.commands import Question
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
 
-load_dotenv()
+if os.getenv("IS_TESTING") != "true":
+    load_dotenv(".env")
 
 setup_tracing(get_tracing_config())
 setup_logging(get_logging_config())

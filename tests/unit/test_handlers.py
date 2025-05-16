@@ -67,7 +67,6 @@ class TestAnswer:
         bus.handle(commands.Question("test query", "test_session_id"))
 
         agent = next(iter(bus.adapter.seen))
-
         assert agent.response.response == "test response"
 
     def test_sends_notification(self):
