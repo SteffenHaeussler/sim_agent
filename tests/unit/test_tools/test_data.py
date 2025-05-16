@@ -11,7 +11,10 @@ class TestGetData(unittest.TestCase):
     @patch("httpx.get")
     def test_get_data(self, mock_httpx_get):
         ids = [12, "test", None]
-        params = {"base_url": "http://mockapi.com"}
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
 
         mock_httpx_get.side_effect = data_mock_response
 
@@ -32,7 +35,10 @@ class TestGetData(unittest.TestCase):
     @patch("httpx.get")
     def test_get_last_data(self, mock_httpx_get):
         ids = [12, "test", None]
-        params = {"base_url": "http://mockapi.com"}
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
 
         mock_httpx_get.side_effect = data_mock_response
 
@@ -51,7 +57,10 @@ class TestGetData(unittest.TestCase):
     def test_no_id(self, mock_httpx_get):
         mock_httpx_get.side_effect = data_mock_response
         ids = [None]
-        params = {"base_url": "mock"}
+        params = {
+            "tools_api_base": "mock",
+            "tools_api_limit": 100,
+        }
 
         mock_httpx_get.return_value = None
 
@@ -70,7 +79,10 @@ class TestGetData(unittest.TestCase):
         mock_httpx_get.side_effect = data_mock_response
 
         ids = ["raise_error"]
-        params = {"base_url": "http://mockapi.com"}
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
         data = GetData(**params)
 
         result = data.forward(
@@ -84,7 +96,11 @@ class TestGetData(unittest.TestCase):
 
 class TestMapAggregation(unittest.TestCase):
     def test_map_aggregation(self):
-        data = GetData()
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
+        data = GetData(**params)
         self.assertEqual(data.map_aggregation("day"), "d")
         self.assertEqual(data.map_aggregation("hour"), "h")
         self.assertEqual(data.map_aggregation("minute"), "min")
@@ -93,14 +109,22 @@ class TestMapAggregation(unittest.TestCase):
         self.assertEqual(data.map_aggregation("min"), "min")
 
     def test_map_aggregation_invalid(self):
-        data = GetData()
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
+        data = GetData(**params)
         with self.assertRaises(ValueError):
             data.map_aggregation("invalid")
 
 
 class TestCompareData(unittest.TestCase):
     def test_compare_no_data(self):
-        compare = CompareData()
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
+        compare = CompareData(**params)
         out = compare.forward(pd.DataFrame())
         self.assertEqual(out["data"].shape, (0, 0))
 
@@ -111,6 +135,10 @@ class TestCompareData(unittest.TestCase):
                 "b": [1, 2, 3],
             }
         )
-        compare = CompareData()
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
+        compare = CompareData(**params)
         out = compare.forward(_input)
         self.assertEqual(out["data"].shape, (8, 2))

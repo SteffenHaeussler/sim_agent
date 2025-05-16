@@ -9,7 +9,10 @@ class TestGetInformation(unittest.TestCase):
     @patch("httpx.get")
     def test_get_information(self, mock_httpx_get):
         ids = [12, "9280dee1-5dbf-45b7-9e29-c805c4555ba6", None]
-        params = {"base_url": "http://mockapi.com"}
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
 
         mock_httpx_get.side_effect = information_mock_response
 
@@ -27,7 +30,10 @@ class TestGetInformation(unittest.TestCase):
         mock_httpx_get.side_effect = information_mock_response
 
         ids = [None]
-        params = {"base_url": "mock"}
+        params = {
+            "tools_api_base": "mock",
+            "tools_api_limit": 100,
+        }
 
         mock_httpx_get.return_value = None
 
@@ -43,7 +49,10 @@ class TestGetInformation(unittest.TestCase):
         mock_httpx_get.side_effect = information_mock_response
 
         ids = ["raise_error"]
-        params = {"base_url": "http://mockapi.com"}
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
         information = GetInformation(**params)
 
         result = information.forward(asset_ids=ids)

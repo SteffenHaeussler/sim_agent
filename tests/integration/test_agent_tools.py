@@ -15,6 +15,8 @@ class TestTools:
                 ROOTDIR, "src", "agent", "prompts", "base_prompts.yaml"
             ),
             "llm_api_base": "http://test_url.com",
+            "tools_api_base": "http://test_url.com",
+            "tools_api_limit": 100,
         }
 
         tools_instance = Tools(kwargs)
@@ -55,6 +57,8 @@ class TestTools:
                 ROOTDIR, "src", "agent", "prompts", "base_prompts.yaml"
             ),
             "llm_api_base": "http://test_url.com",
+            "tools_api_base": "http://test_url.com",
+            "tools_api_limit": 100,
         }
 
         tools_instance = Tools(kwargs)
@@ -76,6 +80,8 @@ class TestTools:
                 ROOTDIR, "src", "agent", "prompts", "base_prompts.yaml"
             ),
             "llm_api_base": "http://test_url.com",
+            "tools_api_base": "http://test_url.com",
+            "tools_api_limit": 100,
         }
         question = "What is the capital of France?"
 

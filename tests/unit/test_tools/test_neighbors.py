@@ -9,8 +9,10 @@ class TestGetNeighbors(unittest.TestCase):
     @patch("httpx.get")
     def test_get_neighbors(self, mock_httpx_get):
         ids = [12, "test", None]
-        params = {"base_url": "http://mockapi.com"}
-
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
         mock_httpx_get.side_effect = neighbor_mock_response
 
         neighbors = GetNeighbors(**params)
@@ -24,7 +26,10 @@ class TestGetNeighbors(unittest.TestCase):
     def test_no_id(self, mock_httpx_get):
         mock_httpx_get.side_effect = neighbor_mock_response
         ids = [None]
-        params = {"base_url": "mock"}
+        params = {
+            "tools_api_base": "mock",
+            "tools_api_limit": 100,
+        }
 
         mock_httpx_get.return_value = None
 
@@ -40,7 +45,10 @@ class TestGetNeighbors(unittest.TestCase):
         mock_httpx_get.side_effect = neighbor_mock_response
 
         ids = ["raise_error"]
-        params = {"base_url": "http://mockapi.com"}
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
         neighbors = GetNeighbors(**params)
 
         result = neighbors.forward(asset_ids=ids)

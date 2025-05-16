@@ -8,14 +8,15 @@ import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
 from src.agent.adapters.notifications import ApiNotifications
 from src.agent.bootstrap import bootstrap
+from src.agent.config import get_logging_config
 from src.agent.domain.commands import Question
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
 
 load_dotenv()
 
-setup_logging()
 setup_tracing()
+setup_logging(**get_logging_config())
 
 
 app = FastAPI()
