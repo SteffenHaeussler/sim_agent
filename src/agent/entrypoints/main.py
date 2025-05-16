@@ -10,6 +10,7 @@ from src.agent.adapters.notifications import CliNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
 from src.agent.domain.commands import Question
+from src.agent.observability.context import ctx_query_id
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
 
@@ -24,6 +25,7 @@ bus = bootstrap(adapter=AgentAdapter(), notifications=(CliNotifications()))
 
 
 def answer(question: str, q_id: str) -> str:
+    ctx_query_id.set(q_id)
     try:
         command = Question(question, q_id)
         bus.handle(command)

@@ -1,4 +1,4 @@
-from langfuse.decorators import observe
+from langfuse.decorators import langfuse_context, observe
 from loguru import logger
 
 from src.agent import config
@@ -14,6 +14,10 @@ class InvalidQuestion(Exception):
 @observe()
 def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
     """service layer has only one abstraction: uow"""
+    langfuse_context.update_current_trace(
+        name="answer handler",
+        session_id=command.q_id,
+    )
 
     if not command or not command.question:
         raise InvalidQuestion("No question asked")
@@ -38,6 +42,11 @@ def send_response(
     event: events.Response,
     notifications: AbstractNotifications,
 ):
+    langfuse_context.update_current_trace(
+        name="send_response handler",
+        session_id=event.q_id,
+    )
+
     message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}"
     notifications.send(event.q_id, message)
     return None
@@ -48,6 +57,11 @@ def send_failure(
     event: events.FailedRequest,
     notifications: AbstractNotifications,
 ):
+    langfuse_context.update_current_trace(
+        name="send_failure handler",
+        session_id=event.q_id,
+    )
+
     message = f"\nQuestion:\n{event.question}\nException:\n{event.exception}"
     notifications.send(event.q_id, message)
 
