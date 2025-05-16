@@ -1,11 +1,21 @@
 import argparse
 from uuid import uuid4
 
+from dotenv import load_dotenv
+
 import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
 from src.agent.adapters.notifications import CliNotifications
 from src.agent.bootstrap import bootstrap
+from src.agent.config import get_logging_config
 from src.agent.domain.commands import Question
+from src.agent.observability.logging import setup_logging
+from src.agent.observability.tracing import setup_tracing
+
+load_dotenv()
+
+setup_tracing()
+setup_logging(**get_logging_config())
 
 bus = bootstrap(adapter=AgentAdapter(), notifications=(CliNotifications()))
 

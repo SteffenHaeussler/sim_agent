@@ -1,10 +1,6 @@
 from os import getenv
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 ROOTDIR: str = str(Path(__file__).resolve().parents[1])
 
 
@@ -20,8 +16,8 @@ def get_agent_config():
 
 
 def get_llm_config():
-    model_id = getenv("llm_model_id", None)
-    temperature = getenv("llm_temperature", 0.0)
+    model_id = getenv("llm_model_id")
+    temperature = getenv("llm_temperature")
 
     if model_id is None:
         raise ValueError("llm_model_id not set in environment variables")
@@ -30,11 +26,12 @@ def get_llm_config():
 
 
 def get_tools_config():
-    llm_model_id = getenv("tools_model_id", None)
-    llm_api_base = getenv("tools_model_api_base", None)
-    max_steps = getenv("tools_max_steps", None)
-    prompts_file = getenv("tools_prompts_file", None)
-    tools_api_base = getenv("tools_api_base", None)
+    llm_model_id = getenv("tools_model_id")
+    llm_api_base = getenv("tools_model_api_base")
+    max_steps = getenv("tools_max_steps")
+    prompts_file = getenv("tools_prompts_file")
+    tools_api_base = getenv("tools_api_base")
+    tools_api_limit = getenv("tools_api_limit")
 
     if llm_model_id is None:
         raise ValueError("tools_model_id not set in environment variables")
@@ -53,4 +50,38 @@ def get_tools_config():
         max_steps=max_steps,
         prompt_path=prompt_path,
         tools_api_base=tools_api_base,
+        tools_api_limit=tools_api_limit,
     )
+
+
+def get_langfuse_config():
+    langfuse_public_key = getenv("LANGFUSE_PUBLIC_KEY")
+    langfuse_secret_key = getenv("LANGFUSE_SECRET_KEY")
+    langfuse_project_id = getenv("LANGFUSE_PROJECT_ID")
+    langfuse_host = getenv("LANGFUSE_HOST", None)
+
+    if langfuse_public_key is None:
+        raise ValueError("langfuse_public_key not set in environment variables")
+
+    if langfuse_project_id is None:
+        raise ValueError("langfuse_project_id not set in environment variables")
+
+    if langfuse_host is None:
+        raise ValueError("langfuse_host not set in environment variables")
+
+    if langfuse_secret_key is None:
+        raise ValueError("langfuse_secret_key not set in environment variables")
+
+    return dict(
+        langfuse_public_key=langfuse_public_key,
+        langfuse_project_id=langfuse_project_id,
+        langfuse_host=langfuse_host,
+        langfuse_secret_key=langfuse_secret_key,
+    )
+
+
+def get_logging_config():
+    logging_level = getenv("logging_level")
+    logging_format = getenv("logging_format")
+
+    return dict(logging_level=logging_level, logging_format=logging_format)

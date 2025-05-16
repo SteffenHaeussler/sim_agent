@@ -1,3 +1,4 @@
+from langfuse.decorators import observe
 from loguru import logger
 
 from src.agent import config
@@ -10,6 +11,7 @@ class InvalidQuestion(Exception):
     pass
 
 
+@observe()
 def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
     """service layer has only one abstraction: uow"""
 
@@ -31,6 +33,7 @@ def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
     return None
 
 
+@observe()
 def send_response(
     event: events.Response,
     notifications: AbstractNotifications,
@@ -40,6 +43,7 @@ def send_response(
     return None
 
 
+@observe()
 def send_failure(
     event: events.FailedRequest,
     notifications: AbstractNotifications,

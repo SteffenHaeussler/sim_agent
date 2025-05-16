@@ -1,10 +1,13 @@
 import inspect
 
+from langfuse.decorators import observe
+
 from src.agent.adapters import adapter
 from src.agent.adapters.notifications import AbstractNotifications, CliNotifications
 from src.agent.service_layer import handlers, messagebus
 
 
+@observe()
 def bootstrap(
     adapter: adapter.AbstractAdapter = adapter.AbstractAdapter(),
     notifications: AbstractNotifications = None,

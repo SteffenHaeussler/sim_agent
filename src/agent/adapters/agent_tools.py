@@ -22,8 +22,8 @@ class Tools(AbstractTools):
         kwargs: Dict,
     ):
         self.kwargs = kwargs
-        self.max_steps = int(kwargs.get("max_steps", 5))
-        self.llm_model_id = kwargs.get("llm_model_id")
+        self.max_steps = int(kwargs["max_steps"])
+        self.llm_model_id = kwargs["llm_model_id"]
 
         self.model = self.init_model(self.kwargs)
         self.prompt_templates = self.init_prompt_templates(self.kwargs)
@@ -31,14 +31,14 @@ class Tools(AbstractTools):
         self.agent = self.init_agent(self.kwargs)
 
     def init_model(self, kwargs: Dict):
-        api_base = kwargs.get("llm_api_base", None)
+        api_base = kwargs["llm_api_base"]
 
         model = LiteLLMModel(model_id=self.llm_model_id, api_base=api_base)
 
         return model
 
     def init_prompt_templates(self, kwargs: Dict):
-        prompt_path = kwargs.get("prompt_path")
+        prompt_path = kwargs["prompt_path"]
 
         with open(prompt_path, "r") as file:
             base_prompts = yaml.safe_load(file)
@@ -60,7 +60,7 @@ class Tools(AbstractTools):
                 tools.GetInformation(**kwargs),
                 tools.GetNeighbors(**kwargs),
                 tools.PlotData(**kwargs),
-                tools.FinalAnswerTool(),
+                tools.FinalAnswerTool(**kwargs),
             ],
             model=self.model,
             stream_outputs=True,

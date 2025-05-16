@@ -7,15 +7,19 @@ requires-python = ">=3.12.8"
 dependencies = [
     "fastapi>=0.115.12",
     "instructor>=1.8.1",
+    "langfuse>=2.60.5",
     "litellm>=1.65.4.post1",
     "loguru>=0.7.3",
     "matplotlib>=3.10.3",
     "numpy>=2.2.5",
+    "openinference-instrumentation-smolagents>=0.1.11",
+    "opentelemetry-exporter-otlp>=1.33.0",
+    "opentelemetry-sdk>=1.33.0",
     "pandas>=2.2.3",
     "pytest>=8.3.5",
     "python-dateutil>=2.9.0.post0",
     "python-dotenv>=1.1.0",
-    "smolagents>=1.13.0",
+    "smolagents[telemetry]>=1.13.0",
     "uvicorn>=0.34.0",
 ]
 

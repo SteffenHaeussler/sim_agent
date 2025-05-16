@@ -18,8 +18,8 @@ class LLM(AbstractLLM):
         super().__init__()
         self.kwargs = kwargs
 
-        self.model_id = kwargs.get("model_id")
-        self.temperature = float(kwargs.get("temperature", 0.0))
+        self.model_id = kwargs["model_id"]
+        self.temperature = float(kwargs["temperature"])
         self.client = self.init_llm()
 
     def init_llm(self):
