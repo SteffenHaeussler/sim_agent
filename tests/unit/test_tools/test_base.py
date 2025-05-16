@@ -5,11 +5,19 @@ from src.agent.adapters.tools import GetData
 
 class TestBaseTool(unittest.TestCase):
     def test_call_api(self):
-        data = GetData()
+        kwargs = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
+        data = GetData(**kwargs)
         self.assertEqual(data.call_api("http://mockapi.com"), [])
 
     def test_convert_to_iso_format(self):
-        base = GetData()
+        kwargs = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
+        base = GetData(**kwargs)
 
         test_dates = [
             "2025-12-31 23:59:00",
@@ -36,7 +44,11 @@ class TestBaseTool(unittest.TestCase):
             self.assertEqual(converted, "2025-12-31T00:00:00")
 
     def test_fail_convert_to_iso_format(self):
-        base = GetData()
+        kwargs = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
+        base = GetData(**kwargs)
 
         test_dates = [
             "invalid",

@@ -9,7 +9,10 @@ class TestConvertIdToName(unittest.TestCase):
     @patch("httpx.get")
     def test_convert_id_to_name(self, mock_httpx_get):
         ids = [12, "test", None]
-        params = {"base_url": "http://mockapi.com"}
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
 
         mock_httpx_get.side_effect = conversion_mock_response
 
@@ -25,7 +28,10 @@ class TestConvertIdToName(unittest.TestCase):
         mock_httpx_get.side_effect = conversion_mock_response
 
         ids = [None]
-        params = {"base_url": "mock"}
+        params = {
+            "tools_api_base": "mock",
+            "tools_api_limit": 100,
+        }
 
         mock_httpx_get.return_value = None
 
@@ -41,7 +47,10 @@ class TestConvertIdToName(unittest.TestCase):
         mock_httpx_get.side_effect = conversion_mock_response
 
         ids = ["raise_error"]
-        params = {"base_url": "http://mockapi.com"}
+        params = {
+            "tools_api_base": "http://mockapi.com",
+            "tools_api_limit": 100,
+        }
         id2name = ConvertIdToName(**params)
 
         result = id2name.forward(asset_ids=ids)
