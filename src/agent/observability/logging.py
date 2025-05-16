@@ -48,7 +48,10 @@ def sink_serializer(message):
     print(serialized, file=sys.stdout)
 
 
-def setup_logging(logging_level, logging_format):
+def setup_logging(config: dict):
+    logging_level = config.get("logging_level")
+    logging_format = config.get("logging_format")
+
     intercept_handler = InterceptHandler()
 
     loggers = (

@@ -19,3 +19,10 @@ up:
 
 down:
 	docker-compose down --remove-orphans
+
+
+test:
+	uv run python -mpytest tests/ -v
+
+coverage:
+	uv run python -mpytest tests/ -v --cov=src --cov-report=term-missing
