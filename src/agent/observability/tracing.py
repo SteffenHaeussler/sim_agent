@@ -16,11 +16,6 @@ def setup_tracing(config: dict):
             f"{config['langfuse_public_key']}:{config['langfuse_secret_key']}".encode()
         ).decode()
 
-        trace_provider = TracerProvider()
-        trace_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter()))
-
-        SmolagentsInstrumentor().instrument(tracer_provider=trace_provider)
-
         os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = config[
             "otel_exporter_otlp_endpoint"
         ]
@@ -32,6 +27,11 @@ def setup_tracing(config: dict):
         os.environ["LANGFUSE_PROJECT_ID"] = config["langfuse_project_id"]
         os.environ["LANGFUSE_PUBLIC_KEY"] = config["langfuse_public_key"]
         os.environ["LANGFUSE_SECRET_KEY"] = config["langfuse_secret_key"]
+
+        trace_provider = TracerProvider()
+        trace_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter()))
+
+        SmolagentsInstrumentor().instrument(tracer_provider=trace_provider)
 
     else:
         if "LANGFUSE_HOST" in os.environ:
