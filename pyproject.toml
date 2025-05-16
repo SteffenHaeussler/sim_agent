@@ -28,4 +28,5 @@ dependencies = [
 dev = [
     "ipdb>=0.13.13",
     "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
 ]

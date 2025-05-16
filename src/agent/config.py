@@ -54,11 +54,13 @@ def get_tools_config():
     )
 
 
-def get_langfuse_config():
-    langfuse_public_key = getenv("LANGFUSE_PUBLIC_KEY")
-    langfuse_secret_key = getenv("LANGFUSE_SECRET_KEY")
-    langfuse_project_id = getenv("LANGFUSE_PROJECT_ID")
-    langfuse_host = getenv("LANGFUSE_HOST", None)
+def get_tracing_config():
+    langfuse_public_key = getenv("langfuse_public_key")
+    langfuse_secret_key = getenv("langfuse_secret_key")
+    langfuse_project_id = getenv("langfuse_project_id")
+    langfuse_host = getenv("langfuse_host")
+    otel_exporter_otlp_endpoint = "https://cloud.langfuse.com/api/public/otel"
+    telemetry_enabled = getenv("telemetry_enabled", "false")
 
     if langfuse_public_key is None:
         raise ValueError("langfuse_public_key not set in environment variables")
@@ -77,6 +79,8 @@ def get_langfuse_config():
         langfuse_project_id=langfuse_project_id,
         langfuse_host=langfuse_host,
         langfuse_secret_key=langfuse_secret_key,
+        otel_exporter_otlp_endpoint=otel_exporter_otlp_endpoint,
+        telemetry_enabled=telemetry_enabled,
     )
 
 
