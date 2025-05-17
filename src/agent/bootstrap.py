@@ -1,9 +1,10 @@
 import inspect
 
-from langfuse.decorators import observe
+from langfuse.decorators import langfuse_context, observe
 
 from src.agent.adapters import adapter
 from src.agent.adapters.notifications import AbstractNotifications, CliNotifications
+from src.agent.observability.context import ctx_query_id
 from src.agent.service_layer import handlers, messagebus
 
 
@@ -12,6 +13,11 @@ def bootstrap(
     adapter: adapter.AbstractAdapter = adapter.AbstractAdapter(),
     notifications: AbstractNotifications = None,
 ) -> messagebus.MessageBus:
+    langfuse_context.update_current_trace(
+        name="bootstrap",
+        session_id=ctx_query_id.get(),
+    )
+
     if notifications is None:
         notifications = CliNotifications()
 
