@@ -30,7 +30,6 @@ def setup_tracing(config: dict):
 
         trace_provider = TracerProvider()
         trace_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter()))
-
         SmolagentsInstrumentor().instrument(tracer_provider=trace_provider)
 
     else:

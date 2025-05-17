@@ -1,11 +1,15 @@
+import os
 from abc import ABC
 from datetime import datetime
 from typing import Dict
 
 import yaml
+from langfuse.decorators import langfuse_context, observe
+from opentelemetry import trace
 from smolagents import CodeAgent, LiteLLMModel, PromptTemplates
 
 import src.agent.adapters.tools as tools
+from src.agent.observability.context import ctx_query_id
 
 
 class AbstractTools(ABC):
@@ -71,5 +75,31 @@ class Tools(AbstractTools):
         return agent
 
     def use(self, question):
+        if os.environ["TELEMETRY_ENABLED"] == "true":
+            response = self._use_with_telemetry(question)
+        else:
+            response = self._use(question)
+        return response
+
+    def _use(self, question):
         response = self.agent.run(question)
+        return response
+
+    @observe()
+    def _use_with_telemetry(self, question):
+        langfuse_context.update_current_observation(
+            name="use_tools",
+            session_id=ctx_query_id.get(),
+        )
+
+        tracer = trace.get_tracer("smolagents")
+
+        with tracer.start_as_current_span("Smolagent-Trace") as span:
+            span.set_attribute("session.id", ctx_query_id.get())
+            span.set_attribute("langfuse.session.id", ctx_query_id.get())
+            span.set_attribute("langfuse.session_id", ctx_query_id.get())
+            span.set_attribute("session_id", ctx_query_id.get())
+
+            response = self.agent.run(question)
+
         return response

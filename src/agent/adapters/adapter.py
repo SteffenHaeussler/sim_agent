@@ -1,5 +1,7 @@
 from abc import ABC
 
+from langfuse.decorators import langfuse_context, observe
+
 from src.agent import config
 from src.agent.adapters import agent_tools, db, llm, transformer
 from src.agent.domain import commands, model
@@ -60,7 +62,13 @@ class AgentAdapter(AbstractAdapter):
     #     response = self.llm(question)
     #     return response
 
+    @observe()
     def finalize(self, command: commands.LLMResponse) -> commands.LLMResponse:
+        langfuse_context.update_current_trace(
+            name="finalize",
+            session_id=command.q_id,
+        )
+
         response = self.llm.use(command.question, commands.LLMResponseModel)
 
         command.response = response.response
@@ -68,14 +76,26 @@ class AgentAdapter(AbstractAdapter):
 
         return command
 
+    @observe()
     def question(self, command: commands.Question) -> commands.Question:
+        langfuse_context.update_current_trace(
+            name="question",
+            session_id=command.q_id,
+        )
+
         return command
 
     # def read(self, question):
     #     response = self.db.read(question)
     #     return response
 
+    @observe()
     def use(self, command: commands.UseTools) -> commands.UseTools:
+        langfuse_context.update_current_trace(
+            name="use",
+            session_id=command.q_id,
+        )
+
         response = self.tools.use(command.question)
 
         command.response = response

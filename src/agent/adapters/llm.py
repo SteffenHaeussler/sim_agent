@@ -1,8 +1,11 @@
 from abc import ABC
 
 import instructor
+from langfuse.decorators import langfuse_context, observe
 from litellm import completion
 from pydantic import BaseModel
+
+from src.agent.observability.context import ctx_query_id
 
 
 class AbstractLLM(ABC):
@@ -26,11 +29,20 @@ class LLM(AbstractLLM):
         client = instructor.from_litellm(completion)
         return client
 
+    @observe(as_type="generation")
     def use(self, question: str, response_model: BaseModel) -> BaseModel:
         messages = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": question},
         ]
+
+        langfuse_context.update_current_observation(
+            name="llm_finalize",
+            input=messages.copy(),
+            model=self.model_id,
+            metadata={"temperature": self.temperature},
+            session_id=ctx_query_id.get(),
+        )
 
         response = self.client.chat.completions.create(
             messages=messages,
@@ -40,4 +52,5 @@ class LLM(AbstractLLM):
                 "temperature": self.temperature,
             },
         )
+
         return response
