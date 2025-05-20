@@ -3,7 +3,7 @@ from abc import ABC
 from langfuse.decorators import langfuse_context, observe
 
 from src.agent import config
-from src.agent.adapters import agent_tools, db, llm, transformer
+from src.agent.adapters import agent_tools, db, llm, rag
 from src.agent.domain import commands, model
 
 
@@ -13,8 +13,7 @@ class AbstractAdapter(ABC):
         self.db = db.AbstractDB()
         self.llm = llm.AbstractLLM()
         self.tools = agent_tools.AbstractTools()
-        self.rerank = transformer.AbstractModel()
-        self.retrieve = db.AbstractDB()
+        self.rag = rag.AbstractModel()
 
     def add(self, agent: model.BaseAgent):
         self.seen.add(agent)
@@ -38,6 +37,7 @@ class AgentAdapter(AbstractAdapter):
         self.llm = llm.LLM(
             kwargs=config.get_llm_config(),
         )
+        self.rag = rag.BaseRAG(config.get_rag_config())
 
     def answer(self, command: commands.Command) -> commands.Command:
         if type(command) is commands.Question:
@@ -46,10 +46,12 @@ class AgentAdapter(AbstractAdapter):
         #     response = self.check(command.question)
         elif type(command) is commands.UseTools:
             response = self.use(command)
-        # elif type(command) is commands.Retrieve:
-        #     response = self.retrieve(command.question)
-        # elif type(command) is commands.Rerank:
-        #     response = self.rerank(command.question)
+        elif type(command) is commands.Retrieve:
+            response = self.retrieve(command)
+        elif type(command) is commands.Rerank:
+            response = self.rerank(command)
+        elif type(command) is commands.Enhance:
+            response = self.enhance(command)
         elif type(command) is commands.LLMResponse:
             response = self.finalize(command)
         else:
@@ -101,10 +103,50 @@ class AgentAdapter(AbstractAdapter):
         command.response = response
         return command
 
-    # def retrieve(self, question):
-    #     response = self.retrieve.retrieve(question)
-    #     return response
+    @observe()
+    def retrieve(self, command: commands.Retrieve):
+        langfuse_context.update_current_trace(
+            name="retrieve",
+            session_id=command.q_id,
+        )
+        candidates = []
+        response = self.rag.embed(command.question)
 
-    # def rerank(self, question):
-    #     response = self.rerank.rerank(question)
-    #     return response
+        if response is not None:
+            response = self.rag.retrieve(response["embedding"])
+
+            for candidate in response["results"]:
+                candidates.append(commands.KBResponse(**candidate))
+
+        command.candidates = candidates
+        return command
+
+    @observe()
+    def rerank(self, command: commands.Rerank):
+        langfuse_context.update_current_trace(
+            name="rerank",
+            session_id=command.q_id,
+        )
+        candidates = []
+
+        for candidate in command.candidates:
+            response = self.rag.rerank(command.question, candidate.description)
+            breakpoint()
+            candidates.append(commands.RerankResponse(**response, **candidate))
+
+        command.candidates = candidates
+        return command
+
+    @observe()
+    def enhance(self, command: commands.Enhance):
+        langfuse_context.update_current_trace(
+            name="enhance",
+            session_id=command.q_id,
+        )
+
+        response = self.llm.use(command.question, commands.LLMResponseModel)
+        breakpoint()
+        command.response = response.response
+        command.chain_of_thought = response.chain_of_thought
+
+        return command

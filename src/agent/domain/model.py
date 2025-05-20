@@ -1,8 +1,8 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import yaml
 
-from src.agent.domain import commands, events
+from src.agent.domain import commands, events, rag
 from src.agent.utils import populate_template
 
 
@@ -23,7 +23,7 @@ class BaseAgent:
         self.kwargs = kwargs
 
         # self.cls_guard = guardrails.Guardrails(self)
-        # self.cls_rag = rag.RAG(self)
+        self.cls_rag = rag.RAGLogic(self)
         self.events = []
 
     # def check(self, question):
@@ -50,12 +50,20 @@ class BaseAgent:
         self.response = response
         return None
 
-    def change_question(self, command: commands.Question) -> commands.UseTools:
-        # if self.enhancement is None:
-        #     raise ValueError("Enhancement is required to use tools
+    def check_question(self, command: commands.Question) -> commands.UseTools:
+        new_command = commands.Retrieve(
+            question=command.question,
+            q_id=command.q_id,
+        )
+
+        return new_command
+
+    def change_question(self, command: commands.Enhance) -> commands.UseTools:
+        self.enhancement = command.enhancement
+        breakpoint()
 
         new_command = commands.UseTools(
-            question=command.question,
+            question=command.enhancement,
             q_id=command.q_id,
         )
 
@@ -72,44 +80,71 @@ class BaseAgent:
 
         return new_command
 
-    def create_final_answer_prompt(self, command: commands.UseTools) -> str:
+    def create_prompt(self, command: Union[commands.UseTools, commands.Enhance]) -> str:
         prompt_path = self.kwargs["prompt_path"]
 
         with open(prompt_path, "r") as file:
             base_prompts = yaml.safe_load(file)
 
-        prompt = base_prompts.get("final_answer", {}).get("final_answer", None)
+        if type(command) is commands.UseTools:
+            prompt = base_prompts.get("finalize", None)
+
+        elif type(command) is commands.Enhance:
+            prompt = base_prompts.get("enhance", None)
+        else:
+            raise ValueError("Invalid command type")
 
         if prompt is None:
             raise ValueError("final_answer prompt not found")
-
-        prompt = populate_template(
-            prompt,
-            {
-                "question": command.question,
-                "response": command.response,
-            },
-        )
+        breakpoint()
+        if type(command) is commands.UseTools:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
+                    "response": command.response,
+                },
+            )
+        elif type(command) is commands.Enhance:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
+                },
+            )
+        else:
+            raise ValueError("Invalid command type")
 
         return prompt
 
-    # def rerank(self, question):
-    #     if not question:
-    #         raise ValueError("Question is required to enhance")
+    def change_rerank(self, command: commands.Rerank) -> commands.Enhance:
+        # if not command.question:
+        #     raise ValueError("Question is required to enhance")
 
-    #     rerank = self.cls_rag.rerank(question)
-    #     self.cls_rag.rerank = rerank
+        # rerank = self.cls_rag.rerank(question)
+        # self.cls_rag.rerank = rerank
+        breakpoint()
 
-    #     return rerank
+        new_command = commands.Enhance(
+            question=command.question,
+            q_id=command.q_id,
+        )
 
-    # def retrieve(self, question):
-    #     if not question:
-    #         raise ValueError("Question is required to enhance")
+        return new_command
 
-    #     retrieve = self.cls_rag.retrieve(question)
-    #     self.cls_rag.retrieve = retrieve
+    def change_retrieve(self, command: commands.Retrieve) -> commands.Rerank:
+        # if not command.question:
+        #     raise ValueError("Question is required to enhance")
 
-    #     return retrieve
+        # retrieve = self.cls_rag.retrieve(question)
+        # # self.cls_rag.retrieve = retrieve
+        new_command = commands.Rerank(
+            question=command.question,
+            q_id=command.q_id,
+            candidates=command.candidates,
+        )
+
+        return new_command
 
     def _update_state(self, response: commands.Command) -> None:
         if self.previous_command is type(response):
@@ -133,11 +168,13 @@ class BaseAgent:
         # if type(command) is commands.Check:
         #     new_command = self.check(response)
         if type(command) is commands.Question:
+            new_command = self.check_question(command)
+        elif type(command) is commands.Retrieve:
+            new_command = self.change_retrieve(command)
+        elif type(command) is commands.Rerank:
+            new_command = self.change_rerank(command)
+        elif type(command) is commands.Enhance:
             new_command = self.change_question(command)
-        # elif type(command) is commands.Retrieve:
-        #     new_command = self.retrieve(command)
-        # elif type(command) is commands.Rerank:
-        #     new_command = self.rerank(command)
         elif type(command) is commands.UseTools:
             new_command = self.change_use_tools(command)
         elif type(command) is commands.LLMResponse:
