@@ -1,3 +1,4 @@
+import json
 from typing import Dict, Optional, Union
 
 import yaml
@@ -59,11 +60,13 @@ class BaseAgent:
         return new_command
 
     def change_question(self, command: commands.Enhance) -> commands.UseTools:
-        self.enhancement = command.enhancement
-        breakpoint()
+        if command.response is None:
+            self.enhancement = self.question
+        else:
+            self.enhancement = command.response
 
         new_command = commands.UseTools(
-            question=command.enhancement,
+            question=self.enhancement,
             q_id=command.q_id,
         )
 
@@ -72,7 +75,7 @@ class BaseAgent:
     def change_use_tools(self, command: commands.UseTools) -> commands.LLMResponse:
         self.tool_answer = command
 
-        prompt = self.create_final_answer_prompt(command)
+        prompt = self.create_prompt(command)
         new_command = commands.LLMResponse(
             question=prompt,
             q_id=command.q_id,
@@ -80,7 +83,7 @@ class BaseAgent:
 
         return new_command
 
-    def create_prompt(self, command: Union[commands.UseTools, commands.Enhance]) -> str:
+    def create_prompt(self, command: Union[commands.UseTools, commands.Rerank]) -> str:
         prompt_path = self.kwargs["prompt_path"]
 
         with open(prompt_path, "r") as file:
@@ -89,14 +92,13 @@ class BaseAgent:
         if type(command) is commands.UseTools:
             prompt = base_prompts.get("finalize", None)
 
-        elif type(command) is commands.Enhance:
+        elif type(command) is commands.Rerank:
             prompt = base_prompts.get("enhance", None)
         else:
             raise ValueError("Invalid command type")
 
         if prompt is None:
             raise ValueError("final_answer prompt not found")
-        breakpoint()
         if type(command) is commands.UseTools:
             prompt = populate_template(
                 prompt,
@@ -105,11 +107,15 @@ class BaseAgent:
                     "response": command.response,
                 },
             )
-        elif type(command) is commands.Enhance:
+        elif type(command) is commands.Rerank:
+            candidates = [i.model_dump() for i in command.candidates]
+            candidates = json.dumps(candidates)
+
             prompt = populate_template(
                 prompt,
                 {
                     "question": command.question,
+                    "information": candidates,
                 },
             )
         else:
@@ -123,10 +129,10 @@ class BaseAgent:
 
         # rerank = self.cls_rag.rerank(question)
         # self.cls_rag.rerank = rerank
-        breakpoint()
+        prompt = self.create_prompt(command)
 
         new_command = commands.Enhance(
-            question=command.question,
+            question=prompt,
             q_id=command.q_id,
         )
 
@@ -135,7 +141,6 @@ class BaseAgent:
     def change_retrieve(self, command: commands.Retrieve) -> commands.Rerank:
         # if not command.question:
         #     raise ValueError("Question is required to enhance")
-
         # retrieve = self.cls_rag.retrieve(question)
         # # self.cls_rag.retrieve = retrieve
         new_command = commands.Rerank(
@@ -184,4 +189,5 @@ class BaseAgent:
                 f"Not implemented yet for BaseAgent: {type(command)}"
             )
 
+        return new_command
         return new_command

@@ -36,7 +36,7 @@ def get_rag_config():
 
     n_ranking_candidates = getenv("n_ranking_candidates")
     n_retrieval_candidates = getenv("n_retrieval_candidates")
-
+    retrieval_table = getenv("retrieval_table")
     if embedding_api_base is None or embedding_endpoint is None:
         raise ValueError(
             "embedding_api_base or embedding_endpoint not set in environment variables"
@@ -52,6 +52,9 @@ def get_rag_config():
             "ranking_api_base or ranking_endpoint not set in environment variables"
         )
 
+    if retrieval_table is None:
+        raise ValueError("retrieval_table not set in environment variables")
+
     embedding_url = f"{embedding_api_base}/{embedding_endpoint}"
     ranking_url = f"{ranking_api_base}/{ranking_endpoint}"
     retrieval_url = f"{retrieval_api_base}/{retrieval_endpoint}"
@@ -62,6 +65,7 @@ def get_rag_config():
         retrieval_url=retrieval_url,
         n_ranking_candidates=n_ranking_candidates,
         n_retrieval_candidates=n_retrieval_candidates,
+        retrieval_table=retrieval_table,
     )
 
 

@@ -24,22 +24,31 @@ class BaseRAG(AbstractModel):
         self.embedding_url = kwargs["embedding_url"]
         self.ranking_url = kwargs["ranking_url"]
         self.retrieval_url = kwargs["retrieval_url"]
-        self.n_retrieval_candidates = kwargs["n_retrieval_candidates"]
+        self.n_retrieval_candidates = int(kwargs["n_retrieval_candidates"])
+        self.n_ranking_candidates = int(kwargs["n_ranking_candidates"])
+        self.retrieval_table = kwargs["retrieval_table"]
 
     def embed(self, text: str):
         response = self.call_api(self.embedding_url, {"text": text})
 
         return response.json() if response else None
 
-    def rerank(self, query: str, text: str):
-        response = self.call_api(self.ranking_url, {"text": text, "query": query})
+    def rerank(self, question: str, text: str):
+        response = self.call_api(
+            self.ranking_url,
+            {"text": text, "question": question, "table": self.retrieval_table},
+        )
 
         return response.json() if response else None
 
     def retrieve(self, embedding: list[float]):
         response = self.call_api(
             self.retrieval_url,
-            {"embedding": embedding, "n_items": self.n_retrieval_candidates},
+            {
+                "embedding": embedding,
+                "n_items": self.n_retrieval_candidates,
+                "table": self.retrieval_table,
+            },
             method="post",
         )
 
