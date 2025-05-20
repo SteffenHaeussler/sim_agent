@@ -3,7 +3,7 @@ from typing import Dict, Optional, Union
 
 import yaml
 
-from src.agent.domain import commands, events, rag
+from src.agent.domain import commands, events
 from src.agent.utils import populate_template
 
 
@@ -24,7 +24,7 @@ class BaseAgent:
         self.kwargs = kwargs
 
         # self.cls_guard = guardrails.Guardrails(self)
-        self.cls_rag = rag.RAGLogic(self)
+        self.cls_rag = None  # rag.RAGLogic(self)
         self.events = []
 
     # def check(self, question):
