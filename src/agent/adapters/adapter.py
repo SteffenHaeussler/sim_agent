@@ -131,10 +131,14 @@ class AgentAdapter(AbstractAdapter):
 
         for candidate in command.candidates:
             response = self.rag.rerank(command.question, candidate.description)
-            breakpoint()
-            candidates.append(commands.RerankResponse(**response, **candidate))
 
-        command.candidates = candidates
+            temp = candidate.model_dump()
+            temp.pop("score", None)
+            candidates.append(commands.RerankResponse(**response, **temp))
+
+        candidates = sorted(candidates, key=lambda x: -x.score)
+
+        command.candidates = candidates[: self.rag.n_ranking_candidates]
         return command
 
     @observe()
@@ -145,7 +149,7 @@ class AgentAdapter(AbstractAdapter):
         )
 
         response = self.llm.use(command.question, commands.LLMResponseModel)
-        breakpoint()
+
         command.response = response.response
         command.chain_of_thought = response.chain_of_thought
 
