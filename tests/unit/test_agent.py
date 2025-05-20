@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from src.agent.domain import commands
@@ -44,7 +46,23 @@ class TestAgent:
         assert agent.previous_command is type(command)
 
     def test_agent_change_question(self):
-        question = commands.Question(question="test query", q_id="test session id")
+        question = commands.Enhance(
+            question="test query", q_id="test session id", response="test response"
+        )
+        agent = BaseAgent(question)
+
+        response = agent.update(question)
+        assert response == commands.UseTools(
+            question="test response",
+            q_id="test session id",
+        )
+        assert agent.is_answered is False
+        assert agent.previous_command is type(question)
+
+    def test_agent_none_change_question(self):
+        question = commands.Enhance(
+            question="test query", q_id="test session id", response=None
+        )
         agent = BaseAgent(question)
 
         response = agent.update(question)
@@ -54,6 +72,57 @@ class TestAgent:
         )
         assert agent.is_answered is False
         assert agent.previous_command is type(question)
+
+    def test_agent_check_question(self):
+        question = commands.Question(question="test query", q_id="test session id")
+        agent = BaseAgent(question)
+
+        response = agent.check_question(question)
+        assert response == commands.Retrieve(
+            question="test query", q_id="test session id"
+        )
+
+    @patch("src.agent.domain.model.BaseAgent.create_prompt")
+    def test_agent_change_use_tools(self, mock_create_prompt):
+        question = commands.UseTools(
+            question="test query", q_id="test session id", response="test response"
+        )
+
+        mock_create_prompt.return_value = "test prompt"
+
+        agent = BaseAgent(question)
+
+        response = agent.update(question)
+        assert response == commands.LLMResponse(
+            question="test prompt",
+            q_id="test session id",
+        )
+
+    @patch("src.agent.domain.model.BaseAgent.create_prompt")
+    def test_agent_change_rerank(self, mock_create_prompt):
+        question = commands.Rerank(
+            question="test query", q_id="test session id", candidates=[]
+        )
+
+        mock_create_prompt.return_value = "test prompt"
+
+        agent = BaseAgent(question)
+
+        response = agent.update(question)
+        assert response == commands.Enhance(
+            question="test prompt", q_id="test session id"
+        )
+
+    def test_agent_change_retrieve(self):
+        question = commands.Retrieve(
+            question="test query", q_id="test session id", candidates=[]
+        )
+        agent = BaseAgent(question)
+
+        response = agent.update(question)
+        assert response == commands.Rerank(
+            question="test query", q_id="test session id", candidates=[]
+        )
 
     def test_change_llm_response_without_tools(self):
         question = commands.Question(question="test query", q_id="test session id")
