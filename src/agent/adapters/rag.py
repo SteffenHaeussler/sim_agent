@@ -1,4 +1,3 @@
-import json
 from abc import ABC
 
 import httpx
@@ -72,10 +71,6 @@ class BaseRAG(AbstractModel):
             )
         except httpx.RequestError as e:
             logger.debug(f"Request error fetching name for {api_url}: {e}")
-        except json.JSONDecodeError as e:
-            logger.debug(
-                f"JSON decode error for {api_url}. Response text: {response.text}. Error: {e}"
-            )
         except Exception as e:  # Catch any other unexpected errors
             logger.debug(f"An unexpected error occurred for {api_url}: {e}")
 

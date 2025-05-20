@@ -1,9 +1,13 @@
+import os
 from pathlib import Path
 from unittest.mock import patch
 
 from src.agent.adapters.agent_tools import Tools
 
 ROOTDIR: str = str(Path(__file__).resolve().parents[2])
+
+# tests fail when telemetry is enabled
+os.environ["TELEMETRY_ENABLED"] = "false"
 
 
 class TestTools:
@@ -93,4 +97,5 @@ class TestTools:
         response = tools_instance.use(question)
 
         mock_agent_instance.run.assert_called_once_with(question)
+        assert response == "The capital of France is Paris."
         assert response == "The capital of France is Paris."

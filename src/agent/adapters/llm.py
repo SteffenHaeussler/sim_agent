@@ -37,7 +37,7 @@ class LLM(AbstractLLM):
         ]
 
         langfuse_context.update_current_observation(
-            name="llm_finalize",
+            name="llm_call",
             input=messages.copy(),
             model=self.model_id,
             metadata={"temperature": self.temperature},
