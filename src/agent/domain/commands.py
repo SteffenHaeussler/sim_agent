@@ -1,7 +1,38 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
+
+################################################################################
+# pydantic models - between agent and adapters
+################################################################################
+
+
+class LLMResponseModel(BaseModel):
+    chain_of_thought: str
+    response: str
+
+
+class KBResponse(BaseModel):
+    description: str
+    score: float
+    id: str
+    tag: str
+    name: str
+
+
+class RerankResponse(BaseModel):
+    question: str
+    text: str
+    score: float
+    id: str
+    tag: str
+    name: str
+
+
+################################################################################
+# Internal Commands
+################################################################################
 
 
 class Command:
@@ -16,6 +47,14 @@ class Check(Command):
 
 
 @dataclass
+class Enhance(Command):
+    question: str
+    q_id: str
+    response: Optional[str] = None
+    chain_of_thought: Optional[str] = None
+
+
+@dataclass
 class Question(Command):
     question: str
     q_id: str
@@ -25,14 +64,14 @@ class Question(Command):
 class Retrieve(Command):
     question: str
     q_id: str
-    answer: Optional[List[Dict]] = None
+    candidates: Optional[List[KBResponse]] = None
 
 
 @dataclass
 class Rerank(Command):
     question: str
     q_id: str
-    answer: Optional[List[Dict]] = None
+    candidates: Optional[List[KBResponse]] = None
 
 
 @dataclass
@@ -48,13 +87,3 @@ class LLMResponse(Command):
     q_id: str
     response: Optional[str] = None
     chain_of_thought: Optional[str] = None
-
-
-################################################################################
-# pydantic models
-################################################################################
-
-
-class LLMResponseModel(BaseModel):
-    chain_of_thought: str
-    response: str

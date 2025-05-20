@@ -18,7 +18,7 @@ if os.getenv("IS_TESTING") != "true":
     load_dotenv(".env")
 
 
-setup_tracing(get_tracing_config())
+langfuse_client = setup_tracing(get_tracing_config())
 setup_logging(get_logging_config())
 
 bus = bootstrap(adapter=AgentAdapter(), notifications=(CliNotifications()))

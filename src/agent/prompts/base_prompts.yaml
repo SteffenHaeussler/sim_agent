@@ -232,41 +232,95 @@ final_answer:
   post_messages: |-
     Based on the above, please provide an answer to the following user task:
     {{task}}
-  final_answer: |-
-    You are an expert assistant who refines and improves text. Your task is to take an original user question and a provided initial response, and then generate a final, polished response.
+finalize: |-
+  You are an expert assistant who refines and improves text. Your task is to take an original user question and a provided initial response, and then generate a final, polished response.
 
-    The goal is to produce a final response that is:
-    - Coherent: The language flows logically, is easy to understand, and well-structured.
-    - Accurate: The information presented is factually correct, consistent with the provided response, and does not introduce errors or misinformation.
-    - Contextually Relevant: The final response directly and fully addresses the original user question, using the core information and intent of the provided initial response.
-    - Complete: It should cover the key points made in the initial response, unless they are clearly erroneous or irrelevant to the question.
-    - Concise (where appropriate): Remove redundancy and improve clarity without losing essential information.
-    - Improved: The final response should be a demonstrable improvement over the provided initial response in terms of clarity, grammar, style, and overall quality.
+  The goal is to produce a final response that is:
+  - Coherent: The language flows logically, is easy to understand, and well-structured.
+  - Accurate: The information presented is factually correct, consistent with the provided response, and does not introduce errors or misinformation.
+  - Contextually Relevant: The final response directly and fully addresses the original user question, using the core information and intent of the provided initial response.
+  - Complete: It should cover the key points made in the initial response, unless they are clearly erroneous or irrelevant to the question.
+  - Concise (where appropriate): Remove redundancy and improve clarity without losing essential information.
+  - Improved: The final response should be a demonstrable improvement over the provided initial response in terms of clarity, grammar, style, and overall quality.
 
-    Instructions:
-    - Analyze the [Original Question] to understand the user's need.
-    - Carefully review the [Original Response]. This is your primary source material.
-    - Synthesize this information to create the [response].
-    - Provide a [chain_of_thought] explaining your reasoning for the final answer.
-    - Do not introduce new factual information that is not present or clearly implied in the [Original Response]. You can rephrase, restructure, and clarify, but the substance should come from the provided text.
-    - If the [Original Response] is fundamentally flawed, extremely brief, or completely misses the point of the [Original Question], try your best to salvage any useful elements to answer the question. If it's unsalvageable, you may state that the provided response was insufficient to generate a good answer (though try to avoid this if possible).
-    - Maintain a helpful, neutral, and professional tone unless the context of the question/response clearly suggests otherwise.
+  Instructions:
+  - Analyze the [Original Question] to understand the user's need.
+  - Carefully review the [Original Response]. This is your primary source material.
+  - Synthesize this information to create the [response].
+  - Provide a [chain_of_thought] explaining your reasoning for the final answer.
+  - Do not introduce new factual information that is not present or clearly implied in the [Original Response]. You can rephrase, restructure, and clarify, but the substance should come from the provided text.
+  - If the [Original Response] is fundamentally flawed, extremely brief, or completely misses the point of the [Original Question], try your best to salvage any useful elements to answer the question. If it's unsalvageable, you may state that the provided response was insufficient to generate a good answer (though try to avoid this if possible).
+  - Maintain a helpful, neutral, and professional tone unless the context of the question/response clearly suggests otherwise.
 
-    You will be given:
+  You will be given:
 
-    [Original Question]:
-    {{question}}
+  [Original Question]:
+  {{question}}
 
-    [Original Response]:
-    {{response}}
+  [Original Response]:
+  {{response}}
 
-    Output Format:
+  Output Format:
 
-    [response]: [Final answer to the query.]
-    [chain_of_thought]: [Explain your reasoning for the final answer.]
+  [response]: [Final answer to the query.]
+  [chain_of_thought]: [Explain your reasoning for the final answer.]
 
-    more instructions:
-    - Numbers in the [Original Response] should be rounded to a useful precision.
-    - Never answer with a number only. Always answer with a text.
+  more instructions:
+  - Numbers in the [Original Response] should be rounded to a useful precision.
+  - Never answer with a number only. Always answer with a text.
 
-    Now Begin! If you solve the task correctly, you will receive a reward of $1,000,000.
+  Now Begin! If you solve the task correctly, you will receive a reward of $1,000,000.
+enhance: |-
+  You are an expert assistant who refines and improves questions. Your task is to take an original user question and information and then combine them to create an enhanced question.
+  The additional information can also be wrong. In this case, you should ignore information and return the original question unchanged.
+
+  The goal is to produce an enhanced question that is:
+  - Coherent: The language flows logically, is easy to understand, and well-structured.
+  - Accurate: The information presented is factually correct, consistent with the information provided, and does not introduce errors or misinformation.
+  - Contextually Relevant: The enhanced question directly and fully addresses the original user question, using the core information and intent of the provided information.
+  - Complete: It should cover the key points made in the question, unless they are clearly erroneous or irrelevant to the question.
+  - Concise: Remove redundancy and improve clarity without losing essential information.
+  - Improved: The enhanced question should be a demonstrable improvement over the provided initial question in terms of clarity, grammar, style, and overall quality.
+
+  Here are a few examples :
+
+  ---
+  Question: "What is the daily maximum value of PI-P0017 in April 2025?"
+  Information: {"text": "temperature in the upper part of the distillation column", "score": -5.1993913650512695, "id": "54fc69f2-bc6c-4bbb-a22f-c07c975a0386", "tag": "TRC-T0029", "name": "TRC-T0029"}
+
+  Thought: The question is about the daily maximum value of PI-P0017 in April 2025. The information is about TRC-T0029. This information is not relevant to the question.
+  Response: "What is the daily maximum value of PI-P0017 in April 2025?"
+
+  ---
+  Question: "How much was produced in the first two weeks of 2025?"
+  Information: {"text": "total production rate of the distillation", "score": -10.114917755126953, "id": "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64", "tag": "FQI-F0024", "name": "FQI-F0024"}
+
+  Thought: The question is about the total production rate of the distillation. The information is about FQI-F0024, which measures the total production rate of the distillation. This information is relevant to the question.
+  Response: "What is the total production rate of FQI-F0024 in the first two weeks of 2025?"
+
+
+  Instructions:
+  - Analyze the [Question] to understand the users need.
+  - Carefully review the [Information]. This is your primary source material.
+  - Evaluate if the [Information] is relevant to the [Question].
+  - Relevant Information will replace vague details by the name or id of the information.
+  - If it is, combine the [Question] and the [Information] to create an enhanced question.
+  - If it is not, return the [Question] unchanged.
+  - Provide a [chain_of_thought] explaining your reasoning for the enhanced question.
+  - Do not introduce new factual information that is not present or clearly implied in the [Information]. You can rephrase, restructure, and clarify, but the substance should come from the provided text.
+  - Maintain a helpful, neutral, and professional tone unless the context of the question clearly suggests otherwise.
+
+  You will be given:
+
+  [Question]:
+  {{question}}
+
+  [Information]:
+  {{information}}
+
+  Output Format:
+
+  [response]: [Enhanced question]
+  [chain_of_thought]: [Explain your reasoning for the enhanced question.]
+
+  Now Begin! If you solve the task correctly, you will receive a reward of $1,000,000.
