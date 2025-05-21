@@ -42,6 +42,18 @@ class FakeAdapter(AbstractAdapter):
         elif isinstance(command, commands.Retrieve):
             response = command
             response.response = "test response"
+        elif isinstance(command, commands.Check):
+            response = command
+            response.response = "test first llm response"
+        elif isinstance(command, commands.FinalCheck):
+            response = command
+            response.response = "test response"
+            response.chain_of_thought = "test chain of thought"
+            response.approved = True
+            response.summary = "test summary"
+            response.issues = []
+            response.plausibility = "test plausibility"
+            response.factual_consistency = "test factual consistency"
         return response
 
 
@@ -88,13 +100,13 @@ class TestAnswer:
 
         agent = next(iter(bus.adapter.seen))
 
-        assert agent.response.response == "test second llm response"
+        assert agent.response.response == "test first llm response"
 
-    def test_sends_notification(self):
+    def test_sends_rejected_notification(self):
         fake_notifs = FakeNotifications()
         bus = bootstrap(adapter=FakeAdapter(), notifications=fake_notifs)
         bus.handle(commands.Question("test query", "test_session_id"))
 
         assert fake_notifs.sent["test_session_id"] == [
-            "\nQuestion:\ntest query\nResponse:\ntest second llm response",
+            "\nQuestion:\ntest query\n was rejected. Response:\ntest first llm response",
         ]

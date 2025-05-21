@@ -31,6 +31,7 @@ class TestAgent:
             question="test query",
             q_id="test session id",
             response="test response",
+            memory=["test memory"],
         )
 
         command = commands.LLMResponse(
@@ -40,12 +41,18 @@ class TestAgent:
             chain_of_thought="test chain of thought",
         )
         agent.tool_answer = tool_answer
-        agent.update(command)
+        agent.agent_memory = ["test memory"]
+
+        new_command = agent.update(command)
 
         assert agent.tool_answer == tool_answer
-        assert agent.is_answered is True
+        assert agent.is_answered is False
         assert agent.response.response == "test response"
         assert agent.previous_command is type(command)
+
+        assert new_command == commands.FinalCheck(
+            question="test guardrails post check", q_id="test session id"
+        )
 
     def test_agent_change_question(self):
         question = commands.Enhance(
@@ -80,8 +87,8 @@ class TestAgent:
         agent = BaseAgent(question, get_agent_config())
 
         response = agent.check_question(question)
-        assert response == commands.Retrieve(
-            question="test query", q_id="test session id"
+        assert response == commands.Check(
+            question="test guardrails pre check", q_id="test session id"
         )
 
     @patch("src.agent.domain.model.BaseAgent.create_prompt")

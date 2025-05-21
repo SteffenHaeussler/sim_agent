@@ -94,8 +94,7 @@ class TestTools:
 
         tools_instance = Tools(kwargs)
 
-        response = tools_instance.use(question)
-
+        response, memory = tools_instance.use(question)
         mock_agent_instance.run.assert_called_once_with(question)
         assert response == "The capital of France is Paris."
-        assert response == "The capital of France is Paris."
+        assert memory == []
