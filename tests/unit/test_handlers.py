@@ -19,6 +19,7 @@ class FakeAdapter(AbstractAdapter):
         elif isinstance(command, commands.UseTools):
             response = command
             response.response = "test tools response"
+            response.memory = ["test memory"]
         elif isinstance(command, commands.LLMResponse):
             response = command
             response.response = "test second llm response"
@@ -43,8 +44,13 @@ class FakeAdapter(AbstractAdapter):
             response = command
             response.response = "test response"
         elif isinstance(command, commands.Check):
-            response = command
-            response.response = "test first llm response"
+            if command.q_id == "test_session_id":
+                response = command
+                response.response = "test first llm response"
+                response.approved = True
+            else:
+                response = command
+                response.response = "test second llm response"
         elif isinstance(command, commands.FinalCheck):
             response = command
             response.response = "test response"
@@ -100,13 +106,23 @@ class TestAnswer:
 
         agent = next(iter(bus.adapter.seen))
 
-        assert agent.response.response == "test first llm response"
+        assert agent.response.response == "test second llm response"
 
-    def test_sends_rejected_notification(self):
+    def test_sends_notification(self):
         fake_notifs = FakeNotifications()
         bus = bootstrap(adapter=FakeAdapter(), notifications=fake_notifs)
         bus.handle(commands.Question("test query", "test_session_id"))
 
         assert fake_notifs.sent["test_session_id"] == [
-            "\nQuestion:\ntest query\n was rejected. Response:\ntest first llm response",
+            "\nQuestion:\ntest query\nResponse:\ntest second llm response",
+            "\nQuestion:\ntest query\nResponse:\ntest second llm response\nSummary:\ntest summary\nIssues:\n[]\nPlausibility:\ntest plausibility\nFactual Consistency:\ntest factual consistency\nClarity:\nNone\nCompleteness:\nNone",
+        ]
+
+    def test_sends_rejected_notification(self):
+        fake_notifs = FakeNotifications()
+        bus = bootstrap(adapter=FakeAdapter(), notifications=fake_notifs)
+        bus.handle(commands.Question("test query", "test_rejected_id"))
+
+        assert fake_notifs.sent["test_rejected_id"] == [
+            "\nQuestion:\ntest query\n was rejected. Response:\ntest second llm response",
         ]
