@@ -21,3 +21,8 @@ finalize: |-
   Final test prompt
 enhance: |-
   Enhance test prompt
+guardrails:
+  pre_check: |-
+    test guardrails pre check
+  post_check: |-
+    test guardrails post check

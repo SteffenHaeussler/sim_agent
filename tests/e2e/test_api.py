@@ -3,7 +3,11 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from src.agent.domain.commands import LLMResponseModel
+from src.agent.domain.commands import (
+    GuardrailPostCheckModel,
+    GuardrailPreCheckModel,
+    LLMResponseModel,
+)
 from src.agent.entrypoints.app import app
 
 client = TestClient(app)
@@ -23,11 +27,31 @@ class TestAPI(unittest.TestCase):
         mock_rerank,
         mock_retrieve,
     ):
-        mock_CodeAgent.return_value = "agent test"
+        mock_CodeAgent.return_value = ("agent test", "agent memory")
 
-        mock_LLM.return_value = LLMResponseModel(
-            response="test answer", chain_of_thought="chain_of_thought"
-        )
+        mock_LLM.side_effect = [
+            GuardrailPreCheckModel(
+                approved=True,
+                chain_of_thought="chain_of_thought",
+                response="test answer",
+            ),
+            LLMResponseModel(
+                response="test answer", chain_of_thought="chain_of_thought"
+            ),
+            LLMResponseModel(
+                response="test answer", chain_of_thought="chain_of_thought"
+            ),
+            GuardrailPostCheckModel(
+                chain_of_thought="chain_of_thought",
+                approved=True,
+                summary="summary",
+                issues=[],
+                plausibility="plausibility",
+                factual_consistency="factual_consistency",
+                clarity="clarity",
+                completeness="completeness",
+            ),
+        ]
 
         mock_embed.return_value = {"embedding": [0.1, 0.2, 0.3]}
         mock_rerank.return_value = {
@@ -54,8 +78,10 @@ class TestAPI(unittest.TestCase):
         response = client.get("/answer", params=params)
 
         assert response.status_code == 200
+
         assert (
-            response.json()["response"] == "\nQuestion:\ntest\nResponse:\ntest answer"
+            response.json()["response"]
+            == "\nQuestion:\ntest\nResponse:\ntest answer\nSummary:\nsummary\nIssues:\n[]\nPlausibility:\nplausibility\nFactual Consistency:\nfactual_consistency\nClarity:\nclarity\nCompleteness:\ncompleteness"
         )
 
     def test_unhappy_path_returns_400_and_answers(self):

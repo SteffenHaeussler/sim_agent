@@ -19,7 +19,7 @@ class TestAdapter:
         question = "test"
         adapter = AgentAdapter()
 
-        mock_CodeAgent.return_value = "agent test"
+        mock_CodeAgent.return_value = ("agent test", "memory")
         question = commands.UseTools("test", None)
 
         response = adapter.answer(question)
