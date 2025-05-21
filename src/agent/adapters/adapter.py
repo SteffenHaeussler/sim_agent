@@ -14,6 +14,7 @@ class AbstractAdapter(ABC):
         self.llm = llm.AbstractLLM()
         self.tools = agent_tools.AbstractTools()
         self.rag = rag.AbstractModel()
+        self.guardrails = llm.AbstractLLM()
 
     def add(self, agent: model.BaseAgent):
         self.seen.add(agent)
@@ -38,12 +39,15 @@ class AgentAdapter(AbstractAdapter):
             kwargs=config.get_llm_config(),
         )
         self.rag = rag.BaseRAG(config.get_rag_config())
+        self.guardrails = llm.LLM(
+            kwargs=config.get_guardrails_config(),
+        )
 
     def answer(self, command: commands.Command) -> commands.Command:
         if type(command) is commands.Question:
             response = self.question(command)
-        # if type(command) is commands.Check:
-        #     response = self.check(command.question)
+        elif type(command) is commands.Check:
+            response = self.check(command)
         elif type(command) is commands.UseTools:
             response = self.use(command)
         elif type(command) is commands.Retrieve:
@@ -54,15 +58,50 @@ class AgentAdapter(AbstractAdapter):
             response = self.enhance(command)
         elif type(command) is commands.LLMResponse:
             response = self.finalize(command)
+        elif type(command) is commands.FinalCheck:
+            response = self.evaluation(command)
         else:
             raise NotImplementedError(
                 f"Not implemented in AgentAdapter: {type(command)}"
             )
         return response
 
-    # def check(self, question: str) -> str:
-    #     response = self.llm(question)
-    #     return response
+    @observe()
+    def check(self, command: commands.Check) -> commands.Check:
+        langfuse_context.update_current_trace(
+            name="check",
+            session_id=command.q_id,
+        )
+        response = self.guardrails.use(
+            command.question, commands.GuardrailPreCheckModel
+        )
+
+        command.response = response.response
+        command.chain_of_thought = response.chain_of_thought
+        command.approved = response.approved
+
+        return command
+
+    @observe()
+    def evaluation(self, command: commands.FinalCheck) -> commands.FinalCheck:
+        langfuse_context.update_current_trace(
+            name="evaluation",
+            session_id=command.q_id,
+        )
+        response = self.guardrails.use(
+            command.question, commands.GuardrailPostCheckModel
+        )
+
+        command.chain_of_thought = response.chain_of_thought
+        command.approved = response.approved
+        command.summary = response.summary
+        command.issues = response.issues
+        command.plausibility = response.plausibility
+        command.factual_consistency = response.factual_consistency
+        command.clarity = response.clarity
+        command.completeness = response.completeness
+
+        return command
 
     @observe()
     def finalize(self, command: commands.LLMResponse) -> commands.LLMResponse:
@@ -87,10 +126,6 @@ class AgentAdapter(AbstractAdapter):
 
         return command
 
-    # def read(self, question):
-    #     response = self.db.read(question)
-    #     return response
-
     @observe()
     def use(self, command: commands.UseTools) -> commands.UseTools:
         langfuse_context.update_current_trace(
@@ -98,9 +133,11 @@ class AgentAdapter(AbstractAdapter):
             session_id=command.q_id,
         )
 
-        response = self.tools.use(command.question)
+        response, memory = self.tools.use(command.question)
 
         command.response = response
+        command.memory = memory
+
         return command
 
     @observe()

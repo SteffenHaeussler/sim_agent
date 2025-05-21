@@ -1,12 +1,13 @@
 import os
 from abc import ABC
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 import yaml
 from langfuse.decorators import langfuse_context, observe
 from opentelemetry import trace
 from smolagents import CodeAgent, LiteLLMModel, PromptTemplates
+from smolagents.memory import ActionStep, PlanningStep, TaskStep
 
 import src.agent.adapters.tools as tools
 from src.agent.observability.context import ctx_query_id
@@ -74,12 +75,28 @@ class Tools(AbstractTools):
         )
         return agent
 
+    def get_memory(self) -> List[str]:
+        memory = []
+
+        for step in self.agent.memory.steps:
+            if type(step) is TaskStep:
+                memory.append(step.task)
+            elif type(step) is ActionStep:
+                if step.model_output is not None:
+                    memory.append(step.model_output)
+            elif type(step) is PlanningStep:
+                memory.append(step.plan)
+
+        return memory
+
     def use(self, question):
         if os.environ["TELEMETRY_ENABLED"] == "true":
             response = self._use_with_telemetry(question)
         else:
             response = self._use(question)
-        return response
+
+        memory = self.get_memory()
+        return response, memory
 
     def _use(self, question):
         response = self.agent.run(question)

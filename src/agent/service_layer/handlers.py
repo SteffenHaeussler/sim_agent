@@ -1,3 +1,5 @@
+from typing import Union
+
 from langfuse.decorators import langfuse_context, observe
 from loguru import logger
 
@@ -34,35 +36,51 @@ def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
     event = agent.response
     agent.events.append(event)
 
+    if agent.evaluation:
+        event = agent.evaluation
+        agent.events.append(event)
+
     return None
 
 
 @observe()
 def send_response(
-    event: events.Response,
+    event: Union[events.Response, events.Evaluation],
     notifications: AbstractNotifications,
 ):
     langfuse_context.update_current_trace(
         name="send_response handler",
         session_id=event.q_id,
     )
-
-    message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}"
+    if type(event) is events.Evaluation:
+        message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}\nSummary:\n{event.summary}\nIssues:\n{event.issues}\nPlausibility:\n{event.plausibility}\nFactual Consistency:\n{event.factual_consistency}\nClarity:\n{event.clarity}\nCompleteness:\n{event.completeness}"
+    elif type(event) is events.Response:
+        message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}"
     notifications.send(event.q_id, message)
     return None
 
 
 @observe()
 def send_failure(
-    event: events.FailedRequest,
+    event: Union[events.RejectedAnswer, events.RejectedRequest, events.FailedRequest],
     notifications: AbstractNotifications,
 ):
     langfuse_context.update_current_trace(
-        name="send_failure handler",
+        name="send_rejected handler",
         session_id=event.q_id,
     )
 
-    message = f"\nQuestion:\n{event.question}\nException:\n{event.exception}"
+    if type(event) is events.FailedRequest:
+        message = f"\nQuestion:\n{event.question}\nException:\n{event.exception}"
+    elif type(event) is events.RejectedRequest:
+        message = (
+            f"\nQuestion:\n{event.question}\n was rejected. Response:\n{event.response}"
+        )
+    elif type(event) is events.RejectedAnswer:
+        message = f"\nAnswer to question:\n{event.question}\n was rejected. Reason:\n{event.rejection}\n Wrong answer:\n{event.response}"
+    else:
+        raise ValueError("Invalid event type")
+
     notifications.send(event.q_id, message)
 
     return None
@@ -71,6 +89,9 @@ def send_failure(
 EVENT_HANDLERS = {
     events.FailedRequest: [send_failure],
     events.Response: [send_response],
+    events.RejectedRequest: [send_failure],
+    events.RejectedAnswer: [send_failure],
+    events.Evaluation: [send_response],
 }
 
 COMMAND_HANDLERS = {

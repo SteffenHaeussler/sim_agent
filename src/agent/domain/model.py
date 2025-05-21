@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import yaml
 
@@ -17,14 +17,12 @@ class BaseAgent:
         self.enhancement = None
         self.tool_answer = None
         self.response = None
-
+        self.agent_memory = None
         self.is_answered = False
         self.previous_command = None
         self.kwargs = kwargs
-
-        # self.cls_guard = guardrails.Guardrails(self)
-        self.cls_rag = None  # rag.RAGLogic(self)
         self.events = []
+        self.evaluation = None
 
         self.base_prompts = self.init_prompts()
 
@@ -37,20 +35,9 @@ class BaseAgent:
 
         return base_prompts
 
-    # def check(self, question):
-    #     if not question:
-    #         raise ValueError("Question is required to enhance")
-
-    #     check = self.cls_guard.check(question)
-    #     self.cls_guard.check = check
-
-    #     return None
-
-    def change_llm_response(self, command: commands.LLMResponse) -> None:
+    def change_llm_response(self, command: commands.LLMResponse) -> commands.FinalCheck:
         if self.tool_answer is None:
             raise ValueError("Tool answer is required for LLM response")
-
-        self.is_answered = True
 
         response = events.Response(
             question=self.question,
@@ -59,13 +46,59 @@ class BaseAgent:
         )
 
         self.response = response
-        return None
 
-    def check_question(self, command: commands.Question) -> commands.UseTools:
-        new_command = commands.Retrieve(
-            question=command.question,
+        prompt = self.create_prompt(command, self.agent_memory)
+
+        new_command = commands.FinalCheck(
+            question=prompt,
             q_id=command.q_id,
         )
+
+        return new_command
+
+    def final_check(self, command: commands.FinalCheck) -> None:
+        self.is_answered = True
+
+        self.evaluation = events.Evaluation(
+            response=self.response.response,
+            question=self.question,
+            q_id=self.q_id,
+            approved=command.approved,
+            summary=command.summary,
+            issues=command.issues,
+            plausibility=command.plausibility,
+            factual_consistency=command.factual_consistency,
+            clarity=command.clarity,
+            completeness=command.completeness,
+        )
+        return None
+
+    def check_question(self, command: commands.Question) -> commands.Check:
+        prompt = self.create_prompt(command)
+
+        new_command = commands.Check(
+            question=prompt,
+            q_id=command.q_id,
+        )
+
+        return new_command
+
+    def change_check(
+        self, command: commands.Check
+    ) -> Union[commands.Retrieve, events.FailedRequest]:
+        if command.approved:
+            new_command = commands.Retrieve(
+                question=self.question,
+                q_id=command.q_id,
+            )
+        else:
+            self.is_answered = True
+            new_command = events.RejectedRequest(
+                question=self.question,
+                response=command.response,
+                q_id=command.q_id,
+            )
+            self.response = new_command
 
         return new_command
 
@@ -84,6 +117,7 @@ class BaseAgent:
 
     def change_use_tools(self, command: commands.UseTools) -> commands.LLMResponse:
         self.tool_answer = command
+        self.agent_memory = command.memory
 
         prompt = self.create_prompt(command)
         new_command = commands.LLMResponse(
@@ -93,17 +127,25 @@ class BaseAgent:
 
         return new_command
 
-    def create_prompt(self, command: Union[commands.UseTools, commands.Rerank]) -> str:
+    def create_prompt(
+        self,
+        command: commands.Command,
+        memory: List[str] = None,
+    ) -> str:
         if type(command) is commands.UseTools:
             prompt = self.base_prompts.get("finalize", None)
-
         elif type(command) is commands.Rerank:
             prompt = self.base_prompts.get("enhance", None)
+        elif type(command) is commands.Question:
+            prompt = self.base_prompts.get("guardrails", {}).get("pre_check", None)
+        elif type(command) is commands.LLMResponse:
+            prompt = self.base_prompts.get("guardrails", {}).get("post_check", None)
         else:
             raise ValueError("Invalid command type")
 
         if prompt is None:
-            raise ValueError("final_answer prompt not found")
+            raise ValueError("Prompt not found")
+
         if type(command) is commands.UseTools:
             prompt = populate_template(
                 prompt,
@@ -121,6 +163,22 @@ class BaseAgent:
                 {
                     "question": command.question,
                     "information": candidates,
+                },
+            )
+        elif type(command) is commands.Question:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
+                },
+            )
+        elif type(command) is commands.LLMResponse:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
+                    "response": command.response,
+                    "memory": "\n".join(memory),
                 },
             )
         else:
@@ -175,10 +233,10 @@ class BaseAgent:
         if self.is_answered:
             return None
 
-        # if type(command) is commands.Check:
-        #     new_command = self.check(response)
         if type(command) is commands.Question:
             new_command = self.check_question(command)
+        elif type(command) is commands.Check:
+            new_command = self.change_check(command)
         elif type(command) is commands.Retrieve:
             new_command = self.change_retrieve(command)
         elif type(command) is commands.Rerank:
@@ -189,11 +247,11 @@ class BaseAgent:
             new_command = self.change_use_tools(command)
         elif type(command) is commands.LLMResponse:
             new_command = self.change_llm_response(command)
+        elif type(command) is commands.FinalCheck:
+            new_command = self.final_check(command)
         else:
             raise NotImplementedError(
                 f"Not implemented yet for BaseAgent: {type(command)}"
             )
 
-        return new_command
-        return new_command
         return new_command
