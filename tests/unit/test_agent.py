@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from src.agent.config import get_agent_config
-from src.agent.domain import commands
+from src.agent.domain import commands, events
 from src.agent.domain.model import BaseAgent
 
 
@@ -67,6 +67,35 @@ class TestAgent:
         )
         assert agent.is_answered is False
         assert agent.previous_command is type(question)
+
+    def test_agent_change_check_approved(self):
+        question = commands.Check(
+            question="test query", q_id="test session id", approved=True
+        )
+        agent = BaseAgent(question, get_agent_config())
+
+        response = agent.update(question)
+        assert response == commands.Retrieve(
+            question="test query",
+            q_id="test session id",
+        )
+
+    def test_agent_change_check_rejected(self):
+        question = commands.Check(
+            question="test query",
+            q_id="test session id",
+            approved=False,
+            response="test response",
+        )
+        agent = BaseAgent(question, get_agent_config())
+
+        response = agent.update(question)
+        assert agent.is_answered is True
+        assert response == events.RejectedRequest(
+            question="test query",
+            response="test response",
+            q_id="test session id",
+        )
 
     def test_agent_none_change_question(self):
         question = commands.Enhance(
@@ -133,6 +162,60 @@ class TestAgent:
             question="test query", q_id="test session id", candidates=[]
         )
 
+    def test_agent_final_check(self):
+        question = commands.FinalCheck(question="test query", q_id="test session id")
+        agent = BaseAgent(question, get_agent_config())
+
+        agent.response = commands.LLMResponse(
+            question="test query",
+            q_id="test session id",
+            response="test response",
+            chain_of_thought="test chain of thought",
+        )
+
+        response = agent.update(question)
+
+        assert agent.is_answered is True
+        assert response is None
+        assert agent.evaluation is not None
+        assert agent.evaluation.response == "test response"
+        assert type(agent.evaluation) is events.Evaluation
+
+    def test_update_state(self):
+        question = commands.Question(question="test query", q_id="test session id")
+
+        agent = BaseAgent(question, get_agent_config())
+
+        agent._update_state(question)
+
+        assert agent.is_answered is False
+        assert agent.response is None
+        assert agent.previous_command is type(question)
+
+    def test_update_state_duplicates(self):
+        question = commands.Question(question="test query", q_id="test session id")
+
+        agent = BaseAgent(question, get_agent_config())
+        agent.previous_command = type(question)
+
+        agent._update_state(question)
+
+        assert agent.is_answered is True
+        assert agent.response == events.FailedRequest(
+            question=agent.question,
+            exception="Internal error: Duplicate command",
+            q_id=agent.q_id,
+        )
+
+    def test_is_answered_is_true(self):
+        question = commands.Question(question="test query", q_id="test session id")
+        agent = BaseAgent(question, get_agent_config())
+
+        agent.is_answered = True
+
+        response = agent.update(question)
+        assert response is None
+
     def test_change_llm_response_without_tools(self):
         question = commands.Question(question="test query", q_id="test session id")
         agent = BaseAgent(question, get_agent_config())
@@ -147,4 +230,15 @@ class TestAgent:
             ValueError, match="Tool answer is required for LLM response"
         ):
             agent.update(command)
+
+    def test_update_not_implemented(self):
+        question = commands.Question(question="test query", q_id="test session id")
+        agent = BaseAgent(question, get_agent_config())
+
+        command = commands.Command()
+
+        with pytest.raises(
+            NotImplementedError,
+            match=f"Not implemented yet for BaseAgent: {type(command)}",
+        ):
             agent.update(command)
