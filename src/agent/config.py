@@ -25,6 +25,15 @@ def get_llm_config():
     return dict(model_id=model_id, temperature=temperature)
 
 
+def get_guardrails_config():
+    model_id = getenv("guardrails_model_id")
+    temperature = getenv("guardrails_temperature")
+    if model_id is None:
+        raise ValueError("guardrails_model_id not set in environment variables")
+
+    return dict(model_id=model_id, temperature=temperature)
+
+
 def get_rag_config():
     embedding_api_base = getenv("embedding_api_base")
     retrieval_api_base = getenv("retrieval_api_base")
