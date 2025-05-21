@@ -219,7 +219,8 @@ class BaseAgent:
             self.is_answered = True
             self.response = events.FailedRequest(
                 question=self.question,
-                exception=response,
+                exception="Internal error: Duplicate command",
+                q_id=self.q_id,
             )
 
         else:
