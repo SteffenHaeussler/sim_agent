@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
+from src.agent.config import get_agent_config
 from src.agent.domain import commands
 from src.agent.domain.model import BaseAgent
 
@@ -9,7 +10,7 @@ from src.agent.domain.model import BaseAgent
 class TestAgent:
     def test_agent_initialization(self):
         question = commands.Question(question="test query", q_id="test session id")
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         assert agent.question == "test query"
         assert agent.q_id == "test session id"
@@ -18,12 +19,13 @@ class TestAgent:
         assert agent.response is None
         assert agent.is_answered is False
         assert agent.previous_command is None
-        assert agent.kwargs is None
+        assert agent.kwargs is not None
         assert agent.events == []
+        assert agent.base_prompts is not None
 
     def test_agent_change_llm_response(self):
         question = commands.Question(question="test query", q_id="test session id")
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         tool_answer = commands.UseTools(
             question="test query",
@@ -49,7 +51,7 @@ class TestAgent:
         question = commands.Enhance(
             question="test query", q_id="test session id", response="test response"
         )
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         response = agent.update(question)
         assert response == commands.UseTools(
@@ -63,7 +65,7 @@ class TestAgent:
         question = commands.Enhance(
             question="test query", q_id="test session id", response=None
         )
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         response = agent.update(question)
         assert response == commands.UseTools(
@@ -75,7 +77,7 @@ class TestAgent:
 
     def test_agent_check_question(self):
         question = commands.Question(question="test query", q_id="test session id")
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         response = agent.check_question(question)
         assert response == commands.Retrieve(
@@ -90,7 +92,7 @@ class TestAgent:
 
         mock_create_prompt.return_value = "test prompt"
 
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         response = agent.update(question)
         assert response == commands.LLMResponse(
@@ -106,7 +108,7 @@ class TestAgent:
 
         mock_create_prompt.return_value = "test prompt"
 
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         response = agent.update(question)
         assert response == commands.Enhance(
@@ -117,7 +119,7 @@ class TestAgent:
         question = commands.Retrieve(
             question="test query", q_id="test session id", candidates=[]
         )
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         response = agent.update(question)
         assert response == commands.Rerank(
@@ -126,7 +128,7 @@ class TestAgent:
 
     def test_change_llm_response_without_tools(self):
         question = commands.Question(question="test query", q_id="test session id")
-        agent = BaseAgent(question)
+        agent = BaseAgent(question, get_agent_config())
 
         command = commands.LLMResponse(
             question="test query",
@@ -137,4 +139,5 @@ class TestAgent:
         with pytest.raises(
             ValueError, match="Tool answer is required for LLM response"
         ):
+            agent.update(command)
             agent.update(command)

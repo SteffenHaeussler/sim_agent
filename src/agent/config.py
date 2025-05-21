@@ -1,7 +1,7 @@
 from os import getenv
 from pathlib import Path
 
-ROOTDIR: str = str(Path(__file__).resolve().parents[1])
+ROOTDIR: str = str(Path(__file__).resolve().parents[2])
 
 
 def get_agent_config():
@@ -10,7 +10,7 @@ def get_agent_config():
     if prompts_file is None:
         raise ValueError("prompts_file not set in environment variables")
 
-    prompt_path = Path(ROOTDIR, "agent", "prompts", prompts_file)
+    prompt_path = Path(ROOTDIR, prompts_file)
 
     return dict(prompt_path=prompt_path)
 
@@ -86,7 +86,7 @@ def get_tools_config():
     if tools_api_base is None:
         raise ValueError("tools_api_base not set in environment variables")
 
-    prompt_path = Path(ROOTDIR, "agent", "prompts", prompts_file)
+    prompt_path = Path(ROOTDIR, prompts_file)
 
     return dict(
         llm_model_id=llm_model_id,

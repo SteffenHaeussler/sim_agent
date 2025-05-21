@@ -1,0 +1,23 @@
+system_prompt: |-
+  test system prompt
+planning:
+  initial_plan : |-
+    test initial plan
+  update_plan_pre_messages: |-
+    test update plan pre messages
+  update_plan_post_messages: |-
+    test update plan post messages
+managed_agent:
+  task: |-
+    test managed agent task
+  report: |-
+    test report messages
+final_answer:
+  pre_messages: |-
+    test final pre messages
+  post_messages: |-
+    test final post messages
+finalize: |-
+  Final test prompt
+enhance: |-
+  Enhance test prompt

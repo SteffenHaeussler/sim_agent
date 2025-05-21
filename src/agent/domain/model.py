@@ -20,12 +20,22 @@ class BaseAgent:
 
         self.is_answered = False
         self.previous_command = None
-
         self.kwargs = kwargs
 
         # self.cls_guard = guardrails.Guardrails(self)
         self.cls_rag = None  # rag.RAGLogic(self)
         self.events = []
+
+        self.base_prompts = self.init_prompts()
+
+    def init_prompts(self):
+        try:
+            with open(self.kwargs["prompt_path"], "r") as file:
+                base_prompts = yaml.safe_load(file)
+        except FileNotFoundError:
+            raise ValueError("Prompt path not found")
+
+        return base_prompts
 
     # def check(self, question):
     #     if not question:
@@ -84,16 +94,11 @@ class BaseAgent:
         return new_command
 
     def create_prompt(self, command: Union[commands.UseTools, commands.Rerank]) -> str:
-        prompt_path = self.kwargs["prompt_path"]
-
-        with open(prompt_path, "r") as file:
-            base_prompts = yaml.safe_load(file)
-
         if type(command) is commands.UseTools:
-            prompt = base_prompts.get("finalize", None)
+            prompt = self.base_prompts.get("finalize", None)
 
         elif type(command) is commands.Rerank:
-            prompt = base_prompts.get("enhance", None)
+            prompt = self.base_prompts.get("enhance", None)
         else:
             raise ValueError("Invalid command type")
 
@@ -189,5 +194,6 @@ class BaseAgent:
                 f"Not implemented yet for BaseAgent: {type(command)}"
             )
 
+        return new_command
         return new_command
         return new_command
