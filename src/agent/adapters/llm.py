@@ -96,9 +96,7 @@ class LLM(AbstractLLM):
             messages=messages,
             response_model=response_model,
             model=self.model_id,
-            generation_config={
-                "temperature": self.temperature,
-            },
+            temperature=self.temperature,
         )
 
         return response

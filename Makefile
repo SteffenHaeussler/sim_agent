@@ -7,18 +7,20 @@ dev:
 	uv run python -m uvicorn src.agent.entrypoints.app:app --host 0.0.0.0 --port 5055 --workers 1 --log-level debug
 prod:
 	uv run python -m uvicorn src.agent.entrypoints.app:app --host 0.0.0.0 --port 5055 --workers 2 --log-level error
+DEV: dev
+PROD:prod
 run:
 	@export PYTHONPATH=. && uv run src/agent/entrypoints/main.py --q "$(Q)"
 
 
 build:
-	docker-compose build
+	docker compose build
 
 up:
-	docker-compose up -d
+	docker compose up
 
 down:
-	docker-compose down --remove-orphans
+	docker compose down --remove-orphans
 
 
 test:
