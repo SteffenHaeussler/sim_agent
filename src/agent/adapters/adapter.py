@@ -41,17 +41,6 @@ class AbstractAdapter(ABC):
         """
         self.seen.add(agent)
 
-    def collect_new_events(self):
-        """
-        Collect new events from the model agent.
-
-        Returns:
-            An iterator of events.
-        """
-        for agent in self.seen:
-            while agent.events:
-                yield agent.events.pop(0)
-
     def answer(self, command: commands.Command) -> str:
         """
         Answer a command.
@@ -63,6 +52,17 @@ class AbstractAdapter(ABC):
             str: The answer to the command.
         """
         raise NotImplementedError("Not implemented yet")
+
+    def collect_new_events(self):
+        """
+        Collect new events from the model agent.
+
+        Returns:
+            An iterator of events.
+        """
+        for agent in self.seen:
+            while agent.events:
+                yield agent.events.pop(0)
 
 
 class AgentAdapter(AbstractAdapter):
@@ -93,15 +93,15 @@ class AgentAdapter(AbstractAdapter):
     def __init__(self):
         super().__init__()
 
-        self.tools = agent_tools.Tools(
-            kwargs=config.get_tools_config(),
+        self.guardrails = llm.LLM(
+            kwargs=config.get_guardrails_config(),
         )
         self.llm = llm.LLM(
             kwargs=config.get_llm_config(),
         )
         self.rag = rag.BaseRAG(config.get_rag_config())
-        self.guardrails = llm.LLM(
-            kwargs=config.get_guardrails_config(),
+        self.tools = agent_tools.Tools(
+            kwargs=config.get_tools_config(),
         )
 
     def answer(self, command: commands.Command) -> commands.Command:
@@ -114,26 +114,27 @@ class AgentAdapter(AbstractAdapter):
         Returns:
             commands.Command: The command to answer.
         """
-        if type(command) is commands.Question:
-            response = self.question(command)
-        elif type(command) is commands.Check:
-            response = self.check(command)
-        elif type(command) is commands.UseTools:
-            response = self.use(command)
-        elif type(command) is commands.Retrieve:
-            response = self.retrieve(command)
-        elif type(command) is commands.Rerank:
-            response = self.rerank(command)
-        elif type(command) is commands.Enhance:
-            response = self.enhance(command)
-        elif type(command) is commands.LLMResponse:
-            response = self.finalize(command)
-        elif type(command) is commands.FinalCheck:
-            response = self.evaluation(command)
-        else:
-            raise NotImplementedError(
-                f"Not implemented in AgentAdapter: {type(command)}"
-            )
+        match command:
+            case commands.Question():
+                response = self.question(command)
+            case commands.Check():
+                response = self.check(command)
+            case commands.Retrieve():
+                response = self.retrieve(command)
+            case commands.Rerank():
+                response = self.rerank(command)
+            case commands.Enhance():
+                response = self.enhance(command)
+            case commands.UseTools():
+                response = self.use(command)
+            case commands.LLMResponse():
+                response = self.finalize(command)
+            case commands.FinalCheck():
+                response = self.evaluate(command)
+            case _:
+                raise NotImplementedError(
+                    f"Not implemented in AgentAdapter: {type(command)}"
+                )
         return response
 
     @observe()
@@ -162,7 +163,30 @@ class AgentAdapter(AbstractAdapter):
         return command
 
     @observe()
-    def evaluation(self, command: commands.FinalCheck) -> commands.FinalCheck:
+    def enhance(self, command: commands.Enhance):
+        """
+        Enhance the question via LLM based on the reranked document.
+
+        Args:
+            command: commands.Enhance: The command to enhance the question.
+
+        Returns:
+            commands.Enhance: The command to enhance the question.
+        """
+        langfuse_context.update_current_trace(
+            name="enhance",
+            session_id=command.q_id,
+        )
+
+        response = self.llm.use(command.question, commands.LLMResponseModel)
+
+        command.response = response.response
+        command.chain_of_thought = response.chain_of_thought
+
+        return command
+
+    @observe()
+    def evaluate(self, command: commands.FinalCheck) -> commands.FinalCheck:
         """
         Evaluate the response via guardrails.
 
@@ -233,25 +257,28 @@ class AgentAdapter(AbstractAdapter):
         return command
 
     @observe()
-    def use(self, command: commands.UseTools) -> commands.UseTools:
+    def rerank(self, command: commands.Rerank):
         """
-        Use the agent tools to process the question.
+        Rerank the documents from the knowledge base.
 
         Args:
-            command: commands.UseTools: The command to use the agent tools.
+            command: commands.Rerank: The command to rerank the documents.
 
         Returns:
-            commands.UseTools: The command to use the agent tools.
+            commands.Rerank: The command to rerank the documents.
         """
-        langfuse_context.update_current_trace(
-            name="use",
-            session_id=command.q_id,
-        )
-        response, memory = self.tools.use(command.question)
+        candidates = []
 
-        command.response = response
-        command.memory = memory
+        for candidate in command.candidates:
+            response = self.rag.rerank(command.question, candidate.description)
 
+            temp = candidate.model_dump()
+            temp.pop("score", None)
+            candidates.append(commands.RerankResponse(**response, **temp))
+
+        candidates = sorted(candidates, key=lambda x: -x.score)
+
+        command.candidates = candidates[: self.rag.n_ranking_candidates]
         return command
 
     @observe()
@@ -282,49 +309,23 @@ class AgentAdapter(AbstractAdapter):
         return command
 
     @observe()
-    def rerank(self, command: commands.Rerank):
+    def use(self, command: commands.UseTools) -> commands.UseTools:
         """
-        Rerank the documents from the knowledge base.
+        Use the agent tools to process the question.
 
         Args:
-            command: commands.Rerank: The command to rerank the documents.
+            command: commands.UseTools: The command to use the agent tools.
 
         Returns:
-            commands.Rerank: The command to rerank the documents.
-        """
-        candidates = []
-
-        for candidate in command.candidates:
-            response = self.rag.rerank(command.question, candidate.description)
-
-            temp = candidate.model_dump()
-            temp.pop("score", None)
-            candidates.append(commands.RerankResponse(**response, **temp))
-
-        candidates = sorted(candidates, key=lambda x: -x.score)
-
-        command.candidates = candidates[: self.rag.n_ranking_candidates]
-        return command
-
-    @observe()
-    def enhance(self, command: commands.Enhance):
-        """
-        Enhance the question via LLM based on the reranked document.
-
-        Args:
-            command: commands.Enhance: The command to enhance the question.
-
-        Returns:
-            commands.Enhance: The command to enhance the question.
+            commands.UseTools: The command to use the agent tools.
         """
         langfuse_context.update_current_trace(
-            name="enhance",
+            name="use",
             session_id=command.q_id,
         )
+        response, memory = self.tools.use(command.question)
 
-        response = self.llm.use(command.question, commands.LLMResponseModel)
-
-        command.response = response.response
-        command.chain_of_thought = response.chain_of_thought
+        command.response = response
+        command.memory = memory
 
         return command

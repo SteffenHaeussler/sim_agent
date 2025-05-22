@@ -9,6 +9,39 @@ import pandas as pd
 from src.agent.adapters.tools.base import BaseTool
 
 
+class CompareData(BaseTool):
+    name = "compare_data"
+    description = """Compare data from two assets."""
+    inputs = {
+        "data": {"type": "dataframe", "description": "asset id data"},
+    }
+    outputs = {"data": {"type": "dataframe", "description": "compared sensor data"}}
+    output_type = "dict"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def forward(self, data: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        """
+        Compare data from two assets.
+
+        Args:
+            data: pd.DataFrame: The data to compare.
+
+        Returns:
+            data: pd.DataFrame: The compared data.
+        """
+        if isinstance(data, list):
+            data = pd.concat(data, axis=1)
+
+        if data.empty:
+            comparison = pd.DataFrame()
+        else:
+            comparison = data.describe()
+
+        return {"data": comparison}
+
+
 class GetData(BaseTool):
     name = "get_data"
     description = """Get data from an asset."""
@@ -113,39 +146,6 @@ class GetData(BaseTool):
             aggregation = "d"
 
         return aggregation
-
-
-class CompareData(BaseTool):
-    name = "compare_data"
-    description = """Compare data from two assets."""
-    inputs = {
-        "data": {"type": "dataframe", "description": "asset id data"},
-    }
-    outputs = {"data": {"type": "dataframe", "description": "compared sensor data"}}
-    output_type = "dict"
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def forward(self, data: pd.DataFrame) -> Dict[str, pd.DataFrame]:
-        """
-        Compare data from two assets.
-
-        Args:
-            data: pd.DataFrame: The data to compare.
-
-        Returns:
-            data: pd.DataFrame: The compared data.
-        """
-        if isinstance(data, list):
-            data = pd.concat(data, axis=1)
-
-        if data.empty:
-            comparison = pd.DataFrame()
-        else:
-            comparison = data.describe()
-
-        return {"data": comparison}
 
 
 class PlotData(BaseTool):
