@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from src.agent.adapters import agent_tools, db, llm, rag
+from src.agent.adapters import agent_tools, llm, rag
 from src.agent.adapters.adapter import AgentAdapter
 from src.agent.domain import commands
 
@@ -10,7 +10,6 @@ class TestAdapter:
         adapter = AgentAdapter()
 
         assert type(adapter.tools) is agent_tools.Tools
-        assert type(adapter.db) is db.AbstractDB
         assert type(adapter.llm) is llm.LLM
         assert type(adapter.rag) is rag.BaseRAG
 
