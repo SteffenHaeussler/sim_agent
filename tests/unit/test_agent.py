@@ -115,7 +115,7 @@ class TestAgent:
         question = commands.Question(question="test query", q_id="test session id")
         agent = BaseAgent(question, get_agent_config())
 
-        response = agent.check_question(question)
+        response = agent.update(question)
         assert response == commands.Check(
             question="test guardrails pre check", q_id="test session id"
         )
