@@ -56,6 +56,25 @@ class MessageBus:
             else:
                 raise Exception(f"{message} was not an Event or Command")
 
+    def handle_command(
+        self,
+        command: commands.Command,
+    ) -> None:
+        """
+        Handles incoming commands and collects new commands/events from the agent.events list.
+
+        Args:
+            command: commands.Command: The command to handle.
+        """
+        logger.debug("handling command %s", command)
+        try:
+            handler = self.command_handlers[type(command)]
+            handler(command)
+            self.queue.extend(self.adapter.collect_new_events())
+        except Exception:
+            logger.exception("Exception handling command %s", command)
+            raise
+
     def handle_event(
         self,
         event: events.Event,
@@ -77,22 +96,3 @@ class MessageBus:
             except Exception:
                 logger.exception(f"Exception handling event {event}")
                 continue
-
-    def handle_command(
-        self,
-        command: commands.Command,
-    ) -> None:
-        """
-        Handles incoming commands and collects new commands/events from the agent.events list.
-
-        Args:
-            command: commands.Command: The command to handle.
-        """
-        logger.debug("handling command %s", command)
-        try:
-            handler = self.command_handlers[type(command)]
-            handler(command)
-            self.queue.extend(self.adapter.collect_new_events())
-        except Exception:
-            logger.exception("Exception handling command %s", command)
-            raise

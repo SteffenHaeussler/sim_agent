@@ -14,6 +14,20 @@ class AbstractNotifications(ABC):
         raise NotImplementedError
 
 
+class ApiNotifications(AbstractNotifications):
+    """
+    ApiNotifications is a class that sends notifications to the API.
+
+    Methods:
+        - send(self, destination: str, message: str) -> None: Send a notification.
+    """
+
+    temp = {}
+
+    def send(self, destination: str, message: str) -> None:
+        self.temp[destination] = message
+
+
 class CliNotifications(AbstractNotifications):
     """
     CliNotifications is a class that sends notifications to the CLI.
@@ -31,17 +45,3 @@ class CliNotifications(AbstractNotifications):
             message: str: The message to send.
         """
         print("send notification:", message)
-
-
-class ApiNotifications(AbstractNotifications):
-    """
-    ApiNotifications is a class that sends notifications to the API.
-
-    Methods:
-        - send(self, destination: str, message: str) -> None: Send a notification.
-    """
-
-    temp = {}
-
-    def send(self, destination: str, message: str) -> None:
-        self.temp[destination] = message

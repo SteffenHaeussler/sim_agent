@@ -49,11 +49,47 @@ class BaseRAG(AbstractModel):
         self.kwargs = kwargs
 
         self.embedding_url = kwargs["embedding_url"]
-        self.ranking_url = kwargs["ranking_url"]
-        self.retrieval_url = kwargs["retrieval_url"]
         self.n_retrieval_candidates = int(kwargs["n_retrieval_candidates"])
         self.n_ranking_candidates = int(kwargs["n_ranking_candidates"])
+        self.ranking_url = kwargs["ranking_url"]
+        self.retrieval_url = kwargs["retrieval_url"]
         self.retrieval_table = kwargs["retrieval_table"]
+
+    def call_api(
+        self, api_url: str, body: Dict = {}, method: str = "get"
+    ) -> Optional[httpx.Response]:
+        """
+        Calls the RAG API. Errors are ignored and returned as None.
+
+        Args:
+            api_url: str: The API URL.
+            body: Dict: The body of the request.
+            method: str: The method of the request.
+
+        Returns:
+            response: httpx.Response: The response from the API.
+        """
+        try:
+            if method == "get":
+                response = httpx.get(api_url, params=body, timeout=30.0)
+            elif method == "post":
+                response = httpx.post(api_url, json=body, timeout=30.0)
+            else:
+                raise ValueError("Invalid method")
+
+            response.raise_for_status()
+            return response
+
+        except httpx.HTTPStatusError as e:
+            logger.debug(
+                f"HTTP error fetching name for {api_url}: {e.response.status_code} - {e.response.text}"
+            )
+        except httpx.RequestError as e:
+            logger.debug(f"Request error fetching name for {api_url}: {e}")
+        except Exception as e:  # Catch any other unexpected errors
+            logger.debug(f"An unexpected error occurred for {api_url}: {e}")
+
+        return None
 
     def embed(self, text: str) -> Dict[str, List[float]]:
         """
@@ -103,39 +139,3 @@ class BaseRAG(AbstractModel):
         )
 
         return response.json() if response else None
-
-    def call_api(
-        self, api_url: str, body: Dict = {}, method: str = "get"
-    ) -> Optional[httpx.Response]:
-        """
-        Calls the RAG API. Errors are ignored and returned as None.
-
-        Args:
-            api_url: str: The API URL.
-            body: Dict: The body of the request.
-            method: str: The method of the request.
-
-        Returns:
-            response: httpx.Response: The response from the API.
-        """
-        try:
-            if method == "get":
-                response = httpx.get(api_url, params=body, timeout=30.0)
-            elif method == "post":
-                response = httpx.post(api_url, json=body, timeout=30.0)
-            else:
-                raise ValueError("Invalid method")
-
-            response.raise_for_status()
-            return response
-
-        except httpx.HTTPStatusError as e:
-            logger.debug(
-                f"HTTP error fetching name for {api_url}: {e.response.status_code} - {e.response.text}"
-            )
-        except httpx.RequestError as e:
-            logger.debug(f"Request error fetching name for {api_url}: {e}")
-        except Exception as e:  # Catch any other unexpected errors
-            logger.debug(f"An unexpected error occurred for {api_url}: {e}")
-
-        return None

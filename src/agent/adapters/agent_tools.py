@@ -6,8 +6,14 @@ from typing import Dict, List, Tuple
 import yaml
 from langfuse.decorators import langfuse_context, observe
 from opentelemetry import trace
-from smolagents import CodeAgent, LiteLLMModel, PromptTemplates
-from smolagents.memory import ActionStep, PlanningStep, TaskStep
+from smolagents import (
+    ActionStep,
+    CodeAgent,
+    LiteLLMModel,
+    PlanningStep,
+    PromptTemplates,
+    TaskStep,
+)
 
 import src.agent.adapters.tools as tools
 from src.agent.observability.context import ctx_query_id
@@ -55,13 +61,62 @@ class Tools(AbstractTools):
             None
         """
         self.kwargs = kwargs
-        self.max_steps = int(kwargs["max_steps"])
         self.llm_model_id = kwargs["llm_model_id"]
+        self.max_steps = int(kwargs["max_steps"])
 
+        # in this order
         self.model = self.init_model(self.kwargs)
         self.prompt_templates = self.init_prompt_templates(self.kwargs)
-
         self.agent = self.init_agent(self.kwargs)
+
+    def get_memory(self) -> List[str]:
+        """
+        Get the agent's memory.
+
+        Returns:
+            memory: List[str]: The agent's memory for each step.
+        """
+        memory = []
+
+        for step in self.agent.memory.steps:
+            if type(step) is TaskStep:
+                memory.append(step.task)
+            elif type(step) is ActionStep:
+                if step.model_output is not None:
+                    memory.append(step.model_output)
+            elif type(step) is PlanningStep:
+                memory.append(step.plan)
+
+        return memory
+
+    def init_agent(self, kwargs: Dict) -> CodeAgent:
+        """
+        Initialize the agent.
+
+        Args:
+            kwargs: Dict: The kwargs.
+
+        Returns:
+            agent: CodeAgent: The agent.
+        """
+        agent = CodeAgent(
+            tools=[
+                tools.CompareData(**kwargs),
+                tools.ConvertIdToName(**kwargs),
+                tools.ConvertNameToId(**kwargs),
+                tools.GetData(**kwargs),
+                tools.GetInformation(**kwargs),
+                tools.GetNeighbors(**kwargs),
+                tools.PlotData(**kwargs),
+                tools.FinalAnswerTool(**kwargs),
+            ],
+            model=self.model,
+            stream_outputs=True,
+            additional_authorized_imports=["pandas", "numpy"],
+            prompt_templates=self.prompt_templates,
+            max_steps=self.max_steps,
+        )
+        return agent
 
     def init_model(self, kwargs: Dict) -> LiteLLMModel:
         """
@@ -99,55 +154,6 @@ class Tools(AbstractTools):
         prompt_templates = PromptTemplates(**base_prompts)
 
         return prompt_templates
-
-    def init_agent(self, kwargs: Dict) -> CodeAgent:
-        """
-        Initialize the agent.
-
-        Args:
-            kwargs: Dict: The kwargs.
-
-        Returns:
-            agent: CodeAgent: The agent.
-        """
-        agent = CodeAgent(
-            tools=[
-                tools.CompareData(**kwargs),
-                tools.ConvertIdToName(**kwargs),
-                tools.ConvertNameToId(**kwargs),
-                tools.GetData(**kwargs),
-                tools.GetInformation(**kwargs),
-                tools.GetNeighbors(**kwargs),
-                tools.PlotData(**kwargs),
-                tools.FinalAnswerTool(**kwargs),
-            ],
-            model=self.model,
-            stream_outputs=True,
-            additional_authorized_imports=["pandas", "numpy"],
-            prompt_templates=self.prompt_templates,
-            max_steps=self.max_steps,
-        )
-        return agent
-
-    def get_memory(self) -> List[str]:
-        """
-        Get the agent's memory.
-
-        Returns:
-            memory: List[str]: The agent's memory for each step.
-        """
-        memory = []
-
-        for step in self.agent.memory.steps:
-            if type(step) is TaskStep:
-                memory.append(step.task)
-            elif type(step) is ActionStep:
-                if step.model_output is not None:
-                    memory.append(step.model_output)
-            elif type(step) is PlanningStep:
-                memory.append(step.plan)
-
-        return memory
 
     def use(self, question: str) -> Tuple[str, List[str]]:
         """

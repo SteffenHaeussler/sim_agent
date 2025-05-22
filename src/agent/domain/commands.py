@@ -14,9 +14,15 @@ class GuardrailPreCheckModel(BaseModel):
     response: str
 
 
-class LLMResponseModel(BaseModel):
+class GuardrailPostCheckModel(BaseModel):
     chain_of_thought: str
-    response: str
+    approved: bool
+    summary: str
+    issues: List[str]
+    plausibility: str
+    factual_consistency: str
+    clarity: str
+    completeness: str
 
 
 class KBResponse(BaseModel):
@@ -27,6 +33,11 @@ class KBResponse(BaseModel):
     name: str
 
 
+class LLMResponseModel(BaseModel):
+    chain_of_thought: str
+    response: str
+
+
 class RerankResponse(BaseModel):
     question: str
     text: str
@@ -34,17 +45,6 @@ class RerankResponse(BaseModel):
     id: str
     tag: str
     name: str
-
-
-class GuardrailPostCheckModel(BaseModel):
-    chain_of_thought: str
-    approved: bool
-    summary: str
-    issues: List[str]
-    plausibility: str
-    factual_consistency: str
-    clarity: str
-    completeness: str
 
 
 ################################################################################
@@ -74,42 +74,6 @@ class Enhance(Command):
 
 
 @dataclass
-class Question(Command):
-    question: str
-    q_id: str
-
-
-@dataclass
-class Retrieve(Command):
-    question: str
-    q_id: str
-    candidates: Optional[List[KBResponse]] = None
-
-
-@dataclass
-class Rerank(Command):
-    question: str
-    q_id: str
-    candidates: Optional[List[KBResponse]] = None
-
-
-@dataclass
-class UseTools(Command):
-    question: str
-    q_id: str
-    response: Optional[str] = None
-    memory: Optional[List[str]] = None
-
-
-@dataclass
-class LLMResponse(Command):
-    question: str
-    q_id: str
-    response: Optional[str] = None
-    chain_of_thought: Optional[str] = None
-
-
-@dataclass
 class FinalCheck(Command):
     question: str
     q_id: str
@@ -121,3 +85,39 @@ class FinalCheck(Command):
     factual_consistency: Optional[str] = None
     clarity: Optional[str] = None
     completeness: Optional[str] = None
+
+
+@dataclass
+class LLMResponse(Command):
+    question: str
+    q_id: str
+    response: Optional[str] = None
+    chain_of_thought: Optional[str] = None
+
+
+@dataclass
+class Question(Command):
+    question: str
+    q_id: str
+
+
+@dataclass
+class Rerank(Command):
+    question: str
+    q_id: str
+    candidates: Optional[List[KBResponse]] = None
+
+
+@dataclass
+class Retrieve(Command):
+    question: str
+    q_id: str
+    candidates: Optional[List[KBResponse]] = None
+
+
+@dataclass
+class UseTools(Command):
+    question: str
+    q_id: str
+    response: Optional[str] = None
+    memory: Optional[List[str]] = None

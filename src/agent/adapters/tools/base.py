@@ -64,25 +64,6 @@ class BaseTool(Tool):
         self.base_url = kwargs["tools_api_base"]
         self.limit = int(kwargs["tools_api_limit"])
 
-    @staticmethod
-    def format_input(ids: Union[List[str], str]) -> List[str]:
-        """
-        Harmonizes the input. Also removes duplicates, None and converts to list.
-
-        Args:
-            ids: Union[List[str], str]: The ids to format.
-
-        Returns:
-            ids: List[str]: The formatted ids.
-        """
-        if isinstance(ids, str):
-            ids = [ids]
-
-        ids = [str(i) for i in ids if i]
-        ids = list(set(ids))
-
-        return ids
-
     def call_api(self, api_url: str, body: Dict = {}) -> List[dict]:
         """
         Calls the specific API for each tool. Includes pagination logic.
@@ -191,3 +172,22 @@ class BaseTool(Tool):
             )
 
         return dt_object
+
+    @staticmethod
+    def format_input(ids: Union[List[str], str]) -> List[str]:
+        """
+        Harmonizes the input. Also removes duplicates, None and converts to list.
+
+        Args:
+            ids: Union[List[str], str]: The ids to format.
+
+        Returns:
+            ids: List[str]: The formatted ids.
+        """
+        if isinstance(ids, str):
+            ids = [ids]
+
+        ids = [str(i) for i in ids if i]
+        ids = list(set(ids))
+
+        return ids

@@ -44,180 +44,20 @@ class BaseAgent:
         if not question or not question.question:
             raise ValueError("Question is required to enhance")
 
-        self.question = question.question
-        self.q_id = question.q_id
-        self.enhancement = None
-        self.tool_answer = None
-        self.response = None
-        self.agent_memory = None
-        self.is_answered = False
-        self.previous_command = None
         self.kwargs = kwargs
         self.events = []
+        self.is_answered = False
+
+        self.agent_memory = None
+        self.enhancement = None
         self.evaluation = None
+        self.q_id = question.q_id
+        self.question = question.question
+        self.previous_command = None
+        self.response = None
+        self.tool_answer = None
 
         self.base_prompts = self.init_prompts()
-
-    def init_prompts(self) -> Dict:
-        """
-        Initialize the prompts for the agent.
-
-        Returns:
-            base_prompts: Dict: The base prompts for the agent.
-        """
-        try:
-            with open(self.kwargs["prompt_path"], "r") as file:
-                base_prompts = yaml.safe_load(file)
-        except FileNotFoundError:
-            raise ValueError("Prompt path not found")
-
-        return base_prompts
-
-    def change_llm_response(self, command: commands.LLMResponse) -> commands.FinalCheck:
-        """
-        Prepares the final guardrailscheck and agent response after the final LLM call.
-
-        Args:
-            command: commands.LLMResponse: The command to change the LLM response.
-
-        Returns:
-            new_command: commands.FinalCheck: The new command.
-        """
-        if self.tool_answer is None:
-            raise ValueError("Tool answer is required for LLM response")
-
-        response = events.Response(
-            question=self.question,
-            response=command.response,
-            q_id=self.q_id,
-        )
-
-        self.response = response
-
-        prompt = self.create_prompt(command, self.agent_memory)
-
-        new_command = commands.FinalCheck(
-            question=prompt,
-            q_id=command.q_id,
-        )
-
-        return new_command
-
-    def final_check(self, command: commands.FinalCheck) -> None:
-        """
-        Prepares the evaluation event to be sent.
-
-        Args:
-            command: commands.FinalCheck: The command to final check the answer.
-
-        Returns:
-            None
-        """
-        self.is_answered = True
-
-        self.evaluation = events.Evaluation(
-            response=self.response.response,
-            question=self.question,
-            q_id=self.q_id,
-            approved=command.approved,
-            summary=command.summary,
-            issues=command.issues,
-            plausibility=command.plausibility,
-            factual_consistency=command.factual_consistency,
-            clarity=command.clarity,
-            completeness=command.completeness,
-        )
-        return None
-
-    def check_question(self, command: commands.Question) -> commands.Check:
-        """
-        Prepares the guardrails check for the question.
-
-        Args:
-            command: commands.Question: The command to change the question.
-
-        Returns:
-            new_command: commands.Check: The new command.
-        """
-        prompt = self.create_prompt(command)
-
-        new_command = commands.Check(
-            question=prompt,
-            q_id=command.q_id,
-        )
-
-        return new_command
-
-    def change_check(
-        self, command: commands.Check
-    ) -> Union[commands.Retrieve, events.FailedRequest]:
-        """
-        Prepares the retrieval after the check. If the check is not approved, the agent will stop and return a FailedRequest event.
-
-        Args:
-            command: commands.Check: The command to change the check.
-
-        Returns:
-            new_command: Union[commands.Retrieve, events.FailedRequest]: The new command.
-        """
-        if command.approved:
-            new_command = commands.Retrieve(
-                question=self.question,
-                q_id=command.q_id,
-            )
-        else:
-            self.is_answered = True
-            new_command = events.RejectedRequest(
-                question=self.question,
-                response=command.response,
-                q_id=command.q_id,
-            )
-            self.response = new_command
-
-        return new_command
-
-    def change_question(self, command: commands.Enhance) -> commands.UseTools:
-        """
-        Prepares the tool agent call after the question enhancement.
-
-        Args:
-            command: commands.Enhance: The command to change the question.
-
-        Returns:
-            new_command: commands.UseTools: The new command.
-        """
-        if command.response is None:
-            self.enhancement = self.question
-        else:
-            self.enhancement = command.response
-
-        new_command = commands.UseTools(
-            question=self.enhancement,
-            q_id=command.q_id,
-        )
-
-        return new_command
-
-    def change_use_tools(self, command: commands.UseTools) -> commands.LLMResponse:
-        """
-        Prepares the answer generation after the tool call.
-
-        Args:
-            command: commands.UseTools: The command to change the use tools.
-
-        Returns:
-            new_command: commands.LLMResponse: The new command.
-        """
-        self.tool_answer = command
-        self.agent_memory = command.memory
-
-        prompt = self.create_prompt(command)
-        new_command = commands.LLMResponse(
-            question=prompt,
-            q_id=command.q_id,
-        )
-
-        return new_command
 
     def create_prompt(
         self,
@@ -287,7 +127,44 @@ class BaseAgent:
 
         return prompt
 
-    def change_rerank(self, command: commands.Rerank) -> commands.Enhance:
+    def init_prompts(self) -> Dict:
+        """
+        Initialize the prompts for the agent.
+
+        Returns:
+            base_prompts: Dict: The base prompts for the agent.
+        """
+        try:
+            with open(self.kwargs["prompt_path"], "r") as file:
+                base_prompts = yaml.safe_load(file)
+        except FileNotFoundError:
+            raise ValueError("Prompt path not found")
+
+        return base_prompts
+
+    def prepare_agent_call(self, command: commands.Enhance) -> commands.UseTools:
+        """
+        Prepares the tool agent call after the question enhancement.
+
+        Args:
+            command: commands.Enhance: The command to change the question.
+
+        Returns:
+            new_command: commands.UseTools: The new command.
+        """
+        if command.response is None:
+            self.enhancement = self.question
+        else:
+            self.enhancement = command.response
+
+        new_command = commands.UseTools(
+            question=self.enhancement,
+            q_id=command.q_id,
+        )
+
+        return new_command
+
+    def prepare_enhancement(self, command: commands.Rerank) -> commands.Enhance:
         """
         Prepares the question enhancement after the reranking.
 
@@ -306,7 +183,131 @@ class BaseAgent:
 
         return new_command
 
-    def change_retrieve(self, command: commands.Retrieve) -> commands.Rerank:
+    def prepare_evaluation(self, command: commands.FinalCheck) -> None:
+        """
+        Prepares the evaluation event to be sent.
+
+        Args:
+            command: commands.FinalCheck: The command to final check the answer.
+
+        Returns:
+            None
+        """
+        self.is_answered = True
+
+        self.evaluation = events.Evaluation(
+            response=self.response.response,
+            question=self.question,
+            q_id=self.q_id,
+            approved=command.approved,
+            summary=command.summary,
+            issues=command.issues,
+            plausibility=command.plausibility,
+            factual_consistency=command.factual_consistency,
+            clarity=command.clarity,
+            completeness=command.completeness,
+        )
+        return None
+
+    def prepare_finalization(self, command: commands.UseTools) -> commands.LLMResponse:
+        """
+        Prepares the answer generation after the tool call.
+
+        Args:
+            command: commands.UseTools: The command to change the use tools.
+
+        Returns:
+            new_command: commands.LLMResponse: The new command.
+        """
+        self.tool_answer = command
+        self.agent_memory = command.memory
+
+        prompt = self.create_prompt(command)
+        new_command = commands.LLMResponse(
+            question=prompt,
+            q_id=command.q_id,
+        )
+
+        return new_command
+
+    def prepare_guardrails_check(self, command: commands.Question) -> commands.Check:
+        """
+        Prepares the guardrails check for the question.
+
+        Args:
+            command: commands.Question: The command to change the question.
+
+        Returns:
+            new_command: commands.Check: The new command.
+        """
+        prompt = self.create_prompt(command)
+
+        new_command = commands.Check(
+            question=prompt,
+            q_id=command.q_id,
+        )
+
+        return new_command
+
+    def prepare_response(self, command: commands.LLMResponse) -> commands.FinalCheck:
+        """
+        Prepares the final guardrailscheck and agent response after the final LLM call.
+
+        Args:
+            command: commands.LLMResponse: The command to change the LLM response.
+
+        Returns:
+            new_command: commands.FinalCheck: The new command.
+        """
+        if self.tool_answer is None:
+            raise ValueError("Tool answer is required for LLM response")
+
+        response = events.Response(
+            question=self.question,
+            response=command.response,
+            q_id=self.q_id,
+        )
+
+        self.response = response
+
+        prompt = self.create_prompt(command, self.agent_memory)
+
+        new_command = commands.FinalCheck(
+            question=prompt,
+            q_id=command.q_id,
+        )
+
+        return new_command
+
+    def prepare_retrieval(
+        self, command: commands.Check
+    ) -> Union[commands.Retrieve, events.FailedRequest]:
+        """
+        Prepares the retrieval after the check. If the check is not approved, the agent will stop and return a FailedRequest event.
+
+        Args:
+            command: commands.Check: The command to change the check.
+
+        Returns:
+            new_command: Union[commands.Retrieve, events.FailedRequest]: The new command.
+        """
+        if command.approved:
+            new_command = commands.Retrieve(
+                question=self.question,
+                q_id=command.q_id,
+            )
+        else:
+            self.is_answered = True
+            new_command = events.RejectedRequest(
+                question=self.question,
+                response=command.response,
+                q_id=command.q_id,
+            )
+            self.response = new_command
+
+        return new_command
+
+    def prepare_rerank(self, command: commands.Retrieve) -> commands.Rerank:
         """
         Prepares the retrieved data for the reranking.
 
@@ -365,25 +366,27 @@ class BaseAgent:
         if self.is_answered:
             return None
 
-        if type(command) is commands.Question:
-            new_command = self.check_question(command)
-        elif type(command) is commands.Check:
-            new_command = self.change_check(command)
-        elif type(command) is commands.Retrieve:
-            new_command = self.change_retrieve(command)
-        elif type(command) is commands.Rerank:
-            new_command = self.change_rerank(command)
-        elif type(command) is commands.Enhance:
-            new_command = self.change_question(command)
-        elif type(command) is commands.UseTools:
-            new_command = self.change_use_tools(command)
-        elif type(command) is commands.LLMResponse:
-            new_command = self.change_llm_response(command)
-        elif type(command) is commands.FinalCheck:
-            new_command = self.final_check(command)
-        else:
-            raise NotImplementedError(
-                f"Not implemented yet for BaseAgent: {type(command)}"
-            )
+        # following the command chain
+        match command:
+            case commands.Question():
+                new_command = self.prepare_guardrails_check(command)
+            case commands.Check():
+                new_command = self.prepare_retrieval(command)
+            case commands.Retrieve():
+                new_command = self.prepare_rerank(command)
+            case commands.Rerank():
+                new_command = self.prepare_enhancement(command)
+            case commands.Enhance():
+                new_command = self.prepare_agent_call(command)
+            case commands.UseTools():
+                new_command = self.prepare_finalization(command)
+            case commands.LLMResponse():
+                new_command = self.prepare_response(command)
+            case commands.FinalCheck():
+                new_command = self.prepare_evaluation(command)
+            case _:
+                raise NotImplementedError(
+                    f"Not implemented yet for BaseAgent: {type(command)}"
+                )
 
         return new_command
