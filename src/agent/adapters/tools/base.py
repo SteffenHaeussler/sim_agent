@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 import httpx
 from dateutil import parser
@@ -43,13 +43,38 @@ tools.AUTHORIZED_TYPES = [
 
 
 class BaseTool(Tool):
-    def __init__(self, **kwargs):
+    """
+    BaseTool is a class that implements the Tool interface.  All tools should inherit from this class.
+
+    Methods:
+        - format_input(ids: List[str]) -> List[str]: Format the input.
+        - call_api(api_url: str, body: Dict = {}, method: str = "get") -> Optional[httpx.Response]: Call the API.
+        - convert_to_iso_format(date_string: str) -> Optional[str]: Convert the date string to the target ISO-like format.
+        - call_api(api_url: str, body: Dict = {}, method: str = "get") -> Optional[httpx.Response]: Call the API.
+    """
+
+    def __init__(self, **kwargs: Dict):
+        """
+        Initialize the BaseTool.
+
+        Args:
+            kwargs: Dict: The kwargs.
+        """
         super().__init__(**kwargs)
         self.base_url = kwargs["tools_api_base"]
         self.limit = int(kwargs["tools_api_limit"])
 
     @staticmethod
-    def format_input(ids: List[str]):
+    def format_input(ids: Union[List[str], str]) -> List[str]:
+        """
+        Harmonizes the input. Also removes duplicates, None and converts to list.
+
+        Args:
+            ids: Union[List[str], str]: The ids to format.
+
+        Returns:
+            ids: List[str]: The formatted ids.
+        """
         if isinstance(ids, str):
             ids = [ids]
 
@@ -58,7 +83,17 @@ class BaseTool(Tool):
 
         return ids
 
-    def call_api(self, api_url, body={}) -> List[dict]:
+    def call_api(self, api_url: str, body: Dict = {}) -> List[dict]:
+        """
+        Calls the specific API for each tool. Includes pagination logic.
+
+        Args:
+            api_url: str: The API URL.
+            body: Dict: The body of the request.
+
+        Returns:
+            all_results: List[dict]: The results from the API.
+        """
         all_results = []
         current_offset = 0
 

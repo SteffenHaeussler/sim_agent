@@ -1,7 +1,7 @@
 import os
 from abc import ABC
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import yaml
 from langfuse.decorators import langfuse_context, observe
@@ -14,6 +14,14 @@ from src.agent.observability.context import ctx_query_id
 
 
 class AbstractTools(ABC):
+    """
+    AbstractTools is an abstract base class for all tools.
+    It defines the interface for all tools.
+
+    Methods:
+        - use(self): Use the tools.
+    """
+
     def __init__(self):
         pass
 
@@ -22,10 +30,30 @@ class AbstractTools(ABC):
 
 
 class Tools(AbstractTools):
+    """
+    Tools is a class that uses the tools.
+
+    Methods:
+        - use(self): Use the tools.
+        - init_model(self): Initialize the llm model.
+        - init_prompt_templates(self): Initialize the prompt templates for tool calls.
+        - init_agent(self): Initialize the agent.
+        - get_memory(self): Get the agent's memory.
+    """
+
     def __init__(
         self,
         kwargs: Dict,
     ):
+        """
+        Initialize the tools.
+
+        Args:
+            kwargs: Dict: The kwargs.
+
+        Returns:
+            None
+        """
         self.kwargs = kwargs
         self.max_steps = int(kwargs["max_steps"])
         self.llm_model_id = kwargs["llm_model_id"]
@@ -35,14 +63,31 @@ class Tools(AbstractTools):
 
         self.agent = self.init_agent(self.kwargs)
 
-    def init_model(self, kwargs: Dict):
-        api_base = kwargs["llm_api_base"]
+    def init_model(self, kwargs: Dict) -> LiteLLMModel:
+        """
+        Initialize the llm model.
 
+        Args:
+            kwargs: Dict: The kwargs.
+
+        Returns:
+            model: LiteLLMModel: The llm model.
+        """
+        api_base = kwargs["llm_api_base"]
         model = LiteLLMModel(model_id=self.llm_model_id, api_base=api_base)
 
         return model
 
-    def init_prompt_templates(self, kwargs: Dict):
+    def init_prompt_templates(self, kwargs: Dict) -> PromptTemplates:
+        """
+        Initialize the prompt templates for tool calls.
+
+        Args:
+            kwargs: Dict: The kwargs.
+
+        Returns:
+            prompt_templates: PromptTemplates: The prompt templates.
+        """
         prompt_path = kwargs["prompt_path"]
 
         with open(prompt_path, "r") as file:
@@ -55,7 +100,16 @@ class Tools(AbstractTools):
 
         return prompt_templates
 
-    def init_agent(self, kwargs: Dict):
+    def init_agent(self, kwargs: Dict) -> CodeAgent:
+        """
+        Initialize the agent.
+
+        Args:
+            kwargs: Dict: The kwargs.
+
+        Returns:
+            agent: CodeAgent: The agent.
+        """
         agent = CodeAgent(
             tools=[
                 tools.CompareData(**kwargs),
@@ -76,6 +130,12 @@ class Tools(AbstractTools):
         return agent
 
     def get_memory(self) -> List[str]:
+        """
+        Get the agent's memory.
+
+        Returns:
+            memory: List[str]: The agent's memory for each step.
+        """
         memory = []
 
         for step in self.agent.memory.steps:
@@ -89,7 +149,17 @@ class Tools(AbstractTools):
 
         return memory
 
-    def use(self, question):
+    def use(self, question: str) -> Tuple[str, List[str]]:
+        """
+        Use the agent's tools.
+
+        Args:
+            question: str: The question to use the agent's tools.
+
+        Returns:
+            response: str: The response from the agent's tools.
+            memory: List[str]: The agent's memory for each step.
+        """
         if os.environ["TELEMETRY_ENABLED"] == "true":
             response = self._use_with_telemetry(question)
         else:
@@ -98,12 +168,30 @@ class Tools(AbstractTools):
         memory = self.get_memory()
         return response, memory
 
-    def _use(self, question):
+    def _use(self, question: str) -> str:
+        """
+        Use the agent's tools without telemetry.
+
+        Args:
+            question: str: The question to use the agent's tools.
+
+        Returns:
+            response: str: The response from the agent's tools.
+        """
         response = self.agent.run(question)
         return response
 
     @observe()
-    def _use_with_telemetry(self, question):
+    def _use_with_telemetry(self, question: str) -> str:
+        """
+        Use the agent's tools with telemetry.
+
+        Args:
+            question: str: The question to use the agent's tools.
+
+        Returns:
+            response: str: The response from the agent's tools.
+        """
         langfuse_context.update_current_observation(
             name="use_tools",
             session_id=ctx_query_id.get(),
