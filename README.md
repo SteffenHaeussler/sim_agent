@@ -28,6 +28,28 @@ or for rag retrieval:
 make run Q="How much was produced in the first two weeks of 2025?"
 ```
 
+Examples:
+```
+- "What is the daily maximum value of PI-P0017 in April 2025?"
+- "How much was produced in the first two weeks of 2025?"
+- "Can you compare PI-P0017 and PI-P0016 for the first 10 days in 2025?"
+- "What assets are next to asset BA100?"
+- "Can you create a plot for the adjacent sensors of asset BA101 for 1st January 2025?"
+- "What is the id of TI-T0022?"
+- "What is the name of asset id c831fadb-d620-4007-bdda-4593038c87f9?"
+- "Can you provide me the highest value for June 2025 for TI-T0022?"
+- "How much was the total production in the first two weeks of 2025?"
+- "How much was the total production in the distillation first two weeks of 2025?"
+- "Can you compare PI-P0017 and PI-P0016 for the first 10 days in 2025?"
+- "What is the current pressure in the distillation?"
+- "What is the level in tank b?"
+- "can you plot me the temperature of the distillation cooler A for the last two weeks?"
+- "What is the temperature of the water tank?"
+- "what is the current pressure in the tank storage a?"
+- "how much distillate is flown in the storage in the last 4 hours?"
+- "what is the current temperature at top of the distillation column?"
+
+```
 
 ## Running service in Docker
 
