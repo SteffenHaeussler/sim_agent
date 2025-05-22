@@ -3,7 +3,7 @@ from abc import ABC
 from langfuse.decorators import langfuse_context, observe
 
 from src.agent import config
-from src.agent.adapters import agent_tools, db, llm, rag
+from src.agent.adapters import agent_tools, llm, rag
 from src.agent.domain import commands, model
 
 
@@ -24,7 +24,6 @@ class AbstractAdapter(ABC):
 
     def __init__(self):
         self.seen = set()
-        self.db = db.AbstractDB()
         self.llm = llm.AbstractLLM()
         self.tools = agent_tools.AbstractTools()
         self.rag = rag.AbstractModel()

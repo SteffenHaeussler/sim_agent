@@ -32,6 +32,12 @@ class GetData(BaseTool):
     output_type = "dict"
 
     def __init__(self, **kwargs):
+        """
+        Initialize the GetData tool.
+
+        Args:
+            kwargs: Dict: The kwargs.
+        """
         super().__init__(**kwargs)
 
     def forward(
@@ -42,6 +48,12 @@ class GetData(BaseTool):
         aggregation: Optional[str] = "day",
         last_value: bool = False,
     ) -> Dict[str, List[str]]:
+        """
+        Get data from an asset.
+
+        Args:
+            asset_ids: List[str]: The asset ids to get data from.
+        """
         df = pd.DataFrame()
 
         asset_ids = self.format_input(asset_ids)
@@ -79,6 +91,12 @@ class GetData(BaseTool):
     def map_aggregation(self, aggregation: str) -> str:
         """
         Map the aggregation to the correct aggregation type.
+
+        Args:
+            aggregation: str: The aggregation to map.
+
+        Returns:
+            aggregation: str: The mapped aggregation.
         """
         if aggregation not in ["day", "hour", "minute", "d", "h", "min"]:
             raise ValueError(
@@ -110,6 +128,15 @@ class CompareData(BaseTool):
         super().__init__(**kwargs)
 
     def forward(self, data: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        """
+        Compare data from two assets.
+
+        Args:
+            data: pd.DataFrame: The data to compare.
+
+        Returns:
+            data: pd.DataFrame: The compared data.
+        """
         if isinstance(data, list):
             data = pd.concat(data, axis=1)
 
@@ -134,6 +161,15 @@ class PlotData(BaseTool):
         super().__init__(**kwargs)
 
     def forward(self, data: pd.DataFrame) -> Dict[str, str]:
+        """
+        Plot data from data.
+
+        Args:
+            data: pd.DataFrame: The data to plot.
+
+        Returns:
+            plot: str: The encoded plot.
+        """
         if isinstance(data, list):
             data = pd.concat(data, axis=1)
 

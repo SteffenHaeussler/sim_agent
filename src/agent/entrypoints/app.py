@@ -32,6 +32,20 @@ bus = bootstrap(
 
 @app.get("/answer")
 def answer(question: str, q_id: Optional[str] = None):
+    """
+    Entrypoint for the agent.
+
+    Args:
+        question: str: The question to answer.
+        q_id: Optional[str]: The id of the question.
+
+    Returns:
+        response: str: The response to the question.
+
+    Raises:
+        HTTPException: If the question is invalid.
+        ValueError: If the question is invalid.
+    """
     if not q_id:
         q_id = uuid4().hex
 

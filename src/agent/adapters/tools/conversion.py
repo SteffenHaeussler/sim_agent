@@ -13,9 +13,21 @@ class ConvertNameToId(BaseTool):
     output_type = "dict"
 
     def __init__(self, **kwargs):
+        """
+        Initialize the ConvertNameToId tool.
+
+        Args:
+            kwargs: Dict: The kwargs.
+        """
         super().__init__(**kwargs)
 
     def forward(self, names: List[str]) -> Dict[str, List[str]]:
+        """
+        Converts asset names to ids.
+
+        Args:
+            names: List[str]: The names to convert.
+        """
         names = self.format_input(names)
 
         response = []
@@ -44,6 +56,12 @@ class ConvertIdToName(BaseTool):
         super().__init__(**kwargs)
 
     def forward(self, asset_ids: List[str]) -> Dict[str, List[str]]:
+        """
+        Converts asset ids to the asset names.
+
+        Args:
+            asset_ids: List[str]: The ids to convert.
+        """
         asset_ids = self.format_input(asset_ids)
 
         response = []

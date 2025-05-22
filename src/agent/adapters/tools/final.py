@@ -16,4 +16,13 @@ class FinalAnswerTool(BaseTool):
     output_type = "any"
 
     def forward(self, answer: Any) -> Any:
+        """
+        Provides a final answer to the given problem.
+
+        Args:
+            answer: Any: The final answer to the problem.
+
+        Returns:
+            answer: Any: The final answer to the problem.
+        """
         return answer
