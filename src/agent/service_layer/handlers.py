@@ -15,7 +15,16 @@ class InvalidQuestion(Exception):
 
 @observe()
 def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
-    """service layer has only one abstraction: uow"""
+    """
+    Handles incoming questions.
+
+    Args:
+        command: commands.Question: The question to answer.
+        adapter: AbstractAdapter: The adapter to use.
+
+    Returns:
+        None
+    """
     langfuse_context.update_current_trace(
         name="answer handler",
         session_id=command.q_id,
@@ -47,7 +56,17 @@ def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
 def send_response(
     event: Union[events.Response, events.Evaluation],
     notifications: AbstractNotifications,
-):
+) -> None:
+    """
+    Sends the response to the notifications.
+
+    Args:
+        event: Union[events.Response, events.Evaluation]: The event to send.
+        notifications: AbstractNotifications: The notifications to use.
+
+    Returns:
+        None
+    """
     langfuse_context.update_current_trace(
         name="send_response handler",
         session_id=event.q_id,
@@ -64,7 +83,17 @@ def send_response(
 def send_failure(
     event: Union[events.RejectedAnswer, events.RejectedRequest, events.FailedRequest],
     notifications: AbstractNotifications,
-):
+) -> None:
+    """
+    Sends the failure to the notifications.
+
+    Args:
+        event: Union[events.RejectedAnswer, events.RejectedRequest, events.FailedRequest]: The event to send.
+        notifications: AbstractNotifications: The notifications to use.
+
+    Returns:
+        None
+    """
     langfuse_context.update_current_trace(
         name="send_rejected handler",
         session_id=event.q_id,

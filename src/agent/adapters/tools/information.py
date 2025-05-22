@@ -16,6 +16,15 @@ class GetInformation(BaseTool):
         super().__init__(**kwargs)
 
     def forward(self, asset_ids: List[str]) -> Dict[str, List[str]]:
+        """
+        Get information about an asset.
+
+        Args:
+            asset_ids: List[str]: The asset ids to get information about.
+
+        Returns:
+            assets: Dict[str, List[str]]: The information about the assets.
+        """
         asset_ids = self.format_input(asset_ids)
 
         response = []

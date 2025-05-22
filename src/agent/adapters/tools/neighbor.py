@@ -16,6 +16,15 @@ class GetNeighbors(BaseTool):
         super().__init__(**kwargs)
 
     def forward(self, asset_ids: List[str]) -> Dict[str, List[str]]:
+        """
+        Get neighbors of an asset.
+
+        Args:
+            asset_ids: List[str]: The asset ids to get neighbors of.
+
+        Returns:
+            neighbors: Dict[str, List[str]]: The neighbors of the asset.
+        """
         asset_ids = self.format_input(asset_ids)
 
         response = []

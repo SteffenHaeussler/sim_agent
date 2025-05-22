@@ -25,6 +25,19 @@ bus = bootstrap(adapter=AgentAdapter(), notifications=(CliNotifications()))
 
 
 def answer(question: str, q_id: str) -> str:
+    """
+    Entrypoint for the agent. Responds are handled by the notifications.
+
+    Args:
+        question: str: The question to answer.
+        q_id: str: The id of the question.
+
+    Returns:
+        str: done.
+
+    Raises:
+        Exception: If the question is invalid.
+    """
     ctx_query_id.set(q_id)
     try:
         command = Question(question, q_id)

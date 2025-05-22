@@ -13,6 +13,17 @@ def bootstrap(
     adapter: adapter.AbstractAdapter = adapter.AbstractAdapter(),
     notifications: AbstractNotifications = None,
 ) -> messagebus.MessageBus:
+    """
+    Bootstraps the agent.
+
+    Args:
+        adapter: adapter.AbstractAdapter: The adapter to use.
+        notifications: AbstractNotifications: The notifications to use.
+
+    Returns:
+        messagebus.MessageBus: The message bus.
+    """
+
     langfuse_context.update_current_trace(
         name="bootstrap",
         session_id=ctx_query_id.get(),
@@ -42,6 +53,14 @@ def bootstrap(
 
 
 def inject_dependencies(handler, dependencies):
+    """
+    Injects the dependencies into the handler.
+
+    Args:
+        handler: The handler to inject the dependencies into.
+        dependencies: The dependencies to inject.
+    """
+
     params = inspect.signature(handler).parameters
     deps = {
         name: dependency for name, dependency in dependencies.items() if name in params
