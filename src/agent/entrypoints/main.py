@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
-from src.agent.adapters.notifications import CliNotifications
+from src.agent.adapters.notifications import CliNotifications, SlackNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
 from src.agent.domain.commands import Question
@@ -21,7 +21,10 @@ if os.getenv("IS_TESTING") != "true":
 langfuse_client = setup_tracing(get_tracing_config())
 setup_logging(get_logging_config())
 
-bus = bootstrap(adapter=AgentAdapter(), notifications=(CliNotifications()))
+bus = bootstrap(
+    adapter=AgentAdapter(),
+    notifications=[CliNotifications(), SlackNotifications()],
+)
 
 
 def answer(question: str, q_id: str) -> str:
