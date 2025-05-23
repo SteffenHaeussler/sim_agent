@@ -75,7 +75,12 @@ def send_response(
         message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}\nSummary:\n{event.summary}\nIssues:\n{event.issues}\nPlausibility:\n{event.plausibility}\nFactual Consistency:\n{event.factual_consistency}\nClarity:\n{event.clarity}\nCompleteness:\n{event.completeness}"
     elif type(event) is events.Response:
         message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}"
-    notifications.send(event.q_id, message)
+
+    if not isinstance(notifications, list | tuple):
+        notifications = [notifications]
+
+    for notification in notifications:
+        notification.send(event.q_id, message)
     return None
 
 

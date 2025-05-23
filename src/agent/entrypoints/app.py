@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 
 import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
-from src.agent.adapters.notifications import ApiNotifications
+from src.agent.adapters.notifications import ApiNotifications, SlackNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
 from src.agent.domain.commands import Question
@@ -26,7 +26,7 @@ app = FastAPI()
 
 bus = bootstrap(
     adapter=AgentAdapter(),
-    notifications=ApiNotifications(),
+    notifications=[ApiNotifications(), SlackNotifications()],
 )
 
 

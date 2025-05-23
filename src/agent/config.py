@@ -142,3 +142,25 @@ def get_logging_config():
     logging_format = getenv("logging_format")
 
     return dict(logging_level=logging_level, logging_format=logging_format)
+
+
+def get_email_config():
+    smtp_host = getenv("smtp_host")
+    smtp_port = getenv("smtp_port")
+    receiver_email = getenv("receiver_email")
+    sender_email = getenv("sender_email")
+    app_password = getenv("app_password")
+
+    return dict(
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        sender_email=sender_email,
+        receiver_email=receiver_email,
+        app_password=app_password,
+    )
+
+
+def get_slack_config():
+    slack_webhook_url = getenv("slack_webhook_url")
+
+    return dict(slack_webhook_url=slack_webhook_url)
