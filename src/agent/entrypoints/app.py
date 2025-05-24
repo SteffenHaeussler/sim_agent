@@ -1,9 +1,11 @@
 import os
+from time import time
 from typing import Optional
 from uuid import uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from loguru import logger
 
 import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
@@ -59,3 +61,9 @@ def answer(question: str, q_id: Optional[str] = None):
 
     message = ApiNotifications().temp.pop(q_id, None)
     return {"response": message}
+
+
+@app.get("/health")
+def health(request: Request):
+    logger.debug(f"Methode: {request.method} on {request.url.path}")
+    return {"version": "0.0.1", "timestamp": time()}
