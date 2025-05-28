@@ -40,14 +40,11 @@ Examples:
 - "Can you provide me the highest value for June 2025 for TI-T0022?"
 - "How much was the total production in the first two weeks of 2025?"
 - "How much was the total production in the distillation first two weeks of 2025?"
-- "Can you compare PI-P0017 and PI-P0016 for the first 10 days in 2025?"
 - "What is the current pressure in the distillation?"
 - "What is the level in tank b?"
 - "can you plot me the temperature of the distillation cooler A for the last two weeks?"
 - "What is the temperature of the water tank?"
-- "what is the current pressure in the tank storage a?"
 - "how much distillate is flown in the storage in the last 4 hours?"
-- "what is the current temperature at top of the distillation column?"
 
 ```
 

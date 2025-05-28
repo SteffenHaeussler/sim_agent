@@ -24,7 +24,10 @@ down:
 
 
 test:
-	uv run python -m pytest tests/ -s -v
+	uv run python -m pytest tests/ -s -v --envfile=.env.tests
 
 coverage:
-	uv run python -mpytest tests/ -s -v --cov=src --cov-report=term-missing
+	uv run python -m pytest tests/ -s -v --cov=src --cov-report=term-missing
+
+eval:
+	uv run python -m pytest tests/evaluation/test_e2e.py -s -v --envfile=.env
