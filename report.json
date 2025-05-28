@@ -1,0 +1,67 @@
+[
+    {
+        "question": "how much distillate is flown in the storage in the last 4 hours?",
+        "response": "{\"response\":\"\\nQuestion:\\nhow much distillate is flown in the storage in the last 4 hours?\\nResponse:\\n104.08 units of FRC-F0025 were flown in storage in the last 4 hours. I have rounded the number to two decimal places for better readability and provided context to the numerical value.\\nSummary:\\nThe response accurately provides the total flown amount of FRC-F0025 in the last 4 hours, rounded to two decimal places, and includes appropriate context, based on the agent's memory.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "104.08 units of FRC-F0025 were flown in storage in the last 4 hours."
+    },
+    {
+        "question": "What is the level in tank b?",
+        "response": "{\"response\":\"\\nQuestion:\\nWhat is the level in tank b?\\nResponse:\\nThe destillate level of LI-L0008 is 0.0 .\\nSummary:\\nThe response accurately provides the destillate level of LI-L0008 based on the agent's memory.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The destillate level of LI-L0008 is 0.0 ."
+    },
+    {
+        "question": "What is the name of asset id c831fadb-d620-4007-bdda-4593038c87f9?",
+        "response": "{\"response\":\"\\nQuestion:\\nWhat is the name of asset id c831fadb-d620-4007-bdda-4593038c87f9?\\nResponse:\\nThe provided response was insufficient to generate a good answer. It only provided the identifier 'FRC-F0025' without specifying what it refers to or its name.\\nSummary:\\nThe agent accurately determines that 'FRC-F0025' is the name associated with the ID '6776eb4b-cde4-4e31-9994-899af0a01249' and provides this as the final answer.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "FRC-F0025"
+    },
+    {
+        "question": "What is the current pressure in the distillation?",
+        "response": "{\"response\":\"\\nQuestion:\\nWhat is the current pressure in the distillation?\\nResponse:\\nThe vapor pressure of PDI-P0018 is 258.43 units. \\nSummary:\\nThe response accurately provides the vapor pressure of PDI-P0018 with units, based on the agent's memory.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The vapor pressure of PDI-P0018 is 258.43 units."
+    },
+    {
+        "question": "How much was the total production in the distillation first two weeks of 2025?",
+        "response": "{\"response\":\"\\nQuestion:\\nHow much was the total production in the distillation first two weeks of 2025?\\nResponse:\\nThe total production of FQI-F0024 in the first two weeks of 2025 was approximately 3423.57 units.\\nSummary:\\nThe response accurately states the total production of FQI-F0024 in the first two weeks of 2025 based on the agent's calculations.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The total production of FQI-F0024 in the first two weeks of 2025 was approximately 3423.57 units."
+    },
+    {
+        "question": "How much was the total production in the first two weeks of 2025?",
+        "response": "{\"response\":\"\\nQuestion:\\nHow much was the total production in the first two weeks of 2025?\\nResponse:\\nThe total production of FQI-F0024 in the first two weeks of 2025 was approximately 3423.57 units.\\nSummary:\\nThe response accurately states the total production of FQI-F0024 in the first two weeks of 2025, as calculated in the original response.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The total production of FQI-F0024 in the first two weeks of 2025 was approximately 3423.57 units."
+    },
+    {
+        "question": "Can you provide me the highest value for June 2025 for TI-T0022?",
+        "response": "{\"response\":\"\\nQuestion:\\nCan you provide me the highest value for June 2025 for TI-T0022?\\nResponse:\\nThe highest value for June 2025 for TI-T0022 is 49.05 .\\nSummary:\\nThe response provides the maximum value for the specified asset and time period, rounded to two decimal places, with a text explanation.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The highest value for June 2025 for TI-T0022 is 49.05 ."
+    },
+    {
+        "question": "What assets are next to asset BA100?",
+        "response": "{\"response\":\"\\nQuestion:\\nWhat assets are next to asset BA100?\\nResponse:\\nThe assets next to asset BA100 are LIC-L0012, PA103, TI-T0021, and PA104.\\nSummary:\\nThe response correctly identifies the assets next to asset BA100.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The assets next to asset BA100 are LIC-L0012, PA103, TI-T0021, and PA104."
+    },
+    {
+        "question": "What is the daily maximum value of PI-P0017 in April 2025?",
+        "response": "{\"response\":\"\\nQuestion:\\nWhat is the daily maximum value of PI-P0017 in April 2025?\\nResponse:\\nThe daily maximum value of PI-P0017 in April 2025 is approximately 1.59. \\nSummary:\\nThe response accurately provides the daily maximum value of PI-P0017 in April 2025, based on the agent's memory.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The daily maximum value of PI-P0017 in April 2025 is approximately 1.59."
+    },
+    {
+        "question": "Can you compare PI-P0017 and PI-P0016 for the first 10 days in 2025?",
+        "response": "{\"response\":\"\\nQuestion:\\nCan you compare PI-P0017 and PI-P0016 for the first 10 days in 2025?\\nResponse:\\nFor the first 10 days of 2025, a comparison between PI-P0017 and PI-P0016 reveals the following: Both datasets contain 10 data points. PI-P0017 has a mean of 1.37 with a standard deviation of 0.12, while PI-P0016 has a mean of 0.45 with a standard deviation of 0.08. The minimum value for PI-P0017 is 1.20, and the maximum is 1.56. For PI-P0016, the minimum is 0.30, and the maximum is 0.56. The 25th percentile for PI-P0017 is 1.29, the 50th percentile is 1.36, and the 75th percentile is 1.46. For PI-P0016, the 25th percentile is 0.41, the 50th percentile is 0.42, and the 75th percentile is 0.53. Note that the IDs associated with the data are 84200101-d718-45bf-bfae-529513586ddd and 18b04353-839d-40a1-84c1-9b547d09dd80, respectively, but it is not possible to associate them to PI-P0017 and PI-P0016.\\nSummary:\\nThe response provides a statistical comparison between PI-P0017 and PI-P0016 for the first 10 days of 2025, including mean, standard deviation, min, max, and percentile values.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "PI-P0017 was higher than PI-P0016 for the first 10 days in 2025."
+    },
+    {
+        "question": "How much was produced in the first two weeks of 2025?",
+        "response": "{\"response\":\"\\nQuestion:\\nHow much was produced in the first two weeks of 2025?\\nResponse:\\nThe total production rate of FQI-F0024 in the first two weeks of 2025 is approximately 3423.57 units.\\nSummary:\\nThe response provides the total production rate of FQI-F0024 in the first two weeks of 2025, as calculated in the original response.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The total production rate of FQI-F0024 in the first two weeks of 2025 is approximately 3423.57 units."
+    },
+    {
+        "question": "What is the id of TI-T0022?",
+        "response": "{\"response\":\"\\nQuestion:\\nWhat is the id of TI-T0022?\\nResponse:\\nI am sorry, but the provided information does not contain the ID of 'TI-T0022'. The response only includes an asset ID, which is 'cec684e7-cf21-47fe-8213-031cd576163c', but it is not clear if this is the ID you are looking for.\\nSummary:\\nThe response acknowledges that it cannot answer the question with the given information and explains why, which is appropriate.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The daily maximum value of PI-P0017 in April 2025 is 100."
+    },
+    {
+        "question": "can you plot me the temperature of the distillation cooler A for the last two weeks?",
+        "response": "{\"response\":\"\\nQuestion:\\ncan you plot me the temperature of the distillation cooler A for the last two weeks?\\nResponse:\\nThe temperature of TRC-T0029 for the last two weeks is as follows:\\n\\n2025-05-15: 49.68\\n2025-05-16: 48.89\\n2025-05-17: 48.73\\n2025-05-18: 49.39\\n2025-05-19: 49.04\\n2025-05-20: 48.57\\n2025-05-21: 49.06\\n2025-05-22: 48.71\\n2025-05-23: 48.78\\n2025-05-24: 48.18\\n2025-05-25: 48.16\\n2025-05-26: 48.40\\n2025-05-27: 48.31\\n2025-05-28: 47.77\\nSummary:\\nThe response accurately provides the temperature data for TRC-T0029 over the last two weeks, formatted for readability and precision.\\nIssues:\\n[]\\nPlausibility:\\nOK\\nFactual Consistency:\\nOK\\nClarity:\\nOK\\nCompleteness:\\nOK\"}",
+        "expected_response": "The daily maximum value of PI-P0017 in April 2025 is 100."
+    }
+]
