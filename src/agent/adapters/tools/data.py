@@ -2,11 +2,14 @@ import base64
 import io
 from typing import Dict, List, Optional
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from src.agent.adapters.tools.base import BaseTool
+
+matplotlib.use("agg")
 
 
 class CompareData(BaseTool):
@@ -39,7 +42,7 @@ class CompareData(BaseTool):
         else:
             comparison = data.describe()
 
-        return {"data": comparison}
+        return {"comparison": comparison}
 
 
 class GetData(BaseTool):

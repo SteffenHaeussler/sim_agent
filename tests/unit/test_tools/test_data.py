@@ -126,7 +126,7 @@ class TestCompareData(unittest.TestCase):
         }
         compare = CompareData(**params)
         out = compare.forward(pd.DataFrame())
-        self.assertEqual(out["data"].shape, (0, 0))
+        self.assertEqual(out["comparison"].shape, (0, 0))
 
     def test_compare_data(self):
         _input = pd.DataFrame(
@@ -141,4 +141,4 @@ class TestCompareData(unittest.TestCase):
         }
         compare = CompareData(**params)
         out = compare.forward(_input)
-        self.assertEqual(out["data"].shape, (8, 2))
+        self.assertEqual(out["comparison"].shape, (8, 2))

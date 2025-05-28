@@ -221,11 +221,11 @@ class BaseAgent:
         """
         self.tool_answer = command
         self.agent_memory = command.memory
-
         prompt = self.create_prompt(command)
         new_command = commands.LLMResponse(
             question=prompt,
             q_id=command.q_id,
+            data=command.data,
         )
 
         return new_command
@@ -262,10 +262,11 @@ class BaseAgent:
         if self.tool_answer is None:
             raise ValueError("Tool answer is required for LLM response")
 
-        response = events.Response(
+        response = events.ResponseWithData(
             question=self.question,
             response=command.response,
             q_id=self.q_id,
+            data=command.data,
         )
 
         self.response = response

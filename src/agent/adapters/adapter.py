@@ -325,7 +325,18 @@ class AgentAdapter(AbstractAdapter):
         )
         response, memory = self.tools.use(command.question)
 
-        command.response = response
         command.memory = memory
+
+        if "data" in response:
+            command.data = response
+            command.response = (
+                "Response is a data extraction. FileStorage is not implemented yet."
+            )
+
+        elif "plot" in response:
+            command.response = "Response is a plot."
+            command.data = response
+        else:
+            command.response = response
 
         return command
