@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List, Optional
 
 
 class Event:
@@ -47,3 +47,11 @@ class RejectedAnswer(Response):
     response: str
     rejection: str
     q_id: str
+
+
+@dataclass
+class ResponseWithData(Response):
+    question: str
+    response: str
+    q_id: str
+    data: Optional[Dict[str, str]] = None

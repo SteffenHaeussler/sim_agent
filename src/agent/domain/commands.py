@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -85,6 +85,7 @@ class FinalCheck(Command):
     factual_consistency: Optional[str] = None
     clarity: Optional[str] = None
     completeness: Optional[str] = None
+    data: Optional[Dict[str, str]] = None
 
 
 @dataclass
@@ -92,6 +93,7 @@ class LLMResponse(Command):
     question: str
     q_id: str
     response: Optional[str] = None
+    data: Optional[Dict[str, str]] = None
     chain_of_thought: Optional[str] = None
 
 
@@ -121,3 +123,4 @@ class UseTools(Command):
     q_id: str
     response: Optional[str] = None
     memory: Optional[List[str]] = None
+    data: Optional[Dict[str, str]] = None

@@ -73,8 +73,12 @@ def send_response(
     )
     if type(event) is events.Evaluation:
         message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}\nSummary:\n{event.summary}\nIssues:\n{event.issues}\nPlausibility:\n{event.plausibility}\nFactual Consistency:\n{event.factual_consistency}\nClarity:\n{event.clarity}\nCompleteness:\n{event.completeness}"
-    elif type(event) is events.Response:
+    elif type(event) is events.ResponseWithData:
         message = f"\nQuestion:\n{event.question}\nResponse:\n{event.response}"
+
+        if event.data and isinstance(event.data, dict):
+            for key, value in event.data.items():
+                message = message + f"\n{key}: {value}"
 
     if not isinstance(notifications, list | tuple):
         notifications = [notifications]
@@ -122,7 +126,7 @@ def send_failure(
 
 EVENT_HANDLERS = {
     events.FailedRequest: [send_failure],
-    events.Response: [send_response],
+    events.ResponseWithData: [send_response],
     events.RejectedRequest: [send_failure],
     events.RejectedAnswer: [send_failure],
     events.Evaluation: [send_response],

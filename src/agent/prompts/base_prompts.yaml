@@ -238,7 +238,7 @@ finalize: |-
   The goal is to produce a final response that is:
   - Coherent: The language flows logically, is easy to understand, and well-structured.
   - Accurate: The information presented is factually correct, consistent with the provided response, and does not introduce errors or misinformation.
-  - Contextually Relevant: The final response directly and fully addresses the original user question, using the core information and intent of the provided initial response.
+  - Contextually Relevant: The final response directly and fullcy addresses the original user question, using the core information and intent of the provided initial response.
   - Complete: It should cover the key points made in the initial response, unless they are clearly erroneous or irrelevant to the question.
   - Concise (where appropriate): Remove redundancy and improve clarity without losing essential information.
   - Improved: The final response should be a demonstrable improvement over the provided initial response in terms of clarity, grammar, style, and overall quality.
