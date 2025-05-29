@@ -1,11 +1,15 @@
 import inspect
+from typing import Dict
 
+from fastapi.websockets import WebSocket
 from langfuse.decorators import langfuse_context, observe
 
 from src.agent.adapters import adapter
 from src.agent.adapters.notifications import AbstractNotifications, CliNotifications
 from src.agent.observability.context import ctx_query_id
 from src.agent.service_layer import handlers, messagebus
+
+connected_clients: Dict[str, WebSocket] = {}
 
 
 @observe()
