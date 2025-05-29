@@ -119,7 +119,8 @@ def send_failure(
     else:
         raise ValueError("Invalid event type")
 
-    notifications.send(event.q_id, message)
+    for notification in notifications:
+        notification.send(event.q_id, message)
 
     return None
 

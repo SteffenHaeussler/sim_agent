@@ -327,13 +327,13 @@ class AgentAdapter(AbstractAdapter):
 
         command.memory = memory
 
-        if "data" in response:
+        if isinstance(response, dict) and "data" in response:
             command.data = response
             command.response = (
                 "Response is a data extraction. FileStorage is not implemented yet."
             )
 
-        elif "plot" in response:
+        elif isinstance(response, dict) and "plot" in response:
             command.response = "Response is a plot."
             command.data = response
         else:

@@ -1,10 +1,16 @@
+import asyncio
 import smtplib
+import time
 from abc import ABC, abstractmethod
 from email.message import EmailMessage
 
 import httpx
+from fastapi import WebSocket
+from loguru import logger
+from starlette.websockets import WebSocketState
 
 from src.agent.config import get_email_config, get_slack_config
+from src.agent.observability.context import connected_clients
 
 
 class AbstractNotifications(ABC):
@@ -103,3 +109,57 @@ class EmailNotifications(AbstractNotifications):
             server.starttls()  # Secure the connection
             server.login(self.config["sender_email"], self.config["app_password"])
             server.send_message(msg)
+
+
+# class WSNotifications(AbstractNotifications):
+# def send(self, destination: str, message: str) -> None:
+#     """
+#     Send a notification to the destination (session_id) if connected.
+#     """
+
+#     breakpoint()
+
+
+#     websocket = connected_clients.get(destination)
+#     if websocket:
+#         try:
+#             # Schedule sending the message (FastAPI uses asyncio)
+#             asyncio.create_task(websocket.send_text(message))
+#         except Exception as e:
+#             print(f"Failed to send to {destination}: {e}")
+class WSNotifications(AbstractNotifications):
+    def send(self, destination: str, message: str) -> None:
+        client_info = connected_clients.get(destination)
+        if client_info:
+            websocket: WebSocket = client_info["ws"]
+            target_loop: asyncio.AbstractEventLoop = client_info["loop"]
+
+            # Ensure the websocket is still connected before trying to send
+            if websocket.client_state == WebSocketState.CONNECTED:
+                # Prepare the coroutine
+                coro = websocket.send_text(message)
+
+                future = asyncio.run_coroutine_threadsafe(coro, target_loop)
+
+                try:
+                    future.result(
+                        timeout=5
+                    )  # Wait up to 5 seconds for the send to complete
+                    logger.info(f"Message successfully sent to {destination}")
+                    # Update last_event_time after successful send
+                    client_info["last_event_time"] = time.time()
+                except asyncio.TimeoutError:
+                    logger.error(f"Timeout sending message to {destination}")
+                    # Optionally, you might want to clean up or mark this client as problematic
+                except Exception as e:
+                    logger.error(
+                        f"Error sending message to {destination}: {e}", exc_info=True
+                    )
+            else:
+                logger.warning(
+                    f"Attempted to send to disconnected WebSocket: {destination}"
+                )
+                connected_clients.pop(destination, None)  # Clean up disconnected client
+        else:
+            logger.warning(f"WebSocket client not found for destination: {destination}")
+            return None
