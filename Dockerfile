@@ -45,6 +45,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Reset the entrypoint, don't invoke `uv`
+EXPOSE 5054
 EXPOSE 5055
 
 # Run the FastAPI application by default
