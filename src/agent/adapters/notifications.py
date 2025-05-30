@@ -111,22 +111,6 @@ class EmailNotifications(AbstractNotifications):
             server.send_message(msg)
 
 
-# class WSNotifications(AbstractNotifications):
-# def send(self, destination: str, message: str) -> None:
-#     """
-#     Send a notification to the destination (session_id) if connected.
-#     """
-
-#     breakpoint()
-
-
-#     websocket = connected_clients.get(destination)
-#     if websocket:
-#         try:
-#             # Schedule sending the message (FastAPI uses asyncio)
-#             asyncio.create_task(websocket.send_text(message))
-#         except Exception as e:
-#             print(f"Failed to send to {destination}: {e}")
 class WSNotifications(AbstractNotifications):
     def send(self, destination: str, message: str) -> None:
         client_info = connected_clients.get(destination)
