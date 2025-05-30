@@ -43,7 +43,7 @@ Examples:
 - "What is the current pressure in the distillation?"
 - "What is the level in tank b?"
 - "can you plot me the temperature of the distillation cooler A for the last two weeks?"
-- "What is the temperature of the water tank?"
+- "What is the current temperature in the water tank?"
 - "how much distillate is flown in the storage in the last 4 hours?"
 
 ```
