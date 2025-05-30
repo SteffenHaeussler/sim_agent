@@ -120,7 +120,7 @@ class TestAnswer:
 
     def test_sends_rejected_notification(self):
         fake_notifs = FakeNotifications()
-        bus = bootstrap(adapter=FakeAdapter(), notifications=fake_notifs)
+        bus = bootstrap(adapter=FakeAdapter(), notifications=[fake_notifs])
         bus.handle(commands.Question("test query", "test_rejected_id"))
 
         assert fake_notifs.sent["test_rejected_id"] == [
