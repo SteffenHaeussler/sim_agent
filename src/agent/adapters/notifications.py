@@ -115,8 +115,14 @@ class WSNotifications(AbstractNotifications):
     def send(self, destination: str, message: str) -> None:
         client_info = connected_clients.get(destination)
         if client_info:
-            websocket: WebSocket = client_info["ws"]
-            target_loop: asyncio.AbstractEventLoop = client_info["loop"]
+            websocket: WebSocket = client_info.get("ws")
+            target_loop: asyncio.AbstractEventLoop = client_info.get("loop")
+
+            if websocket is None or target_loop is None:
+                logger.error(
+                    f"Missing websocket or loop in client info for destination: {destination}"
+                )
+                return  # or handle gracefully
 
             # Ensure the websocket is still connected before trying to send
             if websocket.client_state == WebSocketState.CONNECTED:
@@ -146,4 +152,37 @@ class WSNotifications(AbstractNotifications):
                 connected_clients.pop(destination, None)  # Clean up disconnected client
         else:
             logger.warning(f"WebSocket client not found for destination: {destination}")
+            return None
+
+
+class SSENotifications(AbstractNotifications):
+    def send(self, destination: str, message: str) -> None:
+        client_info = connected_clients.get(destination)
+        if client_info:
+            queue: asyncio.Queue = client_info.get("queue")
+            target_loop: asyncio.AbstractEventLoop = client_info.get("loop")
+
+            if queue is None or target_loop is None:
+                logger.error(
+                    f"Missing queue or loop in client info for destination: {destination}"
+                )
+                return  # or handle gracefully
+
+            # Push message to queue on correct event loop
+            future = asyncio.run_coroutine_threadsafe(queue.put(message), target_loop)
+
+            try:
+                future.result(
+                    timeout=5
+                )  # Wait up to 5 seconds for message to be queued
+                logger.info(f"Message successfully queued for {destination}")
+                client_info["last_event_time"] = time.time()
+            except asyncio.TimeoutError:
+                logger.error(f"Timeout queueing message to {destination}")
+            except Exception as e:
+                logger.error(
+                    f"Error queueing message to {destination}: {e}", exc_info=True
+                )
+        else:
+            logger.warning(f"SSE client not found for destination: {destination}")
             return None

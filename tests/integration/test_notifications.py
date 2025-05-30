@@ -6,6 +6,7 @@ from src.agent.adapters.notifications import (
     CliNotifications,
     EmailNotifications,
     SlackNotifications,
+    SSENotifications,
     WSNotifications,
 )
 from src.agent.bootstrap import bootstrap
@@ -88,6 +89,23 @@ class TestNotification:
             notifications=WSNotifications(),
         )
         with patch.object(WSNotifications, "send", return_value=None) as mock_send:
+            bus.handle(
+                events.ResponseWithData(
+                    question="test_query",
+                    response="test_response",
+                    q_id="test_session_id",
+                )
+            )
+            mock_send.assert_called_once_with(
+                "test_session_id", "\nQuestion:\ntest_query\nResponse:\ntest_response"
+            )
+
+    def test_send_sse_notification_called(self):
+        bus = bootstrap(
+            adapter=AgentAdapter(),
+            notifications=SSENotifications(),
+        )
+        with patch.object(SSENotifications, "send", return_value=None) as mock_send:
             bus.handle(
                 events.ResponseWithData(
                     question="test_query",

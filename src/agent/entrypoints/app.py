@@ -14,6 +14,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from loguru import logger
+from starlette.responses import StreamingResponse
 from starlette.websockets import WebSocketState
 
 import src.agent.service_layer.handlers as handlers
@@ -21,6 +22,7 @@ from src.agent.adapters.adapter import AgentAdapter
 from src.agent.adapters.notifications import (
     ApiNotifications,
     SlackNotifications,
+    SSENotifications,
     WSNotifications,
 )
 from src.agent.bootstrap import bootstrap
@@ -36,12 +38,16 @@ if os.getenv("IS_TESTING") != "true":
 setup_tracing(get_tracing_config())
 setup_logging(get_logging_config())
 
-
 app = FastAPI()
 
 bus = bootstrap(
     adapter=AgentAdapter(),
-    notifications=[ApiNotifications(), SlackNotifications(), WSNotifications()],
+    notifications=[
+        ApiNotifications(),
+        SlackNotifications(),
+        WSNotifications(),
+        SSENotifications(),
+    ],
 )
 
 
@@ -133,3 +139,32 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str = Query(...))
             except Exception:
                 pass  # May already be closed or in a bad state
         logger.info(f"Connection closed for {session_id}")
+
+
+@app.get("/sse/{session_id}")
+async def sse(request: Request, session_id: str):
+    loop = asyncio.get_event_loop()
+
+    if session_id not in connected_clients:
+        connected_clients[session_id] = {
+            "queue": asyncio.Queue(),
+            "loop": loop,
+            "last_event_time": time(),
+        }
+
+    queue = connected_clients[session_id]["queue"]
+
+    async def event_stream():
+        while True:
+            if await request.is_disconnected():
+                logger.info(f"Client {session_id} disconnected from SSE.")
+                connected_clients.pop(session_id, None)
+                break
+
+            try:
+                message = await asyncio.wait_for(queue.get(), timeout=10.0)
+                yield f"data: {message}\n\n"
+            except asyncio.TimeoutError:
+                yield ": keep-alive\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
