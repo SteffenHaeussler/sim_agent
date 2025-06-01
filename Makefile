@@ -29,5 +29,10 @@ test:
 coverage:
 	uv run python -m pytest tests/ -s -v --cov=src --cov-report=term-missing
 
-eval:
-	uv run python -m pytest tests/evaluation/test_e2e.py -s -v --envfile=.env
+eval_e2e:
+	uv run python -m pytest tests/eval/test_e2e.py -s -v --envfile=.env
+
+eval_ir:
+	uv run python -m pytest tests/eval/test_ir.py -s -v --envfile=.env
+
+eval: eval_e2e eval_ir
