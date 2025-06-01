@@ -1,0 +1,11 @@
+{
+    "question": "how much distillate is flown in the storage in the last 4 hours?",
+    "response": {
+        "description": "amount of distillate flow towards tank storage",
+        "name": "FQI-F0024",
+        "tag": "FQI-F0024",
+        "id": "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64",
+        "location": "tank",
+        "area": "end"
+    }
+}

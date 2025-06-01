@@ -45,6 +45,7 @@ Examples:
 - "can you plot me the temperature of the distillation cooler A for the last two weeks?"
 - "What is the current temperature in the water tank?"
 - "how much distillate is flown in the storage in the last 4 hours?"
+- Can you plot me data for 18b04353-839d-40a1-84c1-9b547d09dd80 in Febuary?
 
 ```
 

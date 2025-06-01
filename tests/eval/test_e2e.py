@@ -10,11 +10,11 @@ from tests.utils import get_fixtures
 
 current_path = Path(__file__).parent
 
-fixtures = get_fixtures(current_path, keys=["examples"])
+fixtures = get_fixtures(current_path, keys=["e2e"])
 results = []
 
 
-class TestE2E:
+class TestEvalE2E:
     @pytest.mark.parametrize(
         "fixture_name, fixture",
         [
@@ -22,7 +22,7 @@ class TestE2E:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_area(self, fixture_name, fixture):
+    def test_eval_e2e(self, fixture_name, fixture):
         question, expected_response = (
             fixture["examples"]["question"],
             fixture["examples"]["response"],
