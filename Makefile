@@ -35,4 +35,8 @@ eval_e2e:
 eval_ir:
 	uv run python -m pytest tests/eval/test_ir.py -s -v --envfile=.env
 
-eval: eval_e2e eval_ir
+eval_tool_agent:
+	uv run python -m pytest tests/eval/test_tool_agent.py -s -v --envfile=.env
+
+
+eval: eval_e2e eval_ir eval_tool_agent

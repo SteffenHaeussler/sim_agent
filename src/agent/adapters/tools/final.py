@@ -1,5 +1,7 @@
 from typing import Any
 
+import numpy as np
+
 from src.agent.adapters.tools.base import BaseTool
 
 
@@ -25,4 +27,7 @@ class FinalAnswerTool(BaseTool):
         Returns:
             answer: Any: The final answer to the problem.
         """
+        if isinstance(answer, (int, float, bool, np.int64, np.float64)):
+            answer = str(round(answer, 6))
+
         return answer

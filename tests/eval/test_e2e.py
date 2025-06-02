@@ -24,11 +24,11 @@ class TestEvalE2E:
     )
     def test_eval_e2e(self, fixture_name, fixture):
         question, expected_response = (
-            fixture["examples"]["question"],
-            fixture["examples"]["response"],
+            fixture["e2e"]["question"],
+            fixture["e2e"]["response"],
         )
 
-        params = {"question": question, "session_id": fixture_name}
+        params = {"question": question, "q_id": fixture_name}
 
         response = httpx.get(
             os.getenv("agent_api_base_url"),
