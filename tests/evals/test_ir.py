@@ -8,7 +8,7 @@ from tests.utils import get_fixtures
 
 current_path = Path(__file__).parent
 
-fixtures = get_fixtures(current_path, keys=["ir"])
+fixtures = get_fixtures(Path(__file__).parent, keys=["ir"])
 results = []
 
 
