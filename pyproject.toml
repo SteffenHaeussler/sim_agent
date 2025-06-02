@@ -34,5 +34,5 @@ dev = [
 
 [tool.pytest.ini_options]
 addopts = [
-    "--ignore=tests/evaluation",
+    "--ignore=evals",
 ]

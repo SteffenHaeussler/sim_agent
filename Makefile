@@ -26,17 +26,24 @@ down:
 test:
 	uv run python -m pytest tests/ -s -v --envfile=.env.tests
 
+tests: test
+
 coverage:
 	uv run python -m pytest tests/ -s -v --cov=src --cov-report=term-missing
 
 eval_e2e:
-	uv run python -m pytest tests/eval/test_e2e.py -s -v --envfile=.env
+	uv run python -m pytest tests/evals/test_e2e.py -s -v --envfile=.env
+
+eval_enhance:
+	uv run python -m pytest tests/evals/test_enhance.py -s -v --envfile=.env
 
 eval_ir:
-	uv run python -m pytest tests/eval/test_ir.py -s -v --envfile=.env
+	uv run python -m pytest tests/evals/test_ir.py -s -v --envfile=.env
 
 eval_tool_agent:
-	uv run python -m pytest tests/eval/test_tool_agent.py -s -v --envfile=.env
+	uv run python -m pytest tests/evals/test_tool_agent.py -s -v --envfile=.env
 
 
-eval: eval_e2e eval_ir eval_tool_agent
+
+
+eval: eval_e2e eval_ir eval_tool_agent eval_enhance
