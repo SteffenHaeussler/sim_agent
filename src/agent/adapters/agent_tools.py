@@ -166,7 +166,7 @@ class Tools(AbstractTools):
             response: str: The response from the agent's tools.
             memory: List[str]: The agent's memory for each step.
         """
-        if os.environ["TELEMETRY_ENABLED"] == "true":
+        if os.getenv("TELEMETRY_ENABLED", None) == "true":
             response = self._use_with_telemetry(question)
         else:
             response = self._use(question)
