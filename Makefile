@@ -37,6 +37,9 @@ eval_e2e:
 eval_enhance:
 	uv run python -m pytest tests/evals/test_enhance.py -s -v --envfile=.env
 
+eval_guardrails:
+	uv run python -m pytest tests/evals/test_guardrails.py -s -v --envfile=.env
+
 eval_ir:
 	uv run python -m pytest tests/evals/test_ir.py -s -v --envfile=.env
 
@@ -46,4 +49,4 @@ eval_tool_agent:
 
 
 
-eval: eval_e2e eval_ir eval_tool_agent eval_enhance
+eval: eval_e2e eval_ir eval_tool_agent eval_enhance eval_guardrails
