@@ -11,7 +11,7 @@ from tests.utils import get_fixtures
 
 current_path = Path(__file__).parent
 
-fixtures = get_fixtures(current_path, keys=["guardrails"])
+fixtures = get_fixtures(current_path, keys=["pre_check"])
 results = []
 
 
@@ -25,8 +25,8 @@ class TestEvalGuardrails:
     )
     def test_eval_guardrails(self, fixture):
         question, expected_response = (
-            fixture["guardrails"]["question"],
-            fixture["guardrails"]["approved"],
+            fixture["pre_check"]["question"],
+            fixture["pre_check"]["approved"],
         )
         q_id = uuid.uuid4()
         question = commands.Question(question=question, q_id=q_id)
