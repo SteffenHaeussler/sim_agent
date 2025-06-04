@@ -63,7 +63,11 @@ async def answer(question: str, q_id: Optional[str] = None):
     if not q_id:
         q_id = uuid4().hex
 
+    if not question:
+        raise HTTPException(status_code=400, detail="No question asked")
+
     ctx_query_id.set(q_id)
+
     try:
         command = Question(question, q_id)
         # Run the command handling in the background

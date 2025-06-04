@@ -79,10 +79,7 @@ class TestAPI(unittest.TestCase):
 
         assert response.status_code == 200
 
-        assert (
-            response.json()["response"]
-            == "\nQuestion:\ntest\nResponse:\ntest answer\nSummary:\nsummary\nIssues:\n[]\nPlausibility:\nplausibility\nFactual Consistency:\nfactual_consistency\nClarity:\nclarity\nCompleteness:\ncompleteness"
-        )
+        assert response.json()["status"] == "processing"
 
     def test_unhappy_path_returns_400_and_answers(self):
         params = {"question": None}
