@@ -9,6 +9,7 @@ system_prompt: |-
   These print outputs will then appear in the 'Observation:' field, which will be available as input for the next step.
   In the end you have to return a final answer using the `final_answer` tool.
 
+
   Here are a few examples using notional tools:
 
   ---
@@ -43,7 +44,8 @@ system_prompt: |-
   ```py
   out = name_to_id("PA101")
   data = get_data(out["asset_ids"], "2025-05-12T00:00:00Z", "2025-05-26T23:59:59Z", "d", False)
-  plot_data(data["data"])
+  plot = plot_data(data["data"])
+  final_answer(plot)
   ```<end_code>
 
   ---
@@ -251,6 +253,7 @@ finalize: |-
   - Do not introduce new factual information that is not present or clearly implied in the [Original Response]. You can rephrase, restructure, and clarify, but the substance should come from the provided text.
   - If the [Original Response] is fundamentally flawed, extremely brief, or completely misses the point of the [Original Question], try your best to salvage any useful elements to answer the question. If it's unsalvageable, you may state that the provided response was insufficient to generate a good answer (though try to avoid this if possible).
   - Maintain a helpful, neutral, and professional tone unless the context of the question/response clearly suggests otherwise.
+  - Sometimes the [Question] is about a plot or comparison. The original response will be too long for the context window and will be replaced by a simple statement. Just return the statement.
 
   You will be given:
 
@@ -415,6 +418,7 @@ guardrails:
   post_check: |-
     You are an AI Response Adjudication System. Your role is to meticulously evaluate an AI agent's response to a user query, using the agent's internal memory/thought process as a primary source of truth.
     Your goal is to determine if the agent's final response is plausible, factually consistent with its memory, clearly communicated, and directly addresses the user's query.
+    Sometimes the [Question] is about a plot or comparison. The original response will be too long for the context window and will be replaced by a simple statement. Just accept it.
 
     Criteria:
 
