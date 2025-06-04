@@ -163,7 +163,13 @@ class TestAgent:
         )
 
     def test_agent_final_check(self):
-        question = commands.FinalCheck(question="test query", q_id="test session id")
+        question = commands.FinalCheck(
+            question="test query",
+            q_id="test session id",
+            approved=True,
+            summary="test summary",
+            issues=[],
+        )
         agent = BaseAgent(question, get_agent_config())
 
         agent.response = commands.LLMResponse(

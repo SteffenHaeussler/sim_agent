@@ -5,7 +5,7 @@ import pytest
 from src.agent.adapters.adapter import AbstractAdapter
 from src.agent.adapters.notifications import AbstractNotifications
 from src.agent.bootstrap import bootstrap
-from src.agent.domain import commands
+from src.agent.domain import commands, events
 from src.agent.service_layer.handlers import InvalidQuestion
 
 
@@ -67,8 +67,8 @@ class FakeNotifications(AbstractNotifications):
     def __init__(self):
         self.sent = defaultdict(list)
 
-    def send(self, destination, message):
-        self.sent[destination].append(message)
+    def send(self, destination, event: events.Event):
+        self.sent[destination].append(event)
 
 
 def bootstrap_test_app():
@@ -110,19 +110,44 @@ class TestAnswer:
 
     def test_sends_notification(self):
         fake_notifs = FakeNotifications()
-        bus = bootstrap(adapter=FakeAdapter(), notifications=fake_notifs)
+        bus = bootstrap(adapter=FakeAdapter(), notifications=[fake_notifs])
         bus.handle(commands.Question("test query", "test_session_id"))
 
-        assert fake_notifs.sent["test_session_id"] == [
-            "\nQuestion:\ntest query\nResponse:\ntest second llm response",
-            "\nQuestion:\ntest query\nResponse:\ntest second llm response\nSummary:\ntest summary\nIssues:\n[]\nPlausibility:\ntest plausibility\nFactual Consistency:\ntest factual consistency\nClarity:\nNone\nCompleteness:\nNone",
-        ]
+        test_request = events.Response(
+            question="test query",
+            response="test second llm response",
+            q_id="test_session_id",
+        )
+        test_evaluation = events.Evaluation(
+            question="test query",
+            response="test second llm response",
+            q_id="test_session_id",
+            chain_of_thought="test chain of thought",
+            approved=True,
+            summary="test summary",
+            issues=[],
+            plausibility="test plausibility",
+            factual_consistency="test factual consistency",
+            clarity=None,
+            completeness=None,
+        )
+        end_of_event = events.EndOfEvent(q_id="test_session_id")
+
+        assert fake_notifs.sent["test_session_id"][0] == test_request
+        assert fake_notifs.sent["test_session_id"][1] == test_evaluation
+        assert fake_notifs.sent["test_session_id"][2] == end_of_event
 
     def test_sends_rejected_notification(self):
         fake_notifs = FakeNotifications()
         bus = bootstrap(adapter=FakeAdapter(), notifications=[fake_notifs])
         bus.handle(commands.Question("test query", "test_rejected_id"))
 
-        assert fake_notifs.sent["test_rejected_id"] == [
-            "\nQuestion:\ntest query\n was rejected. Response:\ntest second llm response",
-        ]
+        rejected_request = events.RejectedRequest(
+            question="test query",
+            response="test second llm response",
+            q_id="test_rejected_id",
+        )
+        end_of_event = events.EndOfEvent(q_id="test_rejected_id")
+
+        assert fake_notifs.sent["test_rejected_id"][0] == rejected_request
+        assert fake_notifs.sent["test_rejected_id"][1] == end_of_event
