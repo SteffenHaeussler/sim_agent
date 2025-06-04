@@ -262,7 +262,7 @@ class BaseAgent:
         if self.tool_answer is None:
             raise ValueError("Tool answer is required for LLM response")
 
-        response = events.ResponseWithData(
+        response = events.Response(
             question=self.question,
             response=command.response,
             q_id=self.q_id,
@@ -277,7 +277,6 @@ class BaseAgent:
             question=prompt,
             q_id=command.q_id,
         )
-
         return new_command
 
     def prepare_retrieval(

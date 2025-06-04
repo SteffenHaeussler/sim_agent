@@ -19,12 +19,7 @@ from starlette.websockets import WebSocketState
 
 import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
-from src.agent.adapters.notifications import (
-    ApiNotifications,
-    SlackNotifications,
-    SSENotifications,
-    WSNotifications,
-)
+from src.agent.adapters.notifications import SlackNotifications, SSENotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
 from src.agent.domain.commands import Question
@@ -43,16 +38,14 @@ app = FastAPI()
 bus = bootstrap(
     adapter=AgentAdapter(),
     notifications=[
-        ApiNotifications(),
         SlackNotifications(),
-        WSNotifications(),
         SSENotifications(),
     ],
 )
 
 
 @app.get("/answer")
-def answer(question: str, q_id: Optional[str] = None):
+async def answer(question: str, q_id: Optional[str] = None):
     """
     Entrypoint for the agent.
 
@@ -73,13 +66,12 @@ def answer(question: str, q_id: Optional[str] = None):
     ctx_query_id.set(q_id)
     try:
         command = Question(question, q_id)
-        bus.handle(command)
+        # Run the command handling in the background
+        asyncio.create_task(asyncio.to_thread(bus.handle, command))
+        return {"status": "processing", "message": "Event triggered successfully"}
 
     except (handlers.InvalidQuestion, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-    message = ApiNotifications().temp.pop(q_id, None)
-    return {"response": message}
 
 
 @app.get("/health")
@@ -162,9 +154,12 @@ async def sse(request: Request, session_id: str):
                 break
 
             try:
-                message = await asyncio.wait_for(queue.get(), timeout=10.0)
-                yield f"data: {message}\n\n"
+                message = await asyncio.wait_for(queue.get(), timeout=20.0)
+                yield message
             except asyncio.TimeoutError:
                 yield ": keep-alive\n\n"
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+    )

@@ -10,6 +10,7 @@ from loguru import logger
 from starlette.websockets import WebSocketState
 
 from src.agent.config import get_email_config, get_slack_config
+from src.agent.domain import events
 from src.agent.observability.context import connected_clients
 
 
@@ -22,22 +23,8 @@ class AbstractNotifications(ABC):
     """
 
     @abstractmethod
-    def send(self, destination: str, message: str) -> None:
+    def send(self, destination: str, event: events.Event) -> None:
         raise NotImplementedError
-
-
-class ApiNotifications(AbstractNotifications):
-    """
-    ApiNotifications is a class that sends notifications to the API.
-
-    Methods:
-        - send(self, destination: str, message: str) -> None: Send a notification.
-    """
-
-    temp = {}
-
-    def send(self, destination: str, message: str) -> None:
-        self.temp[destination] = message
 
 
 class CliNotifications(AbstractNotifications):
@@ -48,7 +35,7 @@ class CliNotifications(AbstractNotifications):
         - send(self, destination: str, message: str) -> None: Send a notification.
     """
 
-    def send(self, destination: str, message: str) -> None:
+    def send(self, destination: str, event: events.Event) -> None:
         """
         Send a notification.
 
@@ -56,7 +43,7 @@ class CliNotifications(AbstractNotifications):
             destination: str: The destination to send the notification.
             message: str: The message to send.
         """
-        print("send notification:", message)
+        print("send notification:", event.to_message())
 
 
 class SlackNotifications(AbstractNotifications):
@@ -70,7 +57,7 @@ class SlackNotifications(AbstractNotifications):
     def __init__(self):
         self.config = get_slack_config()
 
-    def send(self, destination: str, message: str) -> None:
+    def send(self, destination: str, event: events.Event) -> None:
         """
         Send a notification.
 
@@ -80,7 +67,7 @@ class SlackNotifications(AbstractNotifications):
         """
         httpx.post(
             self.config["slack_webhook_url"],
-            json={"text": message},
+            json={"text": event.to_message()},
             headers={"Content-Type": "application/json"},
         )
 
@@ -96,12 +83,12 @@ class EmailNotifications(AbstractNotifications):
     def __init__(self):
         self.config = get_email_config()
 
-    def send(self, destination, message):
+    def send(self, destination, event: events.Event):
         msg = EmailMessage()
         msg["Subject"] = "Subject: apropos service notification"
         msg["From"] = self.config["sender_email"]
         msg["To"] = self.config["receiver_email"]
-        msg.set_content(message)
+        msg.set_content(event.to_message())
 
         with smtplib.SMTP(
             self.config["smtp_host"], port=self.config["smtp_port"]
@@ -112,7 +99,7 @@ class EmailNotifications(AbstractNotifications):
 
 
 class WSNotifications(AbstractNotifications):
-    def send(self, destination: str, message: str) -> None:
+    def send(self, destination: str, event: events.Event) -> None:
         client_info = connected_clients.get(destination)
         if client_info:
             websocket: WebSocket = client_info.get("ws")
@@ -127,7 +114,7 @@ class WSNotifications(AbstractNotifications):
             # Ensure the websocket is still connected before trying to send
             if websocket.client_state == WebSocketState.CONNECTED:
                 # Prepare the coroutine
-                coro = websocket.send_text(message)
+                coro = websocket.send_text(event.to_event_string())
 
                 future = asyncio.run_coroutine_threadsafe(coro, target_loop)
 
@@ -156,7 +143,7 @@ class WSNotifications(AbstractNotifications):
 
 
 class SSENotifications(AbstractNotifications):
-    def send(self, destination: str, message: str) -> None:
+    def send(self, destination: str, event: events.Event) -> None:
         client_info = connected_clients.get(destination)
         if client_info:
             queue: asyncio.Queue = client_info.get("queue")
@@ -169,7 +156,9 @@ class SSENotifications(AbstractNotifications):
                 return  # or handle gracefully
 
             # Push message to queue on correct event loop
-            future = asyncio.run_coroutine_threadsafe(queue.put(message), target_loop)
+            future = asyncio.run_coroutine_threadsafe(
+                queue.put(event.to_event_string()), target_loop
+            )
 
             try:
                 future.result(
