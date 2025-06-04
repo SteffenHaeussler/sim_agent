@@ -38,9 +38,9 @@ class CompareData(BaseTool):
             data = pd.concat(data, axis=1)
 
         if data.empty:
-            comparison = pd.DataFrame()
+            comparison = {}
         else:
-            comparison = data.describe()
+            comparison = data.describe().to_dict()
 
         return {"comparison": comparison}
 

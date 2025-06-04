@@ -126,7 +126,7 @@ class TestCompareData(unittest.TestCase):
         }
         compare = CompareData(**params)
         out = compare.forward(pd.DataFrame())
-        self.assertEqual(out["comparison"].shape, (0, 0))
+        assert len(out["comparison"]) == 0
 
     def test_compare_data(self):
         _input = pd.DataFrame(
@@ -141,4 +141,6 @@ class TestCompareData(unittest.TestCase):
         }
         compare = CompareData(**params)
         out = compare.forward(_input)
-        self.assertEqual(out["comparison"].shape, (8, 2))
+        assert len(out["comparison"]) == 2
+        assert len(out["comparison"]["a"]) == 8
+        assert len(out["comparison"]["b"]) == 8

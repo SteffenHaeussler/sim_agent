@@ -420,6 +420,7 @@ guardrails:
     Your goal is to determine if the agent's final response is plausible, factually consistent with its memory, clearly communicated, and directly addresses the user's query.
     Sometimes the [Question] is about a plot or comparison. The original response will be too long for the context window and will be replaced by a simple statement. Just accept it.
 
+
     Criteria:
 
     1. Plausibility:
