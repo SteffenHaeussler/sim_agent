@@ -14,7 +14,11 @@ class InvalidQuestion(Exception):
 
 
 @observe()
-def answer(command: commands.Question, adapter: AbstractAdapter, notifications: AbstractNotifications = None) -> None:
+def answer(
+    command: commands.Question,
+    adapter: AbstractAdapter,
+    notifications: AbstractNotifications = None,
+) -> None:
     """
     Handles incoming questions.
 
@@ -40,7 +44,7 @@ def answer(command: commands.Question, adapter: AbstractAdapter, notifications: 
     # Step name mapping for status updates
     step_names = {
         commands.Question: "Question Processing",
-        commands.Check: "Guardrail Check", 
+        commands.Check: "Guardrail Check",
         commands.Retrieve: "Knowledge Retrieval",
         commands.Rerank: "Document Reranking",
         commands.Enhance: "Question Enhancement",
@@ -54,13 +58,12 @@ def answer(command: commands.Question, adapter: AbstractAdapter, notifications: 
         # Send real-time status update
         if type(command) in step_names and notifications:
             status_event = events.StatusUpdate(
-                step_name=step_names[type(command)],
-                q_id=agent.q_id
+                step_name=step_names[type(command)], q_id=agent.q_id
             )
             # Send immediately to WebSocket clients
             for notification in notifications:
                 notification.send(agent.q_id, status_event)
-        
+
         logger.info(f"Calling Adapter with command: {type(command)}")
         updated_command = adapter.answer(command)
         command = agent.update(updated_command)
