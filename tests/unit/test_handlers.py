@@ -81,7 +81,7 @@ class TestAnswer:
         bus.handle(commands.Question("test query", "test_session_id"))
 
         # get the agent from the adapter
-        agent = next(iter(bus.adapter.seen))
+        agent = bus.adapter.agent
 
         assert agent.q_id == "test_session_id"
         assert agent.question == "test query"
@@ -95,16 +95,16 @@ class TestAnswer:
     def test_for_new_agent(self):
         bus = bootstrap_test_app()
 
-        assert bus.adapter.seen == set()
+        assert bus.adapter.agent is None
 
         bus.handle(commands.Question("test query", "test_session_id"))
-        assert bus.adapter.seen != set()
+        assert bus.adapter.agent is not None
 
     def test_return_response(self):
         bus = bootstrap_test_app()
         bus.handle(commands.Question("test query", "test_session_id"))
 
-        agent = next(iter(bus.adapter.seen))
+        agent = bus.adapter.agent
 
         assert agent.response.response == "test second llm response"
 

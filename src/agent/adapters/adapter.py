@@ -23,7 +23,7 @@ class AbstractAdapter(ABC):
     """
 
     def __init__(self):
-        self.seen = set()
+        self.agent = None
         self.llm = llm.AbstractLLM()
         self.tools = agent_tools.AbstractTools()
         self.rag = rag.AbstractModel()
@@ -39,7 +39,7 @@ class AbstractAdapter(ABC):
         Returns:
             None
         """
-        self.seen.add(agent)
+        self.agent = agent
 
     def answer(self, command: commands.Command) -> str:
         """
@@ -60,9 +60,9 @@ class AbstractAdapter(ABC):
         Returns:
             An iterator of events.
         """
-        for agent in self.seen:
-            while agent.events:
-                yield agent.events.pop(0)
+        while self.agent.events:
+            event = self.agent.events.pop(0)
+            yield event
 
 
 class AgentAdapter(AbstractAdapter):

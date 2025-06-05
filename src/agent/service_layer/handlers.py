@@ -119,6 +119,32 @@ def send_failure(
     return None
 
 
+@observe()
+def send_status_update(
+    event: events.StatusUpdate,
+    notifications: AbstractNotifications,
+) -> None:
+    """
+    Sends the status update to the notifications.
+
+    Args:
+        event: events.StatusUpdate: The status update event to send.
+        notifications: AbstractNotifications: The notifications to use.
+
+    Returns:
+        None
+    """
+    langfuse_context.update_current_trace(
+        name="send_status_update handler",
+        session_id=event.q_id,
+    )
+
+    for notification in notifications:
+        notification.send(event.q_id, event)
+
+    return None
+
+
 EVENT_HANDLERS = {
     events.FailedRequest: [send_failure],
     events.Response: [send_response],
@@ -126,6 +152,7 @@ EVENT_HANDLERS = {
     events.RejectedAnswer: [send_failure],
     events.Evaluation: [send_response],
     events.EndOfEvent: [send_response],
+    events.StatusUpdate: [send_status_update],
 }
 
 COMMAND_HANDLERS = {
