@@ -10,6 +10,7 @@ from src.agent.entrypoints.main import answer
 
 
 class TestCLI(unittest.TestCase):
+    @patch("src.agent.adapters.notifications.SlackNotifications.send")
     @patch("src.agent.adapters.rag.BaseRAG.retrieve")
     @patch("src.agent.adapters.rag.BaseRAG.rerank")
     @patch("src.agent.adapters.rag.BaseRAG.embed")
@@ -22,6 +23,7 @@ class TestCLI(unittest.TestCase):
         mock_embed,
         mock_rerank,
         mock_retrieve,
+        mock_slack,
     ):
         mock_CodeAgent.return_value = ("agent test", "agent memory")
 
@@ -68,6 +70,8 @@ class TestCLI(unittest.TestCase):
                 }
             ]
         }
+
+        mock_slack.return_value = None
 
         question = "test"
 

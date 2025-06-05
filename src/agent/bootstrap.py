@@ -53,6 +53,7 @@ def bootstrap(
         adapter=adapter,
         event_handlers=injected_event_handlers,
         command_handlers=injected_command_handlers,
+        notifications=notifications,
     )
 
 

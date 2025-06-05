@@ -72,7 +72,7 @@ class FakeNotifications(AbstractNotifications):
 
 
 def bootstrap_test_app():
-    return bootstrap(adapter=FakeAdapter(), notifications=FakeNotifications())
+    return bootstrap(adapter=FakeAdapter(), notifications=[FakeNotifications()])
 
 
 class TestAnswer:

@@ -144,3 +144,17 @@ class Response(Event):
             for key, value in self.data.items():
                 message += f"$%$%{key.capitalize()}:{value}"
         return message
+
+
+class StatusUpdate(Event):
+    step_name: str
+    q_id: str
+
+    def to_event_string(self) -> str:
+        return f"event: {self.to_message()}"
+
+    def to_message(self) -> str:
+        return f"{self.step_name}"
+
+    def to_markdown(self) -> str:
+        return f"**Status:** Starting {self.step_name}"

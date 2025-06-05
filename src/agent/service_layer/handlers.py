@@ -14,13 +14,18 @@ class InvalidQuestion(Exception):
 
 
 @observe()
-def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
+def answer(
+    command: commands.Question,
+    adapter: AbstractAdapter,
+    notifications: AbstractNotifications = None,
+) -> None:
     """
     Handles incoming questions.
 
     Args:
         command: commands.Question: The question to answer.
         adapter: AbstractAdapter: The adapter to use.
+        notifications: AbstractNotifications: The notifications to use for real-time updates.
 
     Returns:
         None
@@ -38,12 +43,14 @@ def answer(command: commands.Question, adapter: AbstractAdapter) -> None:
 
     # adapter for execution and agent for internal logic
     while not agent.is_answered and command is not None:
-        # Emit status update for current step
-        if type(command) in STEP_NAMES:
+        # Send real-time status update
+        if type(command) in STEP_NAMES and notifications:
             status_event = events.StatusUpdate(
                 step_name=STEP_NAMES[type(command)], q_id=agent.q_id
             )
-            agent.events.append(status_event)
+            # Send immediately to WebSocket clients
+            for notification in notifications:
+                notification.send(agent.q_id, status_event)
 
         logger.info(f"Calling Adapter with command: {type(command)}")
         updated_command = adapter.answer(command)
@@ -152,6 +159,7 @@ COMMAND_HANDLERS = {
     commands.Question: answer,
 }
 
+# Step name mapping for status updates
 STEP_NAMES = {
     commands.Question: "Question Processing",
     commands.Check: "Guardrail Check",
