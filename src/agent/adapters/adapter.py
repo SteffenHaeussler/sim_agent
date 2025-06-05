@@ -60,9 +60,18 @@ class AbstractAdapter(ABC):
         Returns:
             An iterator of events.
         """
+        agents_to_remove = []
         for agent in self.seen:
             while agent.events:
-                yield agent.events.pop(0)
+                event = agent.events.pop(0)
+                yield event
+                # If this is an EndOfEvent, mark agent for cleanup
+                if hasattr(event, '__class__') and event.__class__.__name__ == 'EndOfEvent':
+                    agents_to_remove.append(agent)
+        
+        # Remove completed agents to prevent memory leak
+        for agent in agents_to_remove:
+            self.seen.discard(agent)
 
 
 class AgentAdapter(AbstractAdapter):
