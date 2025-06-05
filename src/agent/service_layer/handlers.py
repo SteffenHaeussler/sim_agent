@@ -41,24 +41,12 @@ def answer(
     agent = model.BaseAgent(command, config.get_agent_config())
     adapter.add(agent)
 
-    # Step name mapping for status updates
-    step_names = {
-        commands.Question: "Question Processing",
-        commands.Check: "Guardrail Check",
-        commands.Retrieve: "Knowledge Retrieval",
-        commands.Rerank: "Document Reranking",
-        commands.Enhance: "Question Enhancement",
-        commands.UseTools: "Tool Usage",
-        commands.LLMResponse: "LLM Response Generation",
-        commands.FinalCheck: "Final Guardrail Check",
-    }
-
     # adapter for execution and agent for internal logic
     while not agent.is_answered and command is not None:
         # Send real-time status update
-        if type(command) in step_names and notifications:
+        if type(command) in STEP_NAMES and notifications:
             status_event = events.StatusUpdate(
-                step_name=step_names[type(command)], q_id=agent.q_id
+                step_name=STEP_NAMES[type(command)], q_id=agent.q_id
             )
             # Send immediately to WebSocket clients
             for notification in notifications:
@@ -142,4 +130,16 @@ EVENT_HANDLERS = {
 
 COMMAND_HANDLERS = {
     commands.Question: answer,
+}
+
+# Step name mapping for status updates
+STEP_NAMES = {
+    commands.Question: "Question Processing",
+    commands.Check: "Guardrail Check",
+    commands.Retrieve: "Knowledge Retrieval",
+    commands.Rerank: "Document Reranking",
+    commands.Enhance: "Question Enhancement",
+    commands.UseTools: "Tool Usage",
+    commands.LLMResponse: "LLM Response Generation",
+    commands.FinalCheck: "Final Guardrail Check",
 }
