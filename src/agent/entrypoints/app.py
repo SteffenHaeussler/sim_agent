@@ -19,7 +19,7 @@ from starlette.websockets import WebSocketState
 
 import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
-from src.agent.adapters.notifications import SlackNotifications, SSENotifications
+from src.agent.adapters.notifications import SlackNotifications, WSNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
 from src.agent.domain.commands import Question
@@ -39,7 +39,7 @@ bus = bootstrap(
     adapter=AgentAdapter(),
     notifications=[
         SlackNotifications(),
-        SSENotifications(),
+        WSNotifications(),
     ],
 )
 
