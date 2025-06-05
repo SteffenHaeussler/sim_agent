@@ -105,6 +105,20 @@ class RejectedAnswer(Event):
         return f"**Question:**\n{self.question}\n**Response:**\n{self.response}\n**Rejection Reason:**\n{self.rejection}"
 
 
+class StatusUpdate(Event):
+    step_name: str
+    q_id: str
+
+    def to_event_string(self) -> str:
+        return f"event: {self.to_message()}"
+
+    def to_message(self) -> str:
+        return f"Starting step: {self.step_name}"
+
+    def to_markdown(self) -> str:
+        return f"**Status:** Starting {self.step_name}"
+
+
 class Response(Event):
     question: str
     response: str
