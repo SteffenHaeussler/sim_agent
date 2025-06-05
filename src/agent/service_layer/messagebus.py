@@ -28,10 +28,12 @@ class MessageBus:
         adapter: adapter.AbstractAdapter,
         event_handlers: Dict[Type[events.Event], List[Callable]],
         command_handlers: Dict[Type[commands.Command], Callable],
+        notifications = None,
     ) -> None:
         self.adapter = adapter
         self.event_handlers = event_handlers
         self.command_handlers = command_handlers
+        self.notifications = notifications
 
     def handle(
         self,
@@ -69,7 +71,14 @@ class MessageBus:
         logger.debug("handling command %s", command)
         try:
             handler = self.command_handlers[type(command)]
-            handler(command)
+            # For Question commands with notifications, we need direct access
+            if isinstance(command, commands.Question) and self.notifications:
+                # Call the original handler directly with notifications
+                from src.agent.service_layer.handlers import answer
+                answer(command, self.adapter, self.notifications)
+            else:
+                # Use the dependency-injected handler for other commands
+                handler(command)
             self.queue.extend(self.adapter.collect_new_events())
         except Exception:
             logger.exception("Exception handling command %s", command)
