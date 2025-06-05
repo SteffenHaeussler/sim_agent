@@ -23,7 +23,7 @@ class AbstractAdapter(ABC):
     """
 
     def __init__(self):
-        self.seen = set()
+        self.agent = None
         self.llm = llm.AbstractLLM()
         self.tools = agent_tools.AbstractTools()
         self.rag = rag.AbstractModel()
@@ -39,7 +39,7 @@ class AbstractAdapter(ABC):
         Returns:
             None
         """
-        self.seen.add(agent)
+        self.agent = agent
 
     def answer(self, command: commands.Command) -> str:
         """
@@ -61,17 +61,16 @@ class AbstractAdapter(ABC):
             An iterator of events.
         """
         agents_to_remove = []
-        for agent in self.seen:
-            while agent.events:
-                event = agent.events.pop(0)
-                yield event
-                # If this is an EndOfEvent, mark agent for cleanup
-                if hasattr(event, '__class__') and event.__class__.__name__ == 'EndOfEvent':
-                    agents_to_remove.append(agent)
-        
+        while self.agent.events:
+            event = self.agent.events.pop(0)
+            yield event
+            # If this is an EndOfEvent, mark agent for cleanup
+            if hasattr(event, "__class__") and event.__class__.__name__ == "EndOfEvent":
+                agents_to_remove.append(self.agent)
+
         # Remove completed agents to prevent memory leak
         for agent in agents_to_remove:
-            self.seen.discard(agent)
+            self.agent = None
 
 
 class AgentAdapter(AbstractAdapter):
