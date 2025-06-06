@@ -1,17 +1,20 @@
 import json
-import os
 from pathlib import Path
 from time import sleep
 
-import httpx
 import pytest
+from fastapi.testclient import TestClient
 
+from src.agent.entrypoints.app import app
 from tests.utils import get_fixtures
 
 current_path = Path(__file__).parent
 
 fixtures = get_fixtures(current_path, keys=["e2e"])
 results = []
+
+# Create test client
+client = TestClient(app)
 
 
 class TestEvalE2E:
@@ -29,12 +32,7 @@ class TestEvalE2E:
         )
 
         params = {"question": question, "q_id": fixture_name}
-
-        response = httpx.get(
-            os.getenv("agent_api_base_url"),
-            params=params,
-            timeout=60,
-        )
+        response = client.get("/answer", params=params)
 
         report = {
             "question": question,
