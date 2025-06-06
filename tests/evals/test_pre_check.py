@@ -1,6 +1,5 @@
 import uuid
 from pathlib import Path
-from time import sleep
 
 import pytest
 
@@ -42,6 +41,5 @@ class TestEvalGuardrails:
         response = llm.use(
             command.question, response_model=commands.GuardrailPreCheckModel
         )
-        sleep(10)
 
         assert response.approved == expected_response

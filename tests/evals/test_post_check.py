@@ -1,6 +1,5 @@
 import uuid
 from pathlib import Path
-from time import sleep
 
 import pytest
 
@@ -30,7 +29,7 @@ class TestEvalPostCheck:
             fixture["post_check"]["memory"],
             fixture["post_check"]["approved"],
         )
-        q_id = uuid.uuid4()
+        q_id = str(uuid.uuid4())
         question = commands.Question(question=question, q_id=q_id)
 
         llm = LLM(get_llm_config())
@@ -53,6 +52,5 @@ class TestEvalPostCheck:
         response = llm.use(
             command.question, response_model=commands.GuardrailPreCheckModel
         )
-        sleep(10)
 
         assert response.approved == expected_response

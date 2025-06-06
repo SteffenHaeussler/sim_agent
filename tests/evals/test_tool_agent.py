@@ -1,5 +1,4 @@
 from pathlib import Path
-from time import sleep
 
 import pytest
 
@@ -33,8 +32,6 @@ class TestEvalPlanning:
 
         if isinstance(response, list):
             response = sorted(response)
-
-        sleep(60)
 
         if isinstance(expected_response, dict) and "plot" in expected_response:
             assert len(response) > 0

@@ -1,3 +1,5 @@
+.PHONY: eval eval_e2e eval_ir eval_tool_agent eval_enhance eval_pre_check eval_post_check
+
 export COMPOSE_DOCKER_CLI_BUILD=1
 export DOCKER_BUILDKIT=1
 
@@ -48,8 +50,6 @@ eval_ir:
 
 eval_tool_agent:
 	uv run python -m pytest tests/evals/test_tool_agent.py -s -v --envfile=.env
-
-
 
 
 eval: eval_e2e eval_ir eval_tool_agent eval_enhance eval_pre_check eval_post_check
