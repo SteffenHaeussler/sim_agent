@@ -139,10 +139,10 @@ class TestAnswer:
 
         end_of_event = events.EndOfEvent(q_id="test_session_id")
         assert fake_notifs.sent["test_session_id"][0] == status_event
-        assert fake_notifs.sent["test_session_id"][8] == test_request
-        assert fake_notifs.sent["test_session_id"][9] == test_evaluation
-        assert fake_notifs.sent["test_session_id"][10] == end_of_event
-        assert len(fake_notifs.sent["test_session_id"]) == 11
+        assert fake_notifs.sent["test_session_id"][9] == test_request
+        assert fake_notifs.sent["test_session_id"][10] == test_evaluation
+        assert fake_notifs.sent["test_session_id"][11] == end_of_event
+        assert len(fake_notifs.sent["test_session_id"]) == 12
 
     def test_sends_rejected_notification(self):
         fake_notifs = FakeNotifications()
