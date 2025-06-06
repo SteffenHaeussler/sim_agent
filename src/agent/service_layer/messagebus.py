@@ -71,15 +71,7 @@ class MessageBus:
         logger.debug("handling command %s", command)
         try:
             handler = self.command_handlers[type(command)]
-            # For Question commands with notifications, we need direct access
-            if isinstance(command, commands.Question) and self.notifications:
-                # Call the original handler directly with notifications
-                from src.agent.service_layer.handlers import answer
-
-                answer(command, self.adapter, self.notifications)
-            else:
-                # Use the dependency-injected handler for other commands
-                handler(command)
+            handler(command)
             self.queue.extend(self.adapter.collect_new_events())
         except Exception:
             logger.exception("Exception handling command %s", command)

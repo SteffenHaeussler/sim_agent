@@ -56,14 +56,22 @@ def answer(
         updated_command = adapter.answer(command)
         command = agent.update(updated_command)
 
-    event = agent.response
-    agent.events.append(event)
+        if agent.response:
+            event = agent.response
 
-    if agent.evaluation:
-        event = agent.evaluation
-        agent.events.append(event)
+            for notification in notifications:
+                notification.send(event.q_id, event)
 
-    agent.events.append(events.EndOfEvent(q_id=agent.q_id))
+        if agent.evaluation:
+            event = agent.evaluation
+
+            for notification in notifications:
+                notification.send(event.q_id, event)
+
+    end_event = events.EndOfEvent(q_id=agent.q_id)
+
+    for notification in notifications:
+        notification.send(end_event.q_id, end_event)
 
     return None
 
