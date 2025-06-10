@@ -82,7 +82,7 @@ class TestAPI(unittest.TestCase):
         assert response.json()["status"] == "processing"
 
     def test_unhappy_path_returns_400_and_answers(self):
-        params = {"question": None}
+        params = {"question": ""}
         response = client.get("/answer", params=params)
 
         assert response.status_code == 400
