@@ -82,7 +82,7 @@ class TestCLI(unittest.TestCase):
     def test_unhappy_path_returns_400_and_answers(
         self,
     ):
-        question = None
+        question = ""
         try:
             response = answer(question, "test_session_id")
         except Exception as e:

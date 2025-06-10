@@ -43,7 +43,7 @@ def answer(question: str, q_id: str) -> str:
     """
     ctx_query_id.set(q_id)
     try:
-        command = Question(question, q_id)
+        command = Question(question=question, q_id=q_id)
         bus.handle(command)
     except (handlers.InvalidQuestion, ValueError) as e:
         raise Exception(str(e))

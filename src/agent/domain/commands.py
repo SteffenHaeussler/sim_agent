@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel
@@ -52,11 +51,10 @@ class RerankResponse(BaseModel):
 ################################################################################
 
 
-class Command:
+class Command(BaseModel):
     pass
 
 
-@dataclass
 class Check(Command):
     question: str
     q_id: str
@@ -65,7 +63,6 @@ class Check(Command):
     response: Optional[str] = None
 
 
-@dataclass
 class Enhance(Command):
     question: str
     q_id: str
@@ -73,7 +70,6 @@ class Enhance(Command):
     chain_of_thought: Optional[str] = None
 
 
-@dataclass
 class FinalCheck(Command):
     question: str
     q_id: str
@@ -88,7 +84,6 @@ class FinalCheck(Command):
     data: Optional[Dict[str, str]] = None
 
 
-@dataclass
 class LLMResponse(Command):
     question: str
     q_id: str
@@ -97,27 +92,23 @@ class LLMResponse(Command):
     chain_of_thought: Optional[str] = None
 
 
-@dataclass
 class Question(Command):
     question: str
     q_id: str
 
 
-@dataclass
 class Rerank(Command):
     question: str
     q_id: str
     candidates: Optional[List[KBResponse]] = None
 
 
-@dataclass
 class Retrieve(Command):
     question: str
     q_id: str
     candidates: Optional[List[KBResponse]] = None
 
 
-@dataclass
 class UseTools(Command):
     question: str
     q_id: str

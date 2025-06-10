@@ -69,7 +69,7 @@ async def answer(question: str, q_id: Optional[str] = None):
     ctx_query_id.set(q_id)
 
     try:
-        command = Question(question, q_id)
+        command = Question(question=question, q_id=q_id)
         # Run the command handling in the background
         asyncio.create_task(asyncio.to_thread(bus.handle, command))
         return {"status": "processing", "message": "Event triggered successfully"}

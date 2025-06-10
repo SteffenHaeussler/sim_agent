@@ -42,7 +42,6 @@ class FakeAdapter(AbstractAdapter):
             ]
         elif isinstance(command, commands.Retrieve):
             response = command
-            response.response = "test response"
         elif isinstance(command, commands.Check):
             if command.q_id == "test_session_id":
                 response = command
@@ -53,7 +52,6 @@ class FakeAdapter(AbstractAdapter):
                 response.response = "test second llm response"
         elif isinstance(command, commands.FinalCheck):
             response = command
-            response.response = "test response"
             response.chain_of_thought = "test chain of thought"
             response.approved = True
             response.summary = "test summary"
@@ -78,7 +76,7 @@ def bootstrap_test_app():
 class TestAnswer:
     def test_answers(self):
         bus = bootstrap_test_app()
-        bus.handle(commands.Question("test query", "test_session_id"))
+        bus.handle(commands.Question(question="test query", q_id="test_session_id"))
 
         # get the agent from the adapter
         agent = bus.adapter.agent
@@ -90,19 +88,19 @@ class TestAnswer:
         bus = bootstrap_test_app()
 
         with pytest.raises(InvalidQuestion, match="No question asked"):
-            bus.handle(commands.Question(None, None))
+            bus.handle(commands.Question(question="", q_id="test_session_id"))
 
     def test_for_new_agent(self):
         bus = bootstrap_test_app()
 
         assert bus.adapter.agent is None
 
-        bus.handle(commands.Question("test query", "test_session_id"))
+        bus.handle(commands.Question(question="test query", q_id="test_session_id"))
         assert bus.adapter.agent is not None
 
     def test_return_response(self):
         bus = bootstrap_test_app()
-        bus.handle(commands.Question("test query", "test_session_id"))
+        bus.handle(commands.Question(question="test query", q_id="test_session_id"))
 
         agent = bus.adapter.agent
 
@@ -111,7 +109,7 @@ class TestAnswer:
     def test_sends_notification(self):
         fake_notifs = FakeNotifications()
         bus = bootstrap(adapter=FakeAdapter(), notifications=[fake_notifs])
-        bus.handle(commands.Question("test query", "test_session_id"))
+        bus.handle(commands.Question(question="test query", q_id="test_session_id"))
 
         test_request = events.Response(
             question="test query",
@@ -147,7 +145,7 @@ class TestAnswer:
     def test_sends_rejected_notification(self):
         fake_notifs = FakeNotifications()
         bus = bootstrap(adapter=FakeAdapter(), notifications=[fake_notifs])
-        bus.handle(commands.Question("test query", "test_rejected_id"))
+        bus.handle(commands.Question(question="test query", q_id="test_rejected_id"))
 
         rejected_request = events.RejectedRequest(
             question="test query",
