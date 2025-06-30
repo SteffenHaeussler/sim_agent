@@ -207,6 +207,9 @@ class BaseAgent:
             clarity=command.clarity,
             completeness=command.completeness,
         )
+
+        self.response = None
+
         return None
 
     def prepare_finalization(self, command: commands.UseTools) -> commands.LLMResponse:

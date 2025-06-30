@@ -68,8 +68,6 @@ def answer(
             for notification in notifications:
                 notification.send(event.q_id, event)
 
-    breakpoint()
-
     end_event = events.EndOfEvent(q_id=agent.q_id)
 
     for notification in notifications:
@@ -171,12 +169,12 @@ COMMAND_HANDLERS = {
 
 # Step name mapping for status updates
 STEP_NAMES = {
-    commands.Question: "Question Processing",
-    commands.Check: "Guardrail Check",
-    commands.Retrieve: "Knowledge Retrieval",
-    commands.Rerank: "Document Reranking",
-    commands.Enhance: "Question Enhancement",
-    commands.UseTools: "Tool Usage",
-    commands.LLMResponse: "LLM Response Generation",
-    commands.FinalCheck: "Final Guardrail Check",
+    commands.Question: "Processing",
+    commands.Check: "Checking...",
+    commands.Retrieve: "Retrieving...",
+    commands.Rerank: "Enhancing...",
+    commands.Enhance: "Finetuning...",
+    commands.UseTools: "Answering...",
+    commands.LLMResponse: "Finalizing...",
+    commands.FinalCheck: "Evaluating...",
 }
