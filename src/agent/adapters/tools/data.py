@@ -164,20 +164,10 @@ class PlotData(BaseTool):
         super().__init__(**kwargs)
 
     def forward(self, data: pd.DataFrame) -> Dict[str, str]:
-        """
-        Plot data from data.
-
-        Args:
-            data: pd.DataFrame: The data to plot.
-
-        Returns:
-            plot: str: The encoded plot.
-        """
-        if isinstance(data, list):
-            data = pd.concat(data, axis=1)
-
         if data.empty:
             return {"plot": None}
+
+        data, freq = self.simplify_time_index(data.copy())
 
         fig, ax = plt.subplots(figsize=(12, 6))
 
@@ -189,11 +179,32 @@ class PlotData(BaseTool):
                 marker="o",
                 linestyle="--",
             )
-            ax.set_xlabel("Date")
-            ax.set_ylabel("Value")
-            ax.set_title("Time Series Plot (Manual)")
-            ax.grid(True)
-            ax.legend(title="Series Name")
+
+        step = max(1, round(len(data.index) / 20))
+        xticks = data.index[::step]
+
+        # --- CHANGE 2: Format the labels based on the detected frequency ---
+        if freq == "D":
+            # For daily data, format as 'Year-Month-Day'
+            xtick_labels = xticks.strftime("%Y-%m-%d")
+        elif freq == "h":
+            # For hourly data, format as 'Year-Month-Day Hour:Minute'
+            xtick_labels = xticks.strftime("%Y-%m-%d %H:%M")
+        else:
+            # A sensible default for other frequencies (e.g., seconds, irregular)
+            xtick_labels = xticks.strftime("%Y-%m-%d %H:%M:%S")
+
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(
+            xtick_labels, rotation=45, ha="right"
+        )  # Use formatted labels
+
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Value")
+        ax.set_title("Time Series Plot")
+        ax.grid(True)
+        ax.legend(title="Series Name")
+        fig.tight_layout()
 
         buf = io.BytesIO()
 
@@ -213,3 +224,44 @@ class PlotData(BaseTool):
         plt.close(fig)
 
         return {"plot": base64_string}
+
+    def simplify_time_index(self, data):
+        """
+        Detects if a DataFrame's index is daily or hourly, simplifies it,
+        and returns the modified DataFrame along with the detected frequency.
+
+        Returns:
+            tuple: (pd.DataFrame, str or None)
+                   The modified DataFrame and the detected frequency string ('D', 'h', etc.).
+        """
+        data.index = pd.to_datetime(data.index)
+        detected_freq = None  # Initialize a variable to store the frequency
+
+        freq = pd.infer_freq(data.index)
+
+        if freq == "D":
+            data.index = data.index.normalize()
+            detected_freq = "D"
+        # Use .startswith() to catch 'H', 'h', '2H', etc.
+        elif freq and freq.upper().startswith("H"):
+            data.index = data.index.floor("h")
+            detected_freq = "h"
+        else:
+            # Fallback check
+            is_daily = (
+                (data.index.hour == 0).all()
+                and (data.index.minute == 0).all()
+                and (data.index.second == 0).all()
+            )
+            is_hourly = (data.index.minute == 0).all() and (
+                data.index.second == 0
+            ).all()
+
+            if is_daily:
+                data.index = data.index.normalize()
+                detected_freq = "D"
+            elif is_hourly:
+                data.index = data.index.floor("h")
+                detected_freq = "h"
+
+        return data, detected_freq
