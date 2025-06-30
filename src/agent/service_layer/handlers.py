@@ -56,11 +56,13 @@ def answer(
         updated_command = adapter.answer(command)
         command = agent.update(updated_command)
 
-        if agent.response:
-            event = agent.response
+        if agent.send_response:
+            event = agent.send_response
 
             for notification in notifications:
                 notification.send(event.q_id, event)
+
+            agent.send_response = None
 
         if agent.evaluation:
             event = agent.evaluation
@@ -169,7 +171,7 @@ COMMAND_HANDLERS = {
 
 # Step name mapping for status updates
 STEP_NAMES = {
-    commands.Question: "Processing",
+    commands.Question: "Processing...",
     commands.Check: "Checking...",
     commands.Retrieve: "Retrieving...",
     commands.Rerank: "Enhancing...",

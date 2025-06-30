@@ -55,6 +55,7 @@ class BaseAgent:
         self.question = question.question
         self.previous_command = None
         self.response = None
+        self.send_response = None
         self.tool_answer = None
 
         self.base_prompts = self.init_prompts()
@@ -208,8 +209,6 @@ class BaseAgent:
             completeness=command.completeness,
         )
 
-        self.response = None
-
         return None
 
     def prepare_finalization(self, command: commands.UseTools) -> commands.LLMResponse:
@@ -272,6 +271,8 @@ class BaseAgent:
             data=command.data,
         )
 
+        # duplication as a fix - i want to keep self.response for testing adn validation
+        self.send_response = response
         self.response = response
 
         prompt = self.create_prompt(command, self.agent_memory)
@@ -306,6 +307,7 @@ class BaseAgent:
                 response=command.response,
                 q_id=command.q_id,
             )
+            self.send_response = new_command
             self.response = new_command
 
         return new_command
