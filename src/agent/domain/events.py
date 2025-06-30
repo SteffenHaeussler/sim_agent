@@ -133,10 +133,10 @@ class StatusUpdate(Event):
         return f"event: {self.to_message()}"
 
     def to_message(self) -> str:
-        return f"Starting step: {self.step_name}"
+        return f"{self.step_name}"
 
     def to_markdown(self) -> str:
-        return f"## Status Update\n\n**Starting:**\n\n{self.step_name}"
+        return f"## Status Update\n\n{self.step_name}"
 
 
 class Response(Event):
