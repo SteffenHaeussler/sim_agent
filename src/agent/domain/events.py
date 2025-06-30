@@ -32,7 +32,7 @@ class EndOfEvent(Event):
         return f"{self.response}"
 
     def to_markdown(self) -> str:
-        return f"{self.response}"
+        return f"## End of Event\n\n{self.response}"
 
 
 class Evaluation(Event):
@@ -54,7 +54,27 @@ class Evaluation(Event):
         return f"Question: {self.question}\nResponse: {self.response}\nSummary: {self.summary}\nIssues: {self.issues}\nPlausibility: {self.plausibility}\nFactual Consistency: {self.factual_consistency}\nClarity: {self.clarity}\nCompleteness: {self.completeness}"
 
     def to_markdown(self) -> str:
-        return f"**Evaluation:**\n**Summary:**\n{self.summary}\nIssues:\n{self.issues}\nPlausibility:\n{self.plausibility}\nFactual Consistency:\n{self.factual_consistency}\nClarity:\n{self.clarity}\nCompleteness:\n{self.completeness}"
+        markdown = f"## Evaluation\n\n{self.summary}\n\n"
+
+        if self.issues:
+            markdown += "**Issues:**\n"
+            if isinstance(self.issues, list):
+                for issue in self.issues:
+                    markdown += f"- {issue}\n"
+            else:
+                markdown += f"{self.issues}\n"
+            markdown += "\n"
+
+        if self.plausibility:
+            markdown += f"**Plausibility:** {self.plausibility}\n\n"
+        if self.factual_consistency:
+            markdown += f"**Factual Consistency:** {self.factual_consistency}\n\n"
+        if self.clarity:
+            markdown += f"**Clarity:** {self.clarity}\n\n"
+        if self.completeness:
+            markdown += f"**Completeness:** {self.completeness}\n\n"
+
+        return markdown.strip()
 
 
 class FailedRequest(Event):
@@ -69,7 +89,7 @@ class FailedRequest(Event):
         return f"\nQuestion:\n{self.question}\nException:\n{self.exception}"
 
     def to_markdown(self) -> str:
-        return f"**Question:**\n{self.question}\n**Exception:**\n{self.exception}"
+        return f"## Failed Request\n\n```\n{self.exception}\n```"
 
 
 class RejectedRequest(Event):
@@ -86,7 +106,7 @@ class RejectedRequest(Event):
         )
 
     def to_markdown(self) -> str:
-        return f"**Question:**\n{self.question}\n**Response:**\n{self.response}\n**Rejected:**\n{self.response}"
+        return f"## Rejected Request\n\n{self.response}"
 
 
 class RejectedAnswer(Event):
@@ -102,7 +122,7 @@ class RejectedAnswer(Event):
         return f"Question:\n{self.question}\nResponse:\n{self.response}\nRejection Reason:\n{self.rejection}"
 
     def to_markdown(self) -> str:
-        return f"**Question:**\n{self.question}\n**Response:**\n{self.response}\n**Rejection Reason:**\n{self.rejection}"
+        return f"## Rejected Answer\n\n{self.response}\n\n### Rejection Reason\n\n{self.rejection}"
 
 
 class StatusUpdate(Event):
@@ -116,7 +136,7 @@ class StatusUpdate(Event):
         return f"Starting step: {self.step_name}"
 
     def to_markdown(self) -> str:
-        return f"**Status:** Starting {self.step_name}"
+        return f"## Status Update\n\n**Starting:**\n\n{self.step_name}"
 
 
 class Response(Event):
@@ -138,23 +158,9 @@ class Response(Event):
         return message
 
     def to_markdown(self) -> str:
-        message = f"**Question:**\n{self.question}\n**Response:**\n{self.response}"
+        message = f"## Response\n\n{self.response}"
 
         if self.data:
             for key, value in self.data.items():
                 message += f"$%$%{key.capitalize()}:{value}"
         return message
-
-
-class StatusUpdate(Event):
-    step_name: str
-    q_id: str
-
-    def to_event_string(self) -> str:
-        return f"event: {self.to_message()}"
-
-    def to_message(self) -> str:
-        return f"{self.step_name}"
-
-    def to_markdown(self) -> str:
-        return f"**Status:** Starting {self.step_name}"
