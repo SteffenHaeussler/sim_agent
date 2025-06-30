@@ -68,6 +68,8 @@ def answer(
             for notification in notifications:
                 notification.send(event.q_id, event)
 
+    breakpoint()
+
     end_event = events.EndOfEvent(q_id=agent.q_id)
 
     for notification in notifications:
