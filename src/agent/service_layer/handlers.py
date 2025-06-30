@@ -1,6 +1,6 @@
 from typing import Union
 
-from langfuse.decorators import langfuse_context, observe
+from langfuse import get_client, observe
 from loguru import logger
 
 from src.agent import config
@@ -30,7 +30,9 @@ def answer(
     Returns:
         None
     """
-    langfuse_context.update_current_trace(
+    langfuse = get_client()
+
+    langfuse.update_current_trace(
         name="answer handler",
         session_id=command.q_id,
     )
@@ -93,7 +95,9 @@ def send_response(
     Returns:
         None
     """
-    langfuse_context.update_current_trace(
+    langfuse = get_client()
+
+    langfuse.update_current_trace(
         name="send_response handler",
         session_id=event.q_id,
     )
@@ -118,7 +122,9 @@ def send_failure(
     Returns:
         None
     """
-    langfuse_context.update_current_trace(
+    langfuse = get_client()
+
+    langfuse.update_current_trace(
         name="send_rejected handler",
         session_id=event.q_id,
     )
@@ -144,7 +150,9 @@ def send_status_update(
     Returns:
         None
     """
-    langfuse_context.update_current_trace(
+    langfuse = get_client()
+
+    langfuse.update_current_trace(
         name="send_status_update handler",
         session_id=event.q_id,
     )

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple
 
 import yaml
-from langfuse.decorators import langfuse_context, observe
+from langfuse import get_client, observe
 from opentelemetry import trace
 from smolagents import (
     ActionStep,
@@ -198,7 +198,9 @@ class Tools(AbstractTools):
         Returns:
             response: str: The response from the agent's tools.
         """
-        langfuse_context.update_current_observation(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="use_tools",
             session_id=ctx_query_id.get(),
         )

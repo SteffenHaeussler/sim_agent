@@ -1,7 +1,7 @@
 from abc import ABC
 
 import instructor
-from langfuse.decorators import langfuse_context, observe
+from langfuse import get_client, observe
 from litellm import completion
 from pydantic import BaseModel
 
@@ -84,11 +84,12 @@ class LLM(AbstractLLM):
             {"role": "user", "content": question},
         ]
 
-        langfuse_context.update_current_observation(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="llm_call",
             input=messages.copy(),
-            model=self.model_id,
-            metadata={"temperature": self.temperature},
+            metadata={"temperature": self.temperature, "model": self.model_id},
             session_id=ctx_query_id.get(),
         )
 
