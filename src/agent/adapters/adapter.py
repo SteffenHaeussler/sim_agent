@@ -1,6 +1,6 @@
 from abc import ABC
 
-from langfuse.decorators import langfuse_context, observe
+from langfuse import get_client, observe
 
 from src.agent import config
 from src.agent.adapters import agent_tools, llm, rag
@@ -148,7 +148,9 @@ class AgentAdapter(AbstractAdapter):
         Returns:
             commands.Check: The command to check.
         """
-        langfuse_context.update_current_trace(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="check",
             session_id=command.q_id,
         )
@@ -173,7 +175,9 @@ class AgentAdapter(AbstractAdapter):
         Returns:
             commands.Enhance: The command to enhance the question.
         """
-        langfuse_context.update_current_trace(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="enhance",
             session_id=command.q_id,
         )
@@ -196,7 +200,9 @@ class AgentAdapter(AbstractAdapter):
         Returns:
             commands.FinalCheck: The command to evaluate.
         """
-        langfuse_context.update_current_trace(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="evaluation",
             session_id=command.q_id,
         )
@@ -226,7 +232,9 @@ class AgentAdapter(AbstractAdapter):
         Returns:
             commands.LLMResponse: The command to finalize the response.
         """
-        langfuse_context.update_current_trace(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="finalize",
             session_id=command.q_id,
         )
@@ -249,7 +257,9 @@ class AgentAdapter(AbstractAdapter):
         Returns:
             commands.Question: The command to handle a question.
         """
-        langfuse_context.update_current_trace(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="question",
             session_id=command.q_id,
         )
@@ -292,7 +302,9 @@ class AgentAdapter(AbstractAdapter):
         Returns:
             commands.Retrieve: The command to retrieve the most relevant documents.
         """
-        langfuse_context.update_current_trace(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="retrieve",
             session_id=command.q_id,
         )
@@ -319,7 +331,9 @@ class AgentAdapter(AbstractAdapter):
         Returns:
             commands.UseTools: The command to use the agent tools.
         """
-        langfuse_context.update_current_trace(
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
             name="use",
             session_id=command.q_id,
         )

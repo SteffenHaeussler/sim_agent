@@ -2,7 +2,7 @@ import inspect
 from typing import Dict
 
 from fastapi.websockets import WebSocket
-from langfuse.decorators import langfuse_context, observe
+from langfuse import get_client, observe
 
 from src.agent.adapters import adapter
 from src.agent.adapters.notifications import AbstractNotifications, CliNotifications
@@ -27,8 +27,9 @@ def bootstrap(
     Returns:
         messagebus.MessageBus: The message bus.
     """
+    langfuse = get_client()
 
-    langfuse_context.update_current_trace(
+    langfuse.update_current_trace(
         name="bootstrap",
         session_id=ctx_query_id.get(),
     )
