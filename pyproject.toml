@@ -11,6 +11,7 @@ dependencies = [
     "litellm>=1.65.4.post1",
     "loguru>=0.7.3",
     "matplotlib>=3.10.3",
+    "nc-py-api>=0.20.2",
     "numpy>=2.2.5",
     "openinference-instrumentation-smolagents>=0.1.11",
     "opentelemetry-exporter-otlp>=1.33.0",
