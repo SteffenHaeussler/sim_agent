@@ -1,9 +1,8 @@
 import asyncio
 import os
 from time import time
-from typing import Optional
-from uuid import uuid4
 
+import src.agent.service_layer.handlers as handlers
 from dotenv import load_dotenv
 from fastapi import (
     FastAPI,
@@ -14,10 +13,6 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from loguru import logger
-from starlette.responses import StreamingResponse
-from starlette.websockets import WebSocketState
-
-import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
 from src.agent.adapters.notifications import SlackNotifications, WSNotifications
 from src.agent.bootstrap import bootstrap
@@ -26,6 +21,8 @@ from src.agent.domain.commands import Question
 from src.agent.observability.context import connected_clients, ctx_query_id
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
+from starlette.responses import StreamingResponse
+from starlette.websockets import WebSocketState
 
 if os.getenv("IS_TESTING") != "true":
     load_dotenv(".env")
@@ -45,13 +42,13 @@ bus = bootstrap(
 
 
 @app.get("/answer")
-async def answer(question: str, q_id: Optional[str] = None):
+async def answer(request: Request, question: str):
     """
     Entrypoint for the agent.
 
     Args:
+        request: Request: The FastAPI request object.
         question: str: The question to answer.
-        q_id: Optional[str]: The id of the question.
 
     Returns:
         response: str: The response to the question.
@@ -60,16 +57,19 @@ async def answer(question: str, q_id: Optional[str] = None):
         HTTPException: If the question is invalid.
         ValueError: If the question is invalid.
     """
-    if not q_id:
-        q_id = uuid4().hex
+    # Extract session_id from X-Session-ID header
+    session_id = request.headers.get("x-session-id")
+    print("session_id", session_id)
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Missing X-Session-ID header")
 
     if not question:
         raise HTTPException(status_code=400, detail="No question asked")
 
-    ctx_query_id.set(q_id)
+    ctx_query_id.set(session_id)
 
     try:
-        command = Question(question=question, q_id=q_id)
+        command = Question(question=question, q_id=session_id)
         # Run the command handling in the background
         asyncio.create_task(asyncio.to_thread(bus.handle, command))
         return {"status": "processing", "message": "Event triggered successfully"}
