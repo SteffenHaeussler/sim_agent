@@ -3,6 +3,7 @@ from abc import ABC
 from datetime import datetime
 from typing import Dict, List, Tuple
 
+import src.agent.adapters.tools as tools
 import yaml
 from langfuse import get_client, observe
 from opentelemetry import trace
@@ -14,8 +15,6 @@ from smolagents import (
     PromptTemplates,
     TaskStep,
 )
-
-import src.agent.adapters.tools as tools
 from src.agent.observability.context import ctx_query_id
 
 
@@ -109,6 +108,7 @@ class Tools(AbstractTools):
                 tools.GetNeighbors(**kwargs),
                 tools.PlotData(**kwargs),
                 tools.FinalAnswerTool(**kwargs),
+                tools.ExportData(**kwargs),
             ],
             model=self.model,
             stream_outputs=True,
