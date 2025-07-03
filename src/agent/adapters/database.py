@@ -96,13 +96,15 @@ class BaseDatabaseAdapter(AbstractDatabase):
         Disconnect from the database.
         """
         if self.engine:
-            self.engine.close()
+            self.engine.dispose()
             self.engine = None
             logger.info("Disconnected from database")
 
     def execute_query(
-        self, sql_statement: str, params: Optional[Dict[str, Any]] = None
-    ) -> Optional[pd.DataFrame]:
+        self,
+        sql_statement: str,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, pd.DataFrame]]:
         """
         Executes a SELECT SQL query and returns the result as a Pandas DataFrame.
         This is the officially supported way.
@@ -116,7 +118,7 @@ class BaseDatabaseAdapter(AbstractDatabase):
             df = pd.read_sql_query(
                 sql=text(sql_statement), con=self.engine, params=params
             )
-            return df
+            return {"data": df}
         except Exception as e:
             logger.error(f"Error executing query to DataFrame: {e}")
             return None
