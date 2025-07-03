@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 import pandas as pd
 from loguru import logger
-from sqlalchemy import create_engine, text
+from sqlalchemy import MetaData, create_engine, text
 
 
 class AbstractDatabase(ABC):
@@ -121,4 +121,21 @@ class BaseDatabaseAdapter(AbstractDatabase):
             return {"data": df}
         except Exception as e:
             logger.error(f"Error executing query to DataFrame: {e}")
+            return None
+
+    def get_schema(self) -> Dict[str, Any]:
+        """
+        Get the schema of the database.
+        """
+        metadata = MetaData()
+
+        if not self.engine:
+            logger.error("Engine not available. Cannot execute query.")
+            return None
+
+        try:
+            metadata.reflect(bind=self.engine)
+            return metadata
+        except Exception as e:
+            logger.error(f"Error reflecting metadata: {e}")
             return None
