@@ -253,6 +253,18 @@ class AgentAdapter(AbstractAdapter):
         return command
 
     @observe()
+    def query(self, statement: str) -> None:
+        """
+        Placeholder for a database query.
+
+        """
+        raise NotImplementedError("Not implemented yet")
+        # with self.database as db:
+        #     result = db.execute_query(statement)
+
+        # return result
+
+    @observe()
     def question(self, command: commands.Question) -> commands.Question:
         """
         Only for tracing.
