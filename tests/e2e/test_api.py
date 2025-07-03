@@ -74,8 +74,9 @@ class TestAPI(unittest.TestCase):
         }
 
         params = {"question": "test"}
+        headers = {"X-Session-ID": "test-session-123"}
 
-        response = client.get("/answer", params=params)
+        response = client.get("/answer", params=params, headers=headers)
 
         assert response.status_code == 200
 
@@ -83,7 +84,16 @@ class TestAPI(unittest.TestCase):
 
     def test_unhappy_path_returns_400_and_answers(self):
         params = {"question": ""}
-        response = client.get("/answer", params=params)
+        headers = {"X-Session-ID": "test-session-123"}
+        response = client.get("/answer", params=params, headers=headers)
 
         assert response.status_code == 400
         assert response.json()["detail"] == "No question asked"
+
+    def test_missing_session_id_header_returns_400(self):
+        params = {"question": "test question"}
+        # Intentionally not providing X-Session-ID header
+        response = client.get("/answer", params=params)
+        
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Missing X-Session-ID header"
