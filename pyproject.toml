@@ -7,6 +7,7 @@ requires-python = ">=3.12.8"
 dependencies = [
     "fastapi>=0.115.12",
     "instructor>=1.8.1",
+    "jupyter>=1.1.1",
     "langfuse>=2.60.5",
     "litellm>=1.65.4.post1",
     "loguru>=0.7.3",
@@ -17,6 +18,7 @@ dependencies = [
     "opentelemetry-exporter-otlp>=1.33.0",
     "opentelemetry-sdk>=1.33.0",
     "pandas>=2.2.3",
+    "psycopg2-binary>=2.9.10",
     "pytest>=8.3.5",
     "python-dateutil>=2.9.0.post0",
     "python-dotenv>=1.1.0",
