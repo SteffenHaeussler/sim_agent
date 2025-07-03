@@ -3,7 +3,7 @@ from abc import ABC
 from langfuse import get_client, observe
 
 from src.agent import config
-from src.agent.adapters import agent_tools, llm, rag
+from src.agent.adapters import agent_tools, database, llm, rag
 from src.agent.domain import commands, model
 
 
@@ -24,6 +24,7 @@ class AbstractAdapter(ABC):
 
     def __init__(self):
         self.agent = None
+        self.database = database.AbstractDatabase()
         self.llm = llm.AbstractLLM()
         self.tools = agent_tools.AbstractTools()
         self.rag = rag.AbstractModel()
@@ -84,6 +85,7 @@ class AgentAdapter(AbstractAdapter):
         - enhance(command: commands.Enhance) -> commands.Enhance: Enhance the question via LLM based on the reranked document.
 
     Adapters:
+        - database: Database adapter.
         - guardrails: Performs checks via guardrails.
         - llm: Calls a LLM.
         - rag: RAG model to enhance questions and retrieve documents.
@@ -92,6 +94,10 @@ class AgentAdapter(AbstractAdapter):
 
     def __init__(self):
         super().__init__()
+
+        self.database = database.BaseDatabaseAdapter(
+            kwargs=config.get_database_config(),
+        )
 
         self.guardrails = llm.LLM(
             kwargs=config.get_guardrails_config(),
