@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import yaml
 
@@ -143,91 +143,95 @@ class SQLBaseAgent:
 
         return base_prompts
 
-    def prepare_agent_call(self, command: commands.Enhance) -> commands.UseTools:
+    def prepare_aggregation(
+        self, command: commands.SQLJoinInference
+    ) -> commands.SQLAggregation:
         """
-        Prepares the tool agent call after the question enhancement.
+        Prepares the guardrails check for the question.
 
         Args:
-            command: commands.Enhance: The command to change the question.
+            command: commands.Question: The command to change the question.
 
         Returns:
-            new_command: commands.UseTools: The new command.
-        """
-        if command.response is None:
-            self.enhancement = self.question
-        else:
-            self.enhancement = command.response
-
-        new_command = commands.UseTools(
-            question=self.enhancement,
-            q_id=command.q_id,
-        )
-
-        return new_command
-
-    def prepare_enhancement(self, command: commands.Rerank) -> commands.Enhance:
-        """
-        Prepares the question enhancement after the reranking.
-
-        Args:
-            command: commands.Rerank: The command to change the rerank.
-
-        Returns:
-            new_command: commands.Enhance: The new command.
+            new_command: commands.Check: The new command.
         """
         prompt = self.create_prompt(command)
 
-        new_command = commands.Enhance(
+        new_command = commands.SQLAggregation(
             question=prompt,
             q_id=command.q_id,
         )
 
         return new_command
 
-    def prepare_evaluation(self, command: commands.FinalCheck) -> None:
+    def prepare_construction(
+        self, command: commands.SQLAggregation
+    ) -> commands.SQLConstruction:
+        """
+        Prepares the guardrails check for the question.
+
+        Args:
+            command: commands.Question: The command to change the question.
+
+        Returns:
+            new_command: commands.Check: The new command.
+        """
+        prompt = self.create_prompt(command)
+
+        new_command = commands.SQLValidation(
+            question=prompt,
+            q_id=command.q_id,
+        )
+
+        return new_command
+
+    def prepare_execution(self, command: commands.SQLValidation) -> None:
         """
         Prepares the evaluation event to be sent.
 
         Args:
-            command: commands.FinalCheck: The command to final check the answer.
+            command: commands.SQLValidation: The command to final check the answer.
 
         Returns:
             None
         """
         self.is_answered = True
 
-        self.evaluation = events.Evaluation(
+        self.query = events.Query(
             response=self.response.response,
             question=self.question,
             q_id=self.q_id,
             approved=command.approved,
             summary=command.summary,
-            issues=command.issues,
-            plausibility=command.plausibility,
-            factual_consistency=command.factual_consistency,
-            clarity=command.clarity,
-            completeness=command.completeness,
         )
 
         return None
 
-    def prepare_finalization(self, command: commands.UseTools) -> commands.LLMResponse:
-        """
-        Prepares the answer generation after the tool call.
-
-        Args:
-            command: commands.UseTools: The command to change the use tools.
-
-        Returns:
-            new_command: commands.LLMResponse: The new command.
-        """
-        self.tool_answer = command
-        self.agent_memory = command.memory
+    def prepare_filter(self, command: commands.SQLGrounding) -> commands.SQLFilter:
         prompt = self.create_prompt(command)
-        new_command = commands.LLMResponse(
+
+        new_command = commands.SQLFilter(
             question=prompt,
             q_id=command.q_id,
-            data=command.data,
+        )
+
+        return new_command
+
+    def prepare_grounding(self, command: commands.SQLCheck) -> commands.SQLGrounding:
+        """
+        Prepares the guardrails check for the question.
+
+        Args:
+            command: commands.Question: The command to change the question.
+
+        Returns:
+            new_command: commands.Check: The new command.
+        """
+        prompt = self.create_prompt(command)
+
+        new_command = commands.SQLGrounding(
+            question=prompt,
+            q_id=command.q_id,
         )
 
         return new_command
@@ -251,84 +255,44 @@ class SQLBaseAgent:
 
         return new_command
 
-    def prepare_response(self, command: commands.LLMResponse) -> commands.FinalCheck:
+    def prepare_join_inference(
+        self, command: commands.SQLFilter
+    ) -> commands.SQLJoinInference:
         """
-        Prepares the final guardrailscheck and agent response after the final LLM call.
+        Prepares the guardrails check for the question.
 
         Args:
-            command: commands.LLMResponse: The command to change the LLM response.
+            command: commands.Question: The command to change the question.
 
         Returns:
-            new_command: commands.FinalCheck: The new command.
+            new_command: commands.Check: The new command.
         """
-        if self.tool_answer is None:
-            raise ValueError("Tool answer is required for LLM response")
+        prompt = self.create_prompt(command)
 
-        response = events.Response(
-            question=self.question,
-            response=command.response,
-            q_id=self.q_id,
-            data=command.data,
-        )
-
-        # duplication as a fix - i want to keep self.response for testing adn validation
-        self.send_response = response
-        self.response = response
-
-        prompt = self.create_prompt(command, self.agent_memory)
-
-        new_command = commands.FinalCheck(
+        new_command = commands.SQLJoinInference(
             question=prompt,
             q_id=command.q_id,
         )
-        return new_command
-
-    def prepare_retrieval(
-        self, command: commands.Check
-    ) -> Union[commands.Retrieve, events.FailedRequest]:
-        """
-        Prepares the retrieval after the check. If the check is not approved, the agent will stop and return a FailedRequest event.
-
-        Args:
-            command: commands.Check: The command to change the check.
-
-        Returns:
-            new_command: Union[commands.Retrieve, events.FailedRequest]: The new command.
-        """
-        if command.approved:
-            new_command = commands.Retrieve(
-                question=self.question,
-                q_id=command.q_id,
-            )
-        else:
-            self.is_answered = True
-            new_command = events.RejectedRequest(
-                question=self.question,
-                response=command.response,
-                q_id=command.q_id,
-            )
-            self.send_response = new_command
-            self.response = new_command
 
         return new_command
 
-    def prepare_rerank(self, command: commands.Retrieve) -> commands.Rerank:
+    def prepare_validation(
+        self, command: commands.SQLConstruction
+    ) -> commands.SQLValidation:
         """
-        Prepares the retrieved data for the reranking.
+        Prepares the guardrails check for the question.
 
         Args:
-            command: commands.Retrieve: The command to change the retrieve.
+            command: commands.Question: The command to change the question.
 
         Returns:
-            new_command: commands.Rerank: The new command.
+            new_command: commands.Check: The new command.
         """
-        # if not command.question:
-        #     raise ValueError("Question is required to enhance")
-        # retrieve = self.cls_rag.retrieve(question)
-        new_command = commands.Rerank(
-            question=command.question,
+        prompt = self.create_prompt(command)
+
+        new_command = commands.SQLValidation(
+            question=prompt,
             q_id=command.q_id,
-            candidates=command.candidates,
         )
 
         return new_command
@@ -373,22 +337,22 @@ class SQLBaseAgent:
 
         # following the command chain
         match command:
-            case commands.Question():
+            case commands.SQLQuestion():
                 new_command = self.prepare_guardrails_check(command)
-            case commands.Check():
-                new_command = self.prepare_retrieval(command)
-            case commands.Retrieve():
-                new_command = self.prepare_rerank(command)
-            case commands.Rerank():
-                new_command = self.prepare_enhancement(command)
-            case commands.Enhance():
-                new_command = self.prepare_agent_call(command)
-            case commands.UseTools():
-                new_command = self.prepare_finalization(command)
-            case commands.LLMResponse():
-                new_command = self.prepare_response(command)
-            case commands.FinalCheck():
-                new_command = self.prepare_evaluation(command)
+            case commands.SQLCheck():
+                new_command = self.prepare_grounding(command)
+            case commands.SQLGrounding():
+                new_command = self.prepare_filter(command)
+            case commands.SQLFilter():
+                new_command = self.prepare_join_inference(command)
+            case commands.SQLJoinInference():
+                new_command = self.prepare_aggregation(command)
+            case commands.SQLAggregation():
+                new_command = self.prepare_construction(command)
+            case commands.SQLConstruction():
+                new_command = self.prepare_validation(command)
+            case commands.SQLValidation():
+                new_command = self.prepare_execution(command)
             case _:
                 raise NotImplementedError(
                     f"Not implemented yet for BaseAgent: {type(command)}"

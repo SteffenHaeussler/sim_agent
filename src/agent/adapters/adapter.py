@@ -253,18 +253,6 @@ class AgentAdapter(AbstractAdapter):
         return command
 
     @observe()
-    def query(self, statement: str) -> None:
-        """
-        Placeholder for a database query.
-
-        """
-        raise NotImplementedError("Not implemented yet")
-        # with self.database as db:
-        #     result = db.execute_query(statement)
-
-        # return result
-
-    @observe()
     def question(self, command: commands.Question) -> commands.Question:
         """
         Only for tracing.
@@ -371,4 +359,269 @@ class AgentAdapter(AbstractAdapter):
         else:
             command.response = response
 
+        return command
+
+
+class SQLAgentAdapter(AbstractAdapter):
+    """
+    SQLAgentAdapter is an adapter for the SQL agent.
+    It defines the flow of commands from the model agent to the external service.
+
+    Question -> Check -> UseTools -> Retrieve -> Rerank -> Enhance -> LLMResponse -> FinalCheck
+
+    Methods:
+        - answer(command: commands.Command) -> commands.Command: General entrypoint for a command.
+        - check(command: commands.Check) -> commands.Check: Check the incoming question via guardrails.
+        - evaluation(command: commands.FinalCheck) -> commands.FinalCheck: Evaluate the response via guardrails.
+        - finalize(command: commands.LLMResponse) -> commands.LLMResponse: Finalize the response via LLM.
+        - question(command: commands.Question) -> commands.Question: only for tracing.
+        - use(command: commands.UseTools) -> commands.UseTools: Use the agent tools to process the question.
+        - retrieve(command: commands.Retrieve) -> commands.Retrieve: Retrieve the most relevant documents from the knowledge base.
+        - rerank(command: commands.Rerank) -> commands.Rerank: Rerank the documents from the knowledge base.
+        - enhance(command: commands.Enhance) -> commands.Enhance: Enhance the question via LLM based on the reranked document.
+
+    Adapters:
+        - database: Database adapter.
+        - guardrails: Performs checks via guardrails.
+        - llm: Calls a LLM.
+        - rag: RAG model to enhance questions and retrieve documents.
+        - tools: Use the agent tools to process the question.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        self.database = database.BaseDatabaseAdapter(
+            kwargs=config.get_database_config(),
+        )
+
+        self.guardrails = llm.LLM(
+            kwargs=config.get_guardrails_config(),
+        )
+        self.llm = llm.LLM(
+            kwargs=config.get_llm_config(),
+        )
+        self.rag = rag.BaseRAG(config.get_rag_config())
+
+    @observe()
+    def aggregation(self, command: commands.SQLAggregation) -> commands.SQLAggregation:
+        """
+        Aggregate the question to schema elements.
+
+        Args:
+            command: commands.SQLAggregation: The command to aggregation.
+
+        Returns:
+            commands.SQLAggregation: The command to aggregation.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="aggregation",
+            session_id=command.q_id,
+        )
+        return command
+
+    @observe()
+    def check(self, command: commands.Check) -> commands.Check:
+        """
+        Check the incoming question via guardrails.
+
+        Args:
+            command: commands.Check: The command to check.
+
+        Returns:
+            commands.Check: The command to check.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="check",
+            session_id=command.q_id,
+        )
+        response = self.guardrails.use(
+            command.question, commands.GuardrailPreCheckModel
+        )
+
+        command.response = response.response
+        command.chain_of_thought = response.chain_of_thought
+        command.approved = response.approved
+
+        return command
+
+    @observe()
+    def construction(
+        self, command: commands.SQLConstruction
+    ) -> commands.SQLConstruction:
+        """
+        Construct the question to schema elements.
+
+        Args:
+            command: commands.SQLConstruction: The command to construction.
+
+        Returns:
+            commands.SQLConstruction: The command to construction.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="construction",
+            session_id=command.q_id,
+        )
+        return command
+
+    @observe()
+    def filter(self, command: commands.SQLFilter) -> commands.SQLFilter:
+        """
+        Validate the question to schema elements.
+
+        Args:
+            command: commands.SQLValidation: The command to validation.
+
+        Returns:
+            commands.SQLValidation: The command to validation.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="validation",
+            session_id=command.q_id,
+        )
+        return command
+
+    @observe()
+    def finalize(self, command: commands.LLMResponse) -> commands.LLMResponse:
+        """
+        Finalize the response via LLM.
+
+        Args:
+            command: commands.LLMResponse: The command to finalize the response.
+
+        Returns:
+            commands.LLMResponse: The command to finalize the response.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="finalize",
+            session_id=command.q_id,
+        )
+
+        response = self.llm.use(command.question, commands.LLMResponseModel)
+
+        command.response = response.response
+        command.chain_of_thought = response.chain_of_thought
+
+        return command
+
+    @observe()
+    def grounding(self, command: commands.SQLGrounding) -> commands.SQLGrounding:
+        """
+        Ground the question to schema elements.
+
+        Args:
+            command: commands.SQLGrounding: The command to ground.
+
+        Returns:
+            commands.SQLGrounding: The command to ground.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="grounding",
+            session_id=command.q_id,
+        )
+        return command
+
+    @observe()
+    def join_inference(
+        self, command: commands.SQLJoinInference
+    ) -> commands.SQLJoinInference:
+        """
+        Filter the question to schema elements.
+
+        Args:
+            command: commands.SQLJoinInference: The command to join inference.
+
+        Returns:
+            commands.SQLJoinInference: The command to join inference.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="grounding",
+            session_id=command.q_id,
+        )
+        return command
+
+    def query(self, command: commands.Command) -> commands.Command:
+        """
+        Answer a command. Processes each request by the command type
+
+        Args:
+            command: commands.Command: The command to answer.
+
+        Returns:
+            commands.Command: The command to answer.
+        """
+        match command:
+            case commands.SQLQuestion():
+                response = self.question(command)
+            case commands.SQLCheck():
+                response = self.check(command)
+            case commands.SQLGrounding():
+                response = self.grounding(command)
+            case commands.SQLFilter():
+                response = self.filter(command)
+            case commands.SQLJoinInference():
+                response = self.join_inference(command)
+            case commands.SQLAggregation():
+                response = self.aggregation(command)
+            case commands.SQLValidation():
+                response = self.validation(command)
+            case commands.SQLConstruction():
+                response = self.construction(command)
+            case _:
+                raise NotImplementedError(
+                    f"Not implemented in AgentAdapter: {type(command)}"
+                )
+        return response
+
+    @observe()
+    def question(self, command: commands.Question) -> commands.Question:
+        """
+        Only for tracing.
+
+        Args:
+            command: commands.Question: The command to handle a question.
+
+        Returns:
+            commands.Question: The command to handle a question.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="question",
+            session_id=command.q_id,
+        )
+
+        return command
+
+    @observe()
+    def validation(self, command: commands.SQLValidation) -> commands.SQLValidation:
+        """
+        Ground the question to schema elements.
+
+        Args:
+            command: commands.SQLFilter: The command to filter.
+
+        Returns:
+            commands.SQLFilter: The command to filter.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="grounding",
+            session_id=command.q_id,
+        )
         return command
