@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, List, Optional
 
 import yaml
@@ -48,7 +49,7 @@ class SQLBaseAgent:
         self.kwargs = kwargs
         self.events = []
         self.is_answered = False
-
+        self.constructions = commands.SQLConstruction()
         self.evaluation = None
         self.q_id = question.q_id
         self.question = question.question
@@ -184,6 +185,8 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
+        self.constructions.joins = deepcopy(command.joins)
+
         prompt = self.create_prompt(command)
 
         new_command = commands.SQLAggregation(
@@ -205,9 +208,19 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
+        self.constructions.aggregations = deepcopy(command.aggregations)
+        self.constructions.group_by_columns = deepcopy(command.group_by_columns)
+        self.constructions.is_aggregation_query = deepcopy(command.is_aggregation_query)
+
+        command.column_mappings = deepcopy(self.constructions.column_mappings)
+        command.table_mappings = deepcopy(self.constructions.table_mappings)
+        command.schema_info = deepcopy(self.constructions.schema_info)
+        command.conditions = deepcopy(self.constructions.conditions)
+        command.joins = deepcopy(self.constructions.joins)
+
         prompt = self.create_prompt(command)
 
-        new_command = commands.SQLValidation(
+        new_command = commands.SQLConstruction(
             question=prompt,
             q_id=command.q_id,
         )
@@ -237,6 +250,19 @@ class SQLBaseAgent:
         return None
 
     def prepare_filter(self, command: commands.SQLGrounding) -> commands.SQLFilter:
+        """
+        Prepares the filter for the question.
+
+        Args:
+            command: commands.SQLGrounding: The command to change the question.
+
+        Returns:
+            new_command: commands.SQLFilter: The new command.
+        """
+
+        self.constructions.column_mappings = deepcopy(command.column_mappings)
+        self.constructions.table_mappings = deepcopy(command.table_mappings)
+
         prompt = self.create_prompt(command)
 
         new_command = commands.SQLFilter(
@@ -256,12 +282,24 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
-        prompt = self.create_prompt(command)
 
-        new_command = commands.SQLGrounding(
-            question=prompt,
-            q_id=command.q_id,
-        )
+        if command.approved:
+            command.schema_info = deepcopy(self.constructions.schema_info)
+            prompt = self.create_prompt(command)
+
+            new_command = commands.SQLGrounding(
+                question=prompt,
+                q_id=command.q_id,
+            )
+        else:
+            self.is_answered = True
+            new_command = events.RejectedRequest(
+                question=self.question,
+                response=command.response,
+                q_id=command.q_id,
+            )
+            self.send_response = new_command
+            self.response = new_command
 
         return new_command
 
@@ -275,9 +313,11 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
+        self.constructions.schema_info = deepcopy(command.schema_info)
+
         prompt = self.create_prompt(command)
 
-        new_command = commands.Check(
+        new_command = commands.SQLCheck(
             question=prompt,
             q_id=command.q_id,
         )
@@ -296,6 +336,11 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
+        self.constructions.filter_results = deepcopy(command.conditions)
+
+        command.table_mappings = deepcopy(self.constructions.table_mappings)
+        command.schema_info = deepcopy(self.constructions.schema_info)
+
         prompt = self.create_prompt(command)
 
         new_command = commands.SQLJoinInference(

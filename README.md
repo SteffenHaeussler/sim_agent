@@ -49,6 +49,17 @@ Examples:
 
 ```
 
+## SQL Agent
+
+The SQL agent is a specialized agent that is used to answer questions about the database. It is designed to be used in a pipeline with the following steps:
+
+    "How many customers do we have?",
+    "What are the top 5 selling products?",
+    "Show me orders from 2024",
+    "What is the average order value?",
+
+
+
 ## Running service in Docker
 
 

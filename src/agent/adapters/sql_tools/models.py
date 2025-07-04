@@ -3,11 +3,14 @@ Simplified Pydantic response models for SQL agents.
 """
 
 from typing import List, Optional
+
+
 from pydantic import BaseModel
 
 
 class TableMapping(BaseModel):
     """Maps user term to database table."""
+
     user_term: str
     table_name: str
     confidence: float
@@ -15,6 +18,7 @@ class TableMapping(BaseModel):
 
 class ColumnMapping(BaseModel):
     """Maps user term to database column."""
+
     user_term: str
     table_name: str
     column_name: str
@@ -23,6 +27,7 @@ class ColumnMapping(BaseModel):
 
 class GroundingResponse(BaseModel):
     """Response from Grounding Agent."""
+
     table_mappings: List[TableMapping]
     column_mappings: List[ColumnMapping]
     reasoning: str
@@ -30,6 +35,7 @@ class GroundingResponse(BaseModel):
 
 class FilterCondition(BaseModel):
     """Represents a WHERE clause condition."""
+
     column: str
     operator: str  # =, >, <, LIKE, etc.
     value: str
@@ -38,12 +44,14 @@ class FilterCondition(BaseModel):
 
 class FilterResponse(BaseModel):
     """Response from Filter Agent."""
+
     conditions: List[FilterCondition]
     reasoning: str
 
 
 class JoinPath(BaseModel):
     """Represents a join between two tables."""
+
     from_table: str
     to_table: str
     from_column: str
@@ -53,12 +61,14 @@ class JoinPath(BaseModel):
 
 class JoinInferenceResponse(BaseModel):
     """Response from Join Inference Agent."""
+
     joins: List[JoinPath]
     reasoning: str
 
 
 class AggregationFunction(BaseModel):
     """Represents an aggregation function."""
+
     function: str  # COUNT, SUM, AVG, etc.
     column: Optional[str] = None
     alias: Optional[str] = None
@@ -66,6 +76,7 @@ class AggregationFunction(BaseModel):
 
 class AggregationResponse(BaseModel):
     """Response from Aggregation Agent."""
+
     aggregations: List[AggregationFunction]
     group_by_columns: List[str] = []
     is_aggregation_query: bool
@@ -74,6 +85,7 @@ class AggregationResponse(BaseModel):
 
 class SQLConstructionResponse(BaseModel):
     """Response from SQL Construction Agent."""
+
     sql_query: str
     explanation: str
     reasoning: str
@@ -81,12 +93,14 @@ class SQLConstructionResponse(BaseModel):
 
 class ValidationIssue(BaseModel):
     """Represents a validation issue."""
+
     severity: str  # error, warning, info
     message: str
 
 
 class ValidationResponse(BaseModel):
     """Response from Validation Agent."""
+
     is_valid: bool
     issues: List[ValidationIssue]
     corrected_sql: Optional[str] = None
@@ -96,22 +110,9 @@ class ValidationResponse(BaseModel):
 
 class SQLGenerationResponse(BaseModel):
     """Final response from SQL generation workflow."""
+
     sql_query: str
     explanation: str
     confidence: float
     validation_passed: bool
     execution_time_ms: float
-
-
-class ComprehensiveSQLResponse(BaseModel):
-    """Complete SQL generation response with all intermediate steps."""
-    # Final result
-    final_result: SQLGenerationResponse
-    
-    # Intermediate steps (nested)
-    grounding: GroundingResponse
-    filtering: FilterResponse
-    join_inference: JoinInferenceResponse
-    aggregation: AggregationResponse
-    construction: SQLConstructionResponse
-    validation: ValidationResponse

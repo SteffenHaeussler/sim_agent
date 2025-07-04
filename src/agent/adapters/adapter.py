@@ -591,7 +591,7 @@ class SQLAgentAdapter(AbstractAdapter):
     @observe()
     def question(self, command: commands.Question) -> commands.Question:
         """
-        Only for tracing.
+        Gets the schema info from the database.
 
         Args:
             command: commands.Question: The command to handle a question.
@@ -605,6 +605,9 @@ class SQLAgentAdapter(AbstractAdapter):
             name="question",
             session_id=command.q_id,
         )
+
+        response = self.database.get_schema()
+        command.schema_info = response
 
         return command
 
