@@ -227,13 +227,14 @@ class SQLCheck(Command):
 class SQLConstruction(Command):
     question: str
     q_id: str
-    schema_info: Any
-    grounding_results: Optional[GroundingResponse] = None
-    filter_results: Optional[FilterResponse] = None
-    join_results: Optional[JoinInferenceResponse] = None
-    aggregation_results: Optional[AggregationResponse] = None
+    schema_info: Optional[Any] = None
     column_mappings: Optional[List[ColumnMapping]] = None
     table_mappings: Optional[List[TableMapping]] = None
+    conditions: Optional[List[FilterCondition]] = None
+    joins: Optional[List[JoinPath]] = None
+    aggregations: Optional[List[AggregationFunction]] = None
+    group_by_columns: Optional[List[str]] = None
+    is_aggregation_query: Optional[bool] = None
     sql_query: Optional[str] = None
     chain_of_thought: Optional[str] = None
 
@@ -246,8 +247,8 @@ class SQLExecution(Command):
 class SQLFilter(Command):
     question: str
     q_id: str
-    column_mappings: Optional[List[ColumnMapping]] = None
     table_mappings: Optional[List[TableMapping]] = None
+    schema_info: Optional[Any] = None
     conditions: Optional[List[FilterCondition]] = None
     chain_of_thought: Optional[str] = None
 
