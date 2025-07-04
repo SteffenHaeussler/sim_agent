@@ -3,6 +3,7 @@ from time import time
 
 from fastapi import (
     FastAPI,
+    Header,
     HTTPException,
     Query,
     Request,
@@ -38,13 +39,13 @@ bus = bootstrap(
 
 
 @app.get("/answer")
-async def answer(request: Request, question: str):
+async def answer(question: str, x_session_id: str = Header(default="default-session", alias="X-Session-ID")):
     """
     Entrypoint for the agent.
 
     Args:
-        request: Request: The FastAPI request object.
         question: str: The question to answer.
+        x_session_id: str: Session ID from X-Session-ID header.
 
     Returns:
         response: str: The response to the question.
@@ -53,11 +54,8 @@ async def answer(request: Request, question: str):
         HTTPException: If the question is invalid.
         ValueError: If the question is invalid.
     """
-    # Extract session_id from X-Session-ID header
-    session_id = request.headers.get("x-session-id")
+    session_id = x_session_id
     logger.info(f"session_id: {session_id}")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="Missing X-Session-ID header")
 
     if not question:
         raise HTTPException(status_code=400, detail="No question asked")
@@ -75,13 +73,13 @@ async def answer(request: Request, question: str):
 
 
 @app.get("/query")
-async def query(request: Request, question: str):
+async def query(question: str, x_session_id: str = Header(default="default-session", alias="X-Session-ID")):
     """
     Entrypoint for the SQL agent.
 
     Args:
-        request: Request: The FastAPI request object.
         question: str: The question to answer via SQL.
+        x_session_id: str: Session ID from X-Session-ID header.
 
     Returns:
         response: str: The response to the question.
@@ -90,11 +88,8 @@ async def query(request: Request, question: str):
         HTTPException: If the question is invalid.
         ValueError: If the question is invalid.
     """
-    # Extract session_id from X-Session-ID header
-    session_id = request.headers.get("x-session-id")
+    session_id = x_session_id
     logger.info(f"session_id: {session_id}")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="Missing X-Session-ID header")
 
     if not question:
         raise HTTPException(status_code=400, detail="No question asked")

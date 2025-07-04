@@ -107,7 +107,7 @@ def query(
     if not command or not command.question:
         raise InvalidQuestion("No question asked")
 
-    agent = sql_model.BaseAgent(command, config.get_agent_config())
+    agent = sql_model.SQLBaseAgent(command, config.get_agent_config())
     adapter.add(agent)
 
     # adapter for execution and agent for internal logic
@@ -255,4 +255,13 @@ STEP_NAMES = {
     commands.UseTools: "Answering...",
     commands.LLMResponse: "Finalizing...",
     commands.FinalCheck: "Evaluating...",
+    commands.SQLQuestion: "Processing...",
+    commands.SQLCheck: "Checking...",
+    commands.SQLGrounding: "Grounding...",
+    commands.SQLFilter: "Filtering...",
+    commands.SQLJoinInference: "Joining...",
+    commands.SQLAggregation: "Aggregating...",
+    commands.SQLConstruction: "Constructing...",
+    commands.SQLValidation: "Validating...",
+    commands.SQLExecution: "Executing...",
 }
