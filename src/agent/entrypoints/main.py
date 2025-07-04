@@ -9,7 +9,7 @@ from src.agent.adapters.adapter import AgentAdapter
 from src.agent.adapters.notifications import CliNotifications, SlackNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
-from src.agent.domain.commands import Question
+from src.agent.domain.commands import Question, SQLQuestion
 from src.agent.observability.context import ctx_query_id
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
@@ -27,13 +27,14 @@ bus = bootstrap(
 )
 
 
-def answer(question: str, q_id: str) -> str:
+def answer(question: str, q_id: str, tool: str = "tool") -> str:
     """
     Entrypoint for the agent. Responds are handled by the notifications.
 
     Args:
         question: str: The question to answer.
         q_id: str: The id of the question.
+        tool: str: The tool to use ('tool' for regular agent, 'sql' for SQL agent).
 
     Returns:
         str: done.
@@ -43,7 +44,10 @@ def answer(question: str, q_id: str) -> str:
     """
     ctx_query_id.set(q_id)
     try:
-        command = Question(question=question, q_id=q_id)
+        if tool == "sql":
+            command = SQLQuestion(question=question, q_id=q_id)
+        else:
+            command = Question(question=question, q_id=q_id)
         bus.handle(command)
     except (handlers.InvalidQuestion, ValueError) as e:
         raise Exception(str(e))
@@ -54,6 +58,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Get question.")
     parser.add_argument("question", nargs="?", type=str, help="question")
     parser.add_argument("--q", type=str, help="question")
+    parser.add_argument(
+        "--tool",
+        type=str,
+        default="tool",
+        choices=["tool", "sql"],
+        help="tool to use: 'tool' for regular agent, 'sql' for SQL agent (default: tool)",
+    )
 
     args = parser.parse_args()
 
@@ -64,4 +75,4 @@ if __name__ == "__main__":
 
     q_id = uuid4().hex
 
-    answer(question, q_id)
+    answer(question, q_id, args.tool)
