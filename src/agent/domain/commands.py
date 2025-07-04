@@ -125,3 +125,43 @@ class UseTools(Command):
 class SQLQuestion(Command):
     question: str
     q_id: str
+
+
+class SQLCheck(Command):
+    question: str
+    q_id: str
+
+
+class SQLGrounding(Command):
+    question: str
+    q_id: str
+
+
+class SQLFilter(Command):
+    question: str
+    q_id: str
+
+
+class SQLJoinInference(Command):
+    question: str
+    q_id: str
+
+
+class SQLAggregation(Command):
+    question: str
+    q_id: str
+
+
+class SQLConstruction(Command):
+    question: str
+    q_id: str
+
+
+class SQLValidation(Command):
+    question: str
+    q_id: str
+
+
+class SQLExecution(Command):
+    question: str
+    q_id: str
