@@ -370,22 +370,20 @@ class SQLAgentAdapter(AbstractAdapter):
     Question -> Check -> UseTools -> Retrieve -> Rerank -> Enhance -> LLMResponse -> FinalCheck
 
     Methods:
-        - answer(command: commands.Command) -> commands.Command: General entrypoint for a command.
-        - check(command: commands.Check) -> commands.Check: Check the incoming question via guardrails.
-        - evaluation(command: commands.FinalCheck) -> commands.FinalCheck: Evaluate the response via guardrails.
+        - aggregation(command: commands.SQLAggregation) -> commands.SQLAggregation: Aggregate the question to schema elements.
+        - check(command: commands.SQLCheck) -> commands.SQLCheck: Check the incoming question via guardrails.
+        - construction(command: commands.SQLConstruction) -> commands.SQLConstruction: Construct the question to schema elements.
+        - filter(command: commands.SQLFilter) -> commands.SQLFilter: Validate the question to schema elements.
         - finalize(command: commands.LLMResponse) -> commands.LLMResponse: Finalize the response via LLM.
-        - question(command: commands.Question) -> commands.Question: only for tracing.
-        - use(command: commands.UseTools) -> commands.UseTools: Use the agent tools to process the question.
-        - retrieve(command: commands.Retrieve) -> commands.Retrieve: Retrieve the most relevant documents from the knowledge base.
-        - rerank(command: commands.Rerank) -> commands.Rerank: Rerank the documents from the knowledge base.
-        - enhance(command: commands.Enhance) -> commands.Enhance: Enhance the question via LLM based on the reranked document.
+        - grounding(command: commands.SQLGrounding) -> commands.SQLGrounding: Ground the question to schema elements.
+        - join_inference(command: commands.SQLJoinInference) -> commands.SQLJoinInference: Filter the question to schema elements.
+        - question(command: commands.SQLQuestion) -> commands.SQLQuestion: only for tracing.
+        - validation(command: commands.SQLValidation) -> commands.SQLValidation: Validate the question to schema elements.
 
     Adapters:
         - database: Database adapter.
         - guardrails: Performs checks via guardrails.
         - llm: Calls a LLM.
-        - rag: RAG model to enhance questions and retrieve documents.
-        - tools: Use the agent tools to process the question.
     """
 
     def __init__(self):
@@ -420,6 +418,13 @@ class SQLAgentAdapter(AbstractAdapter):
             name="aggregation",
             session_id=command.q_id,
         )
+        response = self.llm.use(command.question, commands.SQLAggregationResponse)
+
+        command.aggregations = response.aggregations
+        command.group_by_columns = response.group_by_columns
+        command.is_aggregation_query = response.is_aggregation_query
+        command.chain_of_thought = response.chain_of_thought
+
         return command
 
     @observe()
@@ -468,6 +473,11 @@ class SQLAgentAdapter(AbstractAdapter):
             name="construction",
             session_id=command.q_id,
         )
+        response = self.llm.use(command.question, commands.ConstructionResponse)
+
+        command.sql_query = response.sql_query
+        command.chain_of_thought = response.chain_of_thought
+
         return command
 
     @observe()
@@ -487,30 +497,10 @@ class SQLAgentAdapter(AbstractAdapter):
             name="validation",
             session_id=command.q_id,
         )
-        return command
+        response = self.llm.use(command.question, commands.FilterResponse)
 
-    @observe()
-    def finalize(self, command: commands.LLMResponse) -> commands.LLMResponse:
-        """
-        Finalize the response via LLM.
-
-        Args:
-            command: commands.LLMResponse: The command to finalize the response.
-
-        Returns:
-            commands.LLMResponse: The command to finalize the response.
-        """
-        langfuse = get_client()
-
-        langfuse.update_current_trace(
-            name="finalize",
-            session_id=command.q_id,
-        )
-
-        response = self.llm.use(command.question, commands.LLMResponseModel)
-
-        command.response = response.response
         command.chain_of_thought = response.chain_of_thought
+        command.conditions = response.conditions
 
         return command
 
@@ -531,6 +521,12 @@ class SQLAgentAdapter(AbstractAdapter):
             name="grounding",
             session_id=command.q_id,
         )
+        response = self.llm.use(command.question, commands.GroundingResponse)
+
+        command.table_mappings = response.table_mappings
+        command.column_mappings = response.column_mappings
+        command.chain_of_thought = response.chain_of_thought
+
         return command
 
     @observe()
@@ -552,6 +548,11 @@ class SQLAgentAdapter(AbstractAdapter):
             name="grounding",
             session_id=command.q_id,
         )
+        response = self.llm.use(command.question, commands.JoinInferenceResponse)
+
+        command.joins = response.joins
+        command.chain_of_thought = response.chain_of_thought
+
         return command
 
     def query(self, command: commands.Command) -> commands.Command:
@@ -577,10 +578,10 @@ class SQLAgentAdapter(AbstractAdapter):
                 response = self.join_inference(command)
             case commands.SQLAggregation():
                 response = self.aggregation(command)
-            case commands.SQLValidation():
-                response = self.validation(command)
             case commands.SQLConstruction():
                 response = self.construction(command)
+            case commands.SQLValidation():
+                response = self.validation(command)
             case _:
                 raise NotImplementedError(
                     f"Not implemented in AgentAdapter: {type(command)}"
@@ -624,4 +625,12 @@ class SQLAgentAdapter(AbstractAdapter):
             name="grounding",
             session_id=command.q_id,
         )
+        response = self.llm.use(command.question, commands.ValidationResponse)
+
+        command.is_valid = response.is_valid
+        command.issues = response.issues
+        command.corrected_sql = response.corrected_sql
+        command.confidence = response.confidence
+        command.chain_of_thought = response.chain_of_thought
+
         return command

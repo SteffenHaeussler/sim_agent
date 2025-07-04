@@ -101,3 +101,17 @@ class SQLGenerationResponse(BaseModel):
     confidence: float
     validation_passed: bool
     execution_time_ms: float
+
+
+class ComprehensiveSQLResponse(BaseModel):
+    """Complete SQL generation response with all intermediate steps."""
+    # Final result
+    final_result: SQLGenerationResponse
+    
+    # Intermediate steps (nested)
+    grounding: GroundingResponse
+    filtering: FilterResponse
+    join_inference: JoinInferenceResponse
+    aggregation: AggregationResponse
+    construction: SQLConstructionResponse
+    validation: ValidationResponse
