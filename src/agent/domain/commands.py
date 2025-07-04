@@ -47,7 +47,7 @@ class RerankResponse(BaseModel):
 
 
 ################################################################################
-# Internal Commands
+# Internal Tool Commands
 ################################################################################
 
 
@@ -115,3 +115,13 @@ class UseTools(Command):
     response: Optional[str] = None
     memory: Optional[List[str]] = None
     data: Optional[Dict[str, str]] = None
+
+
+################################################################################
+# Internal SQL Commands
+################################################################################
+
+
+class SQLQuestion(Command):
+    question: str
+    q_id: str

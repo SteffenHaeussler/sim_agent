@@ -1,9 +1,6 @@
 import asyncio
-import os
 from time import time
 
-import src.agent.service_layer.handlers as handlers
-from dotenv import load_dotenv
 from fastapi import (
     FastAPI,
     HTTPException,
@@ -13,19 +10,18 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from loguru import logger
+from starlette.responses import StreamingResponse
+from starlette.websockets import WebSocketState
+
+import src.agent.service_layer.handlers as handlers
 from src.agent.adapters.adapter import AgentAdapter
 from src.agent.adapters.notifications import SlackNotifications, WSNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
-from src.agent.domain.commands import Question
+from src.agent.domain.commands import Question, SQLQuestion
 from src.agent.observability.context import connected_clients, ctx_query_id
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
-from starlette.responses import StreamingResponse
-from starlette.websockets import WebSocketState
-
-if os.getenv("IS_TESTING") != "true":
-    load_dotenv(".env")
 
 setup_tracing(get_tracing_config())
 setup_logging(get_logging_config())
@@ -59,7 +55,7 @@ async def answer(request: Request, question: str):
     """
     # Extract session_id from X-Session-ID header
     session_id = request.headers.get("x-session-id")
-    print("session_id", session_id)
+    logger.info(f"session_id: {session_id}")
     if not session_id:
         raise HTTPException(status_code=400, detail="Missing X-Session-ID header")
 
@@ -70,6 +66,43 @@ async def answer(request: Request, question: str):
 
     try:
         command = Question(question=question, q_id=session_id)
+        # Run the command handling in the background
+        asyncio.create_task(asyncio.to_thread(bus.handle, command))
+        return {"status": "processing", "message": "Event triggered successfully"}
+
+    except (handlers.InvalidQuestion, ValueError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/query")
+async def query(request: Request, question: str):
+    """
+    Entrypoint for the SQL agent.
+
+    Args:
+        request: Request: The FastAPI request object.
+        question: str: The question to answer via SQL.
+
+    Returns:
+        response: str: The response to the question.
+
+    Raises:
+        HTTPException: If the question is invalid.
+        ValueError: If the question is invalid.
+    """
+    # Extract session_id from X-Session-ID header
+    session_id = request.headers.get("x-session-id")
+    logger.info(f"session_id: {session_id}")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Missing X-Session-ID header")
+
+    if not question:
+        raise HTTPException(status_code=400, detail="No question asked")
+
+    ctx_query_id.set(session_id)
+
+    try:
+        command = SQLQuestion(question=question, q_id=session_id)
         # Run the command handling in the background
         asyncio.create_task(asyncio.to_thread(bus.handle, command))
         return {"status": "processing", "message": "Event triggered successfully"}
