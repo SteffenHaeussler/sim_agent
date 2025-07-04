@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -206,41 +206,6 @@ class UseTools(Command):
 ################################################################################
 
 
-class SQLQuestion(Command):
-    question: str
-    q_id: str
-
-
-class SQLCheck(Command):
-    question: str
-    q_id: str
-    approved: Optional[bool] = None
-    chain_of_thought: Optional[str] = None
-    response: Optional[str] = None
-
-
-class SQLGrounding(Command):
-    question: str
-    q_id: str
-    table_mappings: Optional[List[TableMapping]] = None
-    column_mappings: Optional[List[ColumnMapping]] = None
-    chain_of_thought: Optional[str] = None
-
-
-class SQLFilter(Command):
-    question: str
-    q_id: str
-    conditions: Optional[List[FilterCondition]] = None
-    reasoning: Optional[str] = None
-
-
-class SQLJoinInference(Command):
-    question: str
-    q_id: str
-    joins: Optional[List[JoinPath]] = None
-    chain_of_thought: Optional[str] = None
-
-
 class SQLAggregation(Command):
     question: str
     q_id: str
@@ -250,11 +215,65 @@ class SQLAggregation(Command):
     chain_of_thought: Optional[str] = None
 
 
+class SQLCheck(Command):
+    question: str
+    q_id: str
+    approved: Optional[bool] = None
+    chain_of_thought: Optional[str] = None
+    response: Optional[str] = None
+    schema_info: Any
+
+
 class SQLConstruction(Command):
     question: str
     q_id: str
+    schema_info: Any
+    grounding_results: Optional[GroundingResponse] = None
+    filter_results: Optional[FilterResponse] = None
+    join_results: Optional[JoinInferenceResponse] = None
+    aggregation_results: Optional[AggregationResponse] = None
+    column_mappings: Optional[List[ColumnMapping]] = None
+    table_mappings: Optional[List[TableMapping]] = None
     sql_query: Optional[str] = None
     chain_of_thought: Optional[str] = None
+
+
+class SQLExecution(Command):
+    question: str
+    q_id: str
+
+
+class SQLFilter(Command):
+    question: str
+    q_id: str
+    column_mappings: Optional[List[ColumnMapping]] = None
+    table_mappings: Optional[List[TableMapping]] = None
+    conditions: Optional[List[FilterCondition]] = None
+    chain_of_thought: Optional[str] = None
+
+
+class SQLGrounding(Command):
+    question: str
+    q_id: str
+    schema_info: Any
+    table_mappings: Optional[List[TableMapping]] = None
+    column_mappings: Optional[List[ColumnMapping]] = None
+    chain_of_thought: Optional[str] = None
+
+
+class SQLJoinInference(Command):
+    question: str
+    q_id: str
+    schema_info: Any
+    table_mappings: Optional[List[TableMapping]]
+    joins: Optional[List[JoinPath]] = None
+    chain_of_thought: Optional[str] = None
+
+
+class SQLQuestion(Command):
+    question: str
+    q_id: str
+    schema_info: Optional[Any] = None
 
 
 class SQLValidation(Command):
@@ -265,8 +284,3 @@ class SQLValidation(Command):
     corrected_sql: Optional[str] = None
     confidence: Optional[float] = None
     chain_of_thought: Optional[str] = None
-
-
-class SQLExecution(Command):
-    question: str
-    q_id: str

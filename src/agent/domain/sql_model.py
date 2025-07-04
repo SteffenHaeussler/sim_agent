@@ -16,27 +16,29 @@ class SQLBaseAgent:
     Previous_command is used to check if the command is a duplicate and stops the state machine.
 
     Following commands are supported:
-    - Question: The initial command to start the agent.
-    - Check: Check the incoming question via guardrails.
-    - Retrieve: Retrieve the most relevant documents from the knowledge base.
-    - Rerank: Rerank the documents from the knowledge base.
-    - Enhance: Enhance the question via LLM based on the reranked document.
-    - UseTools: Use the agent tools to process the question.
-    - LLMResponse: Use the LLM to process the question.
-    - FinalCheck: Check the final answer via guardrails.
+    - SQLQuestion: The initial command to start the agent.
+    - SQLCheck: Check the incoming question via guardrails.
+    - SQLGrounding: Ground the incoming question.
+    - SQLFilter: Filter the incoming question.
+    - SQLJoinInference: Join the incoming question.
+    - SQLAggregation: Aggregate the incoming question.
+    - SQLConstruction: Construct the incoming question.
+    - SQLValidation: Validate the incoming question.
+    - SQLExecution: Execute the incoming question.
 
     Methods:
     - init_prompts: Initialize the prompts for the agent.
-    - change_llm_response: Change the LLM response.
-    - final_check: Check the final answer.
-    - check_question: Check the question.
-    - change_check: Change the check.
-    - change_retrieve: Change the retrieve.
-    - change_rerank: Change the rerank.
-    - change_question: Change the question.
-    - change_use_tools: Change the use tools.
-    - create_prompt: Create the prompt for the command.
+    - prepare_aggregation: Prepare the aggregation command.
+    - prepare_construction: Prepare the construction command.
+    - prepare_execution: Prepare the execution command.
+    - prepare_filter: Prepare the filter command.
+    - prepare_grounding: Prepare the grounding command.
+    - prepare_guardrails_check: Prepare the guardrails check command.
+    - prepare_join_inference: Prepare the join inference command.
+    - prepare_validation: Prepare the validation command.
     - update: Update the state of the agent.
+    - _update_state: Update the internal state of the agent.
+    - create_prompt: Create the prompt for the command.
     """
 
     def __init__(self, question: commands.Question, kwargs: Dict = None):
@@ -47,15 +49,13 @@ class SQLBaseAgent:
         self.events = []
         self.is_answered = False
 
-        self.agent_memory = None
-        self.enhancement = None
         self.evaluation = None
         self.q_id = question.q_id
         self.question = question.question
         self.previous_command = None
         self.response = None
         self.send_response = None
-        self.tool_answer = None
+        self.query = None
 
         self.base_prompts = self.init_prompts()
 
@@ -73,41 +73,79 @@ class SQLBaseAgent:
         Returns:
             prompt: str: The prepared prompt for the command.
         """
-        if type(command) is commands.SQLCheck:
+        if type(command) is commands.SQLQuestion:
             prompt = self.base_prompts.get("check", None)
-        elif type(command) is commands.SQLConstruction:
-            prompt = self.base_prompts.get("construct", None)
-        elif type(command) is commands.SQLAggregation:
-            prompt = self.base_prompts.get("aggregate", None)
-        elif type(command) is commands.SQLJoinInference:
-            prompt = self.base_prompts.get("join", None)
-        elif type(command) is commands.SQLFilter:
-            prompt = self.base_prompts.get("filter", None)
-        elif type(command) is commands.SQLGrounding:
+        elif type(command) is commands.SQLCheck:
             prompt = self.base_prompts.get("ground", None)
-        elif type(command) is commands.SQLValidation:
-            prompt = self.base_prompts.get("validation", None)
+        elif type(command) is commands.SQLGrounding:
+            prompt = self.base_prompts.get("filter", None)
+        elif type(command) is commands.SQLFilter:
+            prompt = self.base_prompts.get("join", None)
+        elif type(command) is commands.SQLJoinInference:
+            prompt = self.base_prompts.get("aggregate", None)
+        elif type(command) is commands.SQLAggregation:
+            prompt = self.base_prompts.get("construct", None)
+        elif type(command) is commands.SQLConstruction:
+            prompt = self.base_prompts.get("validate", None)
         else:
             raise ValueError("Invalid command type")
 
         if prompt is None:
             raise ValueError("Prompt not found")
 
-        if type(command) is commands.SQLExecution:
+        if type(command) is commands.SQLQuestion:
             prompt = populate_template(
                 prompt,
                 {
                     "question": command.question,
                 },
             )
-        elif type(command) is commands.SQLQuestion:
+        elif type(command) is commands.SQLCheck:
             prompt = populate_template(
                 prompt,
                 {
                     "question": command.question,
+                    "schema_info": command.schema_info,
                 },
             )
-        elif type(command) is commands.SQLValidation:
+        elif type(command) is commands.SQLGrounding:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
+                    "column_mappings": command.column_mappings,
+                    "table_mappings": command.table_mappings,
+                },
+            )
+        elif type(command) is commands.SQLFilter:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
+                    "table_mappings": command.table_mappings,
+                    "schema_info": command.schema_info,
+                },
+            )
+        elif type(command) is commands.SQLJoinInference:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
+                    "column_mappings": command.column_mappings,
+                },
+            )
+        elif type(command) is commands.SQLAggregation:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
+                    "grounding_results": command.grounding_results,
+                    "filter_results": command.filter_results,
+                    "join_results": command.join_results,
+                    "aggregation_results": command.aggregation_results,
+                },
+            )
+        elif type(command) is commands.SQLConstruction:
             prompt = populate_template(
                 prompt,
                 {
@@ -127,7 +165,7 @@ class SQLBaseAgent:
             base_prompts: Dict: The base prompts for the agent.
         """
         try:
-            with open(self.kwargs["prompt_path"], "r") as file:
+            with open(self.kwargs["base_sql_prompts"], "r") as file:
                 base_prompts = yaml.safe_load(file)
         except FileNotFoundError:
             raise ValueError("Prompt path not found")
