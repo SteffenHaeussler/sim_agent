@@ -1,4 +1,3 @@
-import json
 from typing import Dict, List, Optional
 
 import yaml
@@ -74,53 +73,45 @@ class SQLBaseAgent:
         Returns:
             prompt: str: The prepared prompt for the command.
         """
-        if type(command) is commands.UseTools:
-            prompt = self.base_prompts.get("finalize", None)
-        elif type(command) is commands.Rerank:
-            prompt = self.base_prompts.get("enhance", None)
-        elif type(command) is commands.Question:
-            prompt = self.base_prompts.get("guardrails", {}).get("pre_check", None)
-        elif type(command) is commands.LLMResponse:
-            prompt = self.base_prompts.get("guardrails", {}).get("post_check", None)
+        if type(command) is commands.SQLCheck:
+            prompt = self.base_prompts.get("check", None)
+        elif type(command) is commands.SQLConstruction:
+            prompt = self.base_prompts.get("construct", None)
+        elif type(command) is commands.SQLAggregation:
+            prompt = self.base_prompts.get("aggregate", None)
+        elif type(command) is commands.SQLJoinInference:
+            prompt = self.base_prompts.get("join", None)
+        elif type(command) is commands.SQLFilter:
+            prompt = self.base_prompts.get("filter", None)
+        elif type(command) is commands.SQLGrounding:
+            prompt = self.base_prompts.get("ground", None)
+        elif type(command) is commands.SQLValidation:
+            prompt = self.base_prompts.get("validation", None)
         else:
             raise ValueError("Invalid command type")
 
         if prompt is None:
             raise ValueError("Prompt not found")
 
-        if type(command) is commands.UseTools:
-            prompt = populate_template(
-                prompt,
-                {
-                    "question": command.question,
-                    "response": command.response,
-                },
-            )
-        elif type(command) is commands.Rerank:
-            candidates = [i.model_dump() for i in command.candidates]
-            candidates = json.dumps(candidates)
-
-            prompt = populate_template(
-                prompt,
-                {
-                    "question": command.question,
-                    "information": candidates,
-                },
-            )
-        elif type(command) is commands.Question:
+        if type(command) is commands.SQLExecution:
             prompt = populate_template(
                 prompt,
                 {
                     "question": command.question,
                 },
             )
-        elif type(command) is commands.LLMResponse:
+        elif type(command) is commands.SQLQuestion:
             prompt = populate_template(
                 prompt,
                 {
                     "question": command.question,
-                    "response": command.response,
-                    "memory": "\n".join(memory),
+                },
+            )
+        elif type(command) is commands.SQLValidation:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
                 },
             )
         else:

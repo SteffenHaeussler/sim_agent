@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel
 
 ################################################################################
-# pydantic models - between agent and adapters
+# Tools pydantic models - between agent and adapters
 ################################################################################
 
 
@@ -44,6 +44,90 @@ class RerankResponse(BaseModel):
     id: str
     tag: str
     name: str
+
+
+################################################################################
+# SQL building blocks
+################################################################################
+
+
+class AggregationFunction(BaseModel):
+    function: str  # COUNT, SUM, AVG, etc.
+    column: Optional[str] = None
+    alias: Optional[str] = None
+
+
+class ColumnMapping(BaseModel):
+    user_term: str
+    table_name: str
+    column_name: str
+    confidence: float
+
+
+class FilterCondition(BaseModel):
+    column: str
+    operator: str  # =, >, <, LIKE, etc.
+    value: str
+    chain_of_thought: Optional[str] = None
+
+
+class JoinPath(BaseModel):
+    from_table: str
+    to_table: str
+    from_column: str
+    to_column: str
+    join_type: str = "INNER"
+
+
+class TableMapping(BaseModel):
+    user_term: str
+    table_name: str
+    confidence: float
+
+
+################################################################################
+# SQL pydantic models - between agent and adapters
+################################################################################
+
+
+class AggregationResponse(BaseModel):
+    """Response from Aggregation Agent."""
+
+    aggregations: List[AggregationFunction]
+    group_by_columns: List[str] = []
+    is_aggregation_query: bool
+    chain_of_thought: Optional[str] = None
+
+
+class ConstructionResponse(BaseModel):
+    sql_query: str
+    chain_of_thought: Optional[str] = None
+
+
+class FilterResponse(BaseModel):
+    """Response from Filter Agent."""
+
+    conditions: List[FilterCondition]
+    chain_of_thought: Optional[str] = None
+
+
+class GroundingResponse(BaseModel):
+    table_mappings: List[TableMapping]
+    column_mappings: List[ColumnMapping]
+    chain_of_thought: Optional[str] = None
+
+
+class JoinInferenceResponse(BaseModel):
+    joins: List[JoinPath]
+    chain_of_thought: Optional[str] = None
+
+
+class ValidationResponse(BaseModel):
+    is_valid: bool
+    issues: Optional[List[str]] = None
+    corrected_sql: Optional[str] = None
+    confidence: float
+    chain_of_thought: Optional[str] = None
 
 
 ################################################################################
@@ -130,36 +214,57 @@ class SQLQuestion(Command):
 class SQLCheck(Command):
     question: str
     q_id: str
+    approved: Optional[bool] = None
+    chain_of_thought: Optional[str] = None
+    response: Optional[str] = None
 
 
 class SQLGrounding(Command):
     question: str
     q_id: str
+    table_mappings: Optional[List[TableMapping]] = None
+    column_mappings: Optional[List[ColumnMapping]] = None
+    chain_of_thought: Optional[str] = None
 
 
 class SQLFilter(Command):
     question: str
     q_id: str
+    conditions: Optional[List[FilterCondition]] = None
+    reasoning: Optional[str] = None
 
 
 class SQLJoinInference(Command):
     question: str
     q_id: str
+    joins: Optional[List[JoinPath]] = None
+    chain_of_thought: Optional[str] = None
 
 
 class SQLAggregation(Command):
     question: str
     q_id: str
+    aggregations: Optional[List[AggregationFunction]] = None
+    group_by_columns: Optional[List[str]] = None
+    is_aggregation_query: Optional[bool] = None
+    chain_of_thought: Optional[str] = None
 
 
 class SQLConstruction(Command):
     question: str
     q_id: str
+    sql_query: Optional[str] = None
+    chain_of_thought: Optional[str] = None
 
 
 class SQLValidation(Command):
     question: str
     q_id: str
+    is_valid: Optional[bool] = None
+    issues: Optional[List[str]] = None
+    corrected_sql: Optional[str] = None
+    confidence: Optional[float] = None
+    chain_of_thought: Optional[str] = None
 
 
 class SQLExecution(Command):
