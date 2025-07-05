@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional
 
-import pandas as pd
 from pydantic import BaseModel
 
 ################################################################################
@@ -124,9 +123,9 @@ class JoinInferenceResponse(BaseModel):
 
 
 class ValidationResponse(BaseModel):
-    is_valid: bool
+    approved: bool
     issues: Optional[List[str]] = None
-    corrected_sql: Optional[str] = None
+    summary: Optional[str] = None
     confidence: float
     chain_of_thought: Optional[str] = None
 
@@ -268,7 +267,7 @@ class SQLExecution(Command):
     question: str
     q_id: str
     sql_query: str
-    data: Optional[pd.DataFrame] = None
+    data: Optional[Dict[str, str]] = None
 
 
 class SQLFilter(Command):
@@ -309,7 +308,8 @@ class SQLValidation(Command):
     sql_query: str
     tables: List[Table]
     relationships: List[Relationship]
-    is_valid: Optional[bool] = None
+    approved: Optional[bool] = None
+    summary: Optional[str] = None
     issues: Optional[List[str]] = None
     confidence: Optional[float] = None
     chain_of_thought: Optional[str] = None
