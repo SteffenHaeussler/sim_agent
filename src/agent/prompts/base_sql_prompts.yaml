@@ -3,11 +3,6 @@ aggregate: |-
 
   Given a user question and column mappings, determine if aggregation functions are needed.
 
-  User Question: {{question}}
-
-  Column Mappings:
-  {{column_mappings}}
-
   Instructions:
   1. Identify if the question requires aggregation (COUNT, SUM, AVG, MIN, MAX, etc.)
   2. Determine which columns need aggregation functions
@@ -27,8 +22,10 @@ aggregate: |-
   [Question]:
   {{question}}
 
-  [Column Mappings]:
-  {{column_mappings}}
+  [Column Mapping]:
+  {%- for column in column_mapping %}
+  - {{ column.question_term }}: {{ column.table_name }}.{{ column.column_name }}
+  {%- endfor %}
 
   Output Format:
 
@@ -134,28 +131,48 @@ construct: |-
   Instructions:
   1. Combine all the analysis results into a single SQL query
   2. Structure the query properly: SELECT, FROM, JOIN, WHERE, GROUP BY, HAVING, ORDER BY
-  3. Use the exact table and column names from the grounding results
-  4. Apply all filter conditions from the filter results
-  5. Include all necessary joins from the join results
-  6. Add aggregation functions and GROUP BY clauses as needed
-  7. Provide a clear explanation of the query logic
+  3. Use the exact table names from the table mapping
+  4. Use the exact table and column names from the column mapping
+  5. Apply all filter conditions from the conditions
+  6. Include all necessary joins from the join results
+
+  7. Add aggregation functions and GROUP BY clauses as needed
+  8. Provide a clear explanation of the query logic
 
   You will be given:
 
   [Question]:
   {{question}}
 
-  [Grounding Results]:
-  {{grounding_results}}
+  [Table Mapping]:
+  {%- for table in table_mapping %}
+  - {{ table.question_term }}: {{ table.table_name }}
+  {%- endfor %}
 
-  [Filter Results]:
-  {{filter_results}}
+  [Column Mapping]:
+  {%- for column in column_mapping %}
+  - {{ column.question_term }}: {{ column.table_name }}.{{ column.column_name }}
+  {%- endfor %}
 
-  [Join Results]:
-  {{join_results}}
+  [Conditions]:
+  {%- for condition in conditions %}
+  - {{ condition.column }} {{ condition.operator }} {{ condition.value }}
+  {%- endfor %}
 
-  [Aggregation Results]:
-  {{aggregation_results}}
+  [Joins]:
+  {%- for join in joins %}
+  - {{ join.from_table }}.{{ join.from_column }} -> {{ join.to_table }}.{{ join.to_column }}
+  {%- endfor %}
+
+  [Aggregations]:
+  {%- for aggregation in aggregations %}
+  - {{ aggregation.function }} ({{ aggregation.column }})
+  {%- endfor %}
+
+  [Group By]:
+  {%- for group_by in group_by_columns %}
+  - {{ group_by }}
+  {%- endfor %}
 
   Output Format:
 
@@ -181,8 +198,11 @@ filter: |-
   [Question]:
   {{question}}
 
-  [Column Mappings]:
-  {{column_mappings}}
+  [Column Mapping]:
+  {%- for column in column_mapping %}
+  - {{ column.question_term }}:
+      - {{ column.table_name }}.{{ column.column_name }}
+  {%- endfor %}
 
   Output Format:
 
@@ -196,14 +216,9 @@ ground: |-
 
   Given a user question and database schema information, identify which tables and columns are relevant.
 
-  Database Schema:
-  {{schema_info}}
-
-  User Question: {{question}}
-
   Instructions:
-  1. Identify which tables contain data relevant to the user's question
-  2. Identify which columns are being referenced by the user's terms
+  1. Identify which tables contain data relevant to the question
+  2. Identify which columns from those tables are needed
   3. Map user terms to exact database table/column names
   4. Provide confidence scores (0.0-1.0) for each mapping
   5. Explain your reasoning
@@ -213,8 +228,13 @@ ground: |-
   [Question]:
   {{question}}
 
-  [Database Schema]:
-  {{schema_info}}
+  [Table Schema]:
+  {%- for table in tables %}
+  - {{ table.name }}:
+      {%- for column in table.columns %}
+      - {{ column.name }}: {{ column.type }}
+      {%- endfor %}
+  {%- endfor %}
 
   Output Format:
 
@@ -242,10 +262,14 @@ join: |-
   {{question}}
 
   Table Mappings:
-  {{table_mappings}}
+  {%- for table in table_mapping %}
+  - {{ table.question_term }}: {{ table.table_name }}
+  {%- endfor %}
 
-  Database Schema Relationships:
-  {{schema_info}}
+  Relationships:
+  {%- for relationship in relationships %}
+  - {{ relationship.table_name }}.{{ relationship.column_name }} -> {{ relationship.foreign_table_name }}.{{ relationship.foreign_column_name }}
+  {%- endfor %}
 
   Output Format:
 
@@ -287,14 +311,23 @@ validate: |-
   [SQL Query]:
   {{sql_query}}
 
-  [Database Schema]:
-  {{schema_info}}
+  [Table Schema]:
+  {%- for table in tables %}
+  - {{ table.name }}:
+      {%- for column in table.columns %}
+      - {{ column.name }}: {{ column.type }}
+      {%- endfor %}
+  {%- endfor %}
+
+  [Relationships]:
+  {%- for relationship in relationships %}
+  - {{ relationship.table_name }}.{{ relationship.column_name }} -> {{ relationship.foreign_table_name }}.{{ relationship.foreign_column_name }}
+  {%- endfor %}
 
   Output Format:
 
   [is_valid]: [bool]
   [issues]: [List of str]
-  [corrected_sql]: [str]
   [confidence]: [float]
   [chain_of_thought]: [Explain your reasoning for your decision.]
 
