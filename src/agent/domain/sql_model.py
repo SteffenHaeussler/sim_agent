@@ -49,7 +49,6 @@ class SQLBaseAgent:
         self.kwargs = kwargs
         self.events = []
         self.is_answered = False
-        self.constructions = commands.SQLConstruction()
         self.evaluation = None
         self.q_id = question.q_id
         self.question = question.question
@@ -59,6 +58,10 @@ class SQLBaseAgent:
         self.query = None
 
         self.base_prompts = self.init_prompts()
+        self.constructions = commands.SQLConstruction(
+            question=self.question,
+            q_id=self.q_id,
+        )
 
     def create_prompt(
         self,
@@ -74,19 +77,19 @@ class SQLBaseAgent:
         Returns:
             prompt: str: The prepared prompt for the command.
         """
-        if type(command) is commands.SQLQuestion:
+        if type(command) is commands.SQLCheck:
             prompt = self.base_prompts.get("check", None)
-        elif type(command) is commands.SQLCheck:
-            prompt = self.base_prompts.get("ground", None)
         elif type(command) is commands.SQLGrounding:
-            prompt = self.base_prompts.get("filter", None)
+            prompt = self.base_prompts.get("ground", None)
         elif type(command) is commands.SQLFilter:
-            prompt = self.base_prompts.get("join", None)
+            prompt = self.base_prompts.get("filter", None)
         elif type(command) is commands.SQLJoinInference:
-            prompt = self.base_prompts.get("aggregate", None)
+            prompt = self.base_prompts.get("join", None)
         elif type(command) is commands.SQLAggregation:
-            prompt = self.base_prompts.get("construct", None)
+            prompt = self.base_prompts.get("aggregate", None)
         elif type(command) is commands.SQLConstruction:
+            prompt = self.base_prompts.get("construct", None)
+        elif type(command) is commands.SQLValidation:
             prompt = self.base_prompts.get("validate", None)
         else:
             raise ValueError("Invalid command type")
@@ -94,19 +97,11 @@ class SQLBaseAgent:
         if prompt is None:
             raise ValueError("Prompt not found")
 
-        if type(command) is commands.SQLQuestion:
+        if type(command) is commands.SQLCheck:
             prompt = populate_template(
                 prompt,
                 {
                     "question": command.question,
-                },
-            )
-        elif type(command) is commands.SQLCheck:
-            prompt = populate_template(
-                prompt,
-                {
-                    "question": command.question,
-                    "schema_info": command.schema_info,
                 },
             )
         elif type(command) is commands.SQLGrounding:
@@ -114,11 +109,19 @@ class SQLBaseAgent:
                 prompt,
                 {
                     "question": command.question,
+                    "schema_info": command.schema_info,
+                },
+            )
+        elif type(command) is commands.SQLFilter:
+            prompt = populate_template(
+                prompt,
+                {
+                    "question": command.question,
                     "column_mappings": command.column_mappings,
                     "table_mappings": command.table_mappings,
                 },
             )
-        elif type(command) is commands.SQLFilter:
+        elif type(command) is commands.SQLJoinInference:
             prompt = populate_template(
                 prompt,
                 {
@@ -127,7 +130,7 @@ class SQLBaseAgent:
                     "schema_info": command.schema_info,
                 },
             )
-        elif type(command) is commands.SQLJoinInference:
+        elif type(command) is commands.SQLAggregation:
             prompt = populate_template(
                 prompt,
                 {
@@ -135,7 +138,7 @@ class SQLBaseAgent:
                     "column_mappings": command.column_mappings,
                 },
             )
-        elif type(command) is commands.SQLAggregation:
+        elif type(command) is commands.SQLConstruction:
             prompt = populate_template(
                 prompt,
                 {
@@ -146,7 +149,7 @@ class SQLBaseAgent:
                     "aggregation_results": command.aggregation_results,
                 },
             )
-        elif type(command) is commands.SQLConstruction:
+        elif type(command) is commands.SQLValidation:
             prompt = populate_template(
                 prompt,
                 {
@@ -187,12 +190,12 @@ class SQLBaseAgent:
         """
         self.constructions.joins = deepcopy(command.joins)
 
-        prompt = self.create_prompt(command)
-
         new_command = commands.SQLAggregation(
-            question=prompt,
+            question=command.question,
             q_id=command.q_id,
         )
+
+        new_command.question = self.create_prompt(new_command)
 
         return new_command
 
@@ -212,18 +215,9 @@ class SQLBaseAgent:
         self.constructions.group_by_columns = deepcopy(command.group_by_columns)
         self.constructions.is_aggregation_query = deepcopy(command.is_aggregation_query)
 
-        command.column_mappings = deepcopy(self.constructions.column_mappings)
-        command.table_mappings = deepcopy(self.constructions.table_mappings)
-        command.schema_info = deepcopy(self.constructions.schema_info)
-        command.conditions = deepcopy(self.constructions.conditions)
-        command.joins = deepcopy(self.constructions.joins)
+        new_command = deepcopy(self.constructions)
 
-        prompt = self.create_prompt(command)
-
-        new_command = commands.SQLConstruction(
-            question=prompt,
-            q_id=command.q_id,
-        )
+        new_command.question = self.create_prompt(new_command)
 
         return new_command
 
@@ -263,12 +257,12 @@ class SQLBaseAgent:
         self.constructions.column_mappings = deepcopy(command.column_mappings)
         self.constructions.table_mappings = deepcopy(command.table_mappings)
 
-        prompt = self.create_prompt(command)
-
         new_command = commands.SQLFilter(
-            question=prompt,
+            question=command.question,
             q_id=command.q_id,
         )
+
+        new_command.question = self.create_prompt(new_command)
 
         return new_command
 
@@ -285,12 +279,14 @@ class SQLBaseAgent:
 
         if command.approved:
             command.schema_info = deepcopy(self.constructions.schema_info)
-            prompt = self.create_prompt(command)
 
             new_command = commands.SQLGrounding(
-                question=prompt,
+                question=command.question,
                 q_id=command.q_id,
             )
+
+            new_command.question = self.create_prompt(new_command)
+
         else:
             self.is_answered = True
             new_command = events.RejectedRequest(
@@ -313,14 +309,16 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
+        # save the schema info
         self.constructions.schema_info = deepcopy(command.schema_info)
 
-        prompt = self.create_prompt(command)
-
+        # create the new command
         new_command = commands.SQLCheck(
-            question=prompt,
+            question=command.question,
             q_id=command.q_id,
         )
+
+        new_command.question = self.create_prompt(new_command)
 
         return new_command
 
@@ -336,17 +334,17 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
+        # save the filter results
         self.constructions.filter_results = deepcopy(command.conditions)
 
-        command.table_mappings = deepcopy(self.constructions.table_mappings)
-        command.schema_info = deepcopy(self.constructions.schema_info)
-
-        prompt = self.create_prompt(command)
-
         new_command = commands.SQLJoinInference(
-            question=prompt,
+            question=command.question,
             q_id=command.q_id,
+            table_mappings=deepcopy(self.constructions.table_mappings),
+            schema_info=deepcopy(self.constructions.schema_info),
         )
+
+        new_command.question = self.create_prompt(new_command)
 
         return new_command
 
@@ -362,12 +360,12 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
-        prompt = self.create_prompt(command)
-
         new_command = commands.SQLValidation(
-            question=prompt,
+            question=command.question,
             q_id=command.q_id,
         )
+
+        new_command.question = self.create_prompt(new_command)
 
         return new_command
 

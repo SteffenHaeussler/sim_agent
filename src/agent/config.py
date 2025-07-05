@@ -10,9 +10,15 @@ def get_agent_config():
     if prompts_file is None:
         raise ValueError("prompts_file not set in environment variables")
 
-    prompt_path = Path(ROOTDIR, prompts_file)
+    sql_prompts_file = getenv("sql_prompts_file")
 
-    return dict(prompt_path=prompt_path)
+    if sql_prompts_file is None:
+        raise ValueError("sql_prompts_file not set in environment variables")
+
+    prompt_path = Path(ROOTDIR, prompts_file)
+    sql_prompt_path = Path(ROOTDIR, sql_prompts_file)
+
+    return dict(prompt_path=prompt_path, sql_prompt_path=sql_prompt_path)
 
 
 def get_llm_config():
