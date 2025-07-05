@@ -1,6 +1,7 @@
 import asyncio
 from time import time
 
+import src.agent.service_layer.handlers as handlers
 from fastapi import (
     FastAPI,
     Header,
@@ -11,11 +12,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from loguru import logger
-from starlette.responses import StreamingResponse
-from starlette.websockets import WebSocketState
-
-import src.agent.service_layer.handlers as handlers
-from src.agent.adapters.adapter import AgentAdapter
+from src.agent.adapters.adapter import RouterAdapter
 from src.agent.adapters.notifications import SlackNotifications, WSNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
@@ -23,14 +20,17 @@ from src.agent.domain.commands import Question, SQLQuestion
 from src.agent.observability.context import connected_clients, ctx_query_id
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
+from starlette.responses import StreamingResponse
+from starlette.websockets import WebSocketState
 
 setup_tracing(get_tracing_config())
 setup_logging(get_logging_config())
 
 app = FastAPI()
 
+
 bus = bootstrap(
-    adapter=AgentAdapter(),
+    adapter=RouterAdapter(),
     notifications=[
         SlackNotifications(),
         WSNotifications(),
@@ -39,7 +39,10 @@ bus = bootstrap(
 
 
 @app.get("/answer")
-async def answer(question: str, x_session_id: str = Header(default="default-session", alias="X-Session-ID")):
+async def answer(
+    question: str,
+    x_session_id: str = Header(default="default-session", alias="X-Session-ID"),
+):
     """
     Entrypoint for the agent.
 
@@ -73,7 +76,10 @@ async def answer(question: str, x_session_id: str = Header(default="default-sess
 
 
 @app.get("/query")
-async def query(question: str, x_session_id: str = Header(default="default-session", alias="X-Session-ID")):
+async def query(
+    question: str,
+    x_session_id: str = Header(default="default-session", alias="X-Session-ID"),
+):
     """
     Entrypoint for the SQL agent.
 
