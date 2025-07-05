@@ -20,12 +20,12 @@ and access via [http://127.0.0.1:5055/docs](http://127.0.0.1:5055/docs)
 via cli:
 
 ```
-make run Q="What is the daily maximum value of PI-P0017 in April 2025?"
+make run Q="What is the daily maximum value of PI-P0017 in April 2025?" M="tool"
 ```
 
 or for rag retrieval:
 ```
-make run Q="How much was produced in the first two weeks of 2025?"
+make run Q="How much was produced in the first two weeks of 2025?" M="tool"
 ```
 
 Examples:
