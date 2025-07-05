@@ -12,7 +12,7 @@ prod:
 DEV: dev
 PROD:prod
 run:
-	@export PYTHONPATH=. && uv run src/agent/entrypoints/main.py --q "$(Q)"
+	@export PYTHONPATH=. && uv run src/agent/entrypoints/main.py --q "$(Q)" --m "$(M)"
 
 
 build:

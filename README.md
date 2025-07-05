@@ -58,6 +58,9 @@ The SQL agent is a specialized agent that is used to answer questions about the 
     "Show me orders from 2024",
     "What is the average order value?",
 
+```
+make run Q="How many customers do we have?" AGENT=sql
+```
 
 
 ## Running service in Docker
