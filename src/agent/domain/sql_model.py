@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import Dict, List, Optional
 
+import pandas as pd
 import yaml
 
 from src.agent.domain import commands, events
@@ -226,28 +227,28 @@ class SQLBaseAgent:
 
         return new_command
 
-    def prepare_execution(self, command: commands.SQLValidation) -> None:
+    def prepare_execution(
+        self, command: commands.SQLConstruction
+    ) -> commands.SQLExecution:
         """
-        Prepares the evaluation event to be sent.
+        Prepares the execution of the SQL query.
 
         Args:
-            command: commands.SQLValidation: The command to final check the answer.
+            command: commands.SQLConstruction: The command to execute the SQL query.
 
         Returns:
-            None
+            new_command: commands.SQLExecution: The command to execute the SQL query.
         """
-        self.is_answered = True
-        breakpoint()
 
-        self.query = events.Query(
-            response=self.response.response,
-            question=self.question,
-            q_id=self.q_id,
-            approved=command.approved,
-            summary=command.summary,
+        self.sql_query = deepcopy(command.sql_query)
+
+        new_command = commands.SQLExecution(
+            question=command.question,
+            q_id=command.q_id,
+            sql_query=self.sql_query,
         )
 
-        return None
+        return new_command
 
     def prepare_filter(self, command: commands.SQLGrounding) -> commands.SQLFilter:
         """
@@ -350,19 +351,40 @@ class SQLBaseAgent:
 
         return new_command
 
-    def prepare_validation(
-        self, command: commands.SQLConstruction
+    def prepare_response(
+        self, command: commands.SQLExecution
     ) -> commands.SQLValidation:
         """
-        Prepares the guardrails check for the question.
+        Prepares the final guardrailscheck and agent response after the final LLM call.
 
         Args:
-            command: commands.Question: The command to change the question.
+            command: commands.LLMResponse: The command to change the LLM response.
 
         Returns:
-            new_command: commands.Check: The new command.
+            new_command: commands.FinalCheck: The new command.
         """
-        self.sql_query = deepcopy(command.sql_query)
+        df = command.data.get("data")
+
+        if df is None:
+            df = pd.DataFrame()
+
+        df = df.copy()
+
+        try:
+            markdown = df.to_markdown(index=False)
+        except Exception:
+            markdown = "No data available"
+
+        response = events.Response(
+            question=self.question,
+            response=markdown,
+            q_id=self.q_id,
+            data={"data": df.to_string()},
+        )
+
+        # duplication as a fix - i want to keep self.response for testing adn validation
+        self.send_response = response
+        self.response = response
 
         new_command = commands.SQLValidation(
             question=command.question,
@@ -375,6 +397,29 @@ class SQLBaseAgent:
         new_command.question = self.create_prompt(new_command)
 
         return new_command
+
+    def prepare_validation(self, command: commands.SQLValidation) -> None:
+        """
+        Prepares the guardrails check for the question.
+
+        Args:
+            command: commands.Question: The command to change the question.
+
+        Returns:
+            new_command: commands.Check: The new command.
+        """
+        self.is_answered = True
+
+        self.evaluation = events.Evaluation(
+            response=self.response.response,
+            question=self.question,
+            q_id=self.q_id,
+            approved=command.approved,
+            summary=command.summary,
+            issues=command.issues,
+        )
+
+        return None
 
     def _update_state(self, response: commands.Command) -> None:
         """

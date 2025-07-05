@@ -657,6 +657,8 @@ class SQLAgentAdapter(AbstractAdapter):
                 response = self.aggregation(command)
             case commands.SQLConstruction():
                 response = self.construction(command)
+            case commands.SQLExecution():
+                response = self.sql_execution(command)
             case commands.SQLValidation():
                 response = self.validation(command)
             case _:
@@ -697,6 +699,25 @@ class SQLAgentAdapter(AbstractAdapter):
         return command
 
     @observe()
+    def sql_execution(self, command: commands.SQLExecution) -> commands.SQLExecution:
+        """
+        Execute the SQL query.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="sql_execution",
+            session_id=command.q_id,
+        )
+
+        with self.database as db:
+            data = db.execute_query(command.sql_query)
+
+        command.data = data
+
+        return command
+
+    @observe()
     def validation(self, command: commands.SQLValidation) -> commands.SQLValidation:
         """
         Ground the question to schema elements.
@@ -713,9 +734,11 @@ class SQLAgentAdapter(AbstractAdapter):
             name="grounding",
             session_id=command.q_id,
         )
+
         response = self.llm.use(command.question, commands.ValidationResponse)
 
-        command.is_valid = response.is_valid
+        command.approved = response.approved
+        command.summary = response.summary
         command.issues = response.issues
         command.confidence = response.confidence
         command.chain_of_thought = response.chain_of_thought

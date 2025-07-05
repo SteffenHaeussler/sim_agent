@@ -326,7 +326,8 @@ validate: |-
 
   Output Format:
 
-  [is_valid]: [bool]
+  [approved]: [bool]
+  [summary]: [str]
   [issues]: [List of str]
   [confidence]: [float]
   [chain_of_thought]: [Explain your reasoning for your decision.]
