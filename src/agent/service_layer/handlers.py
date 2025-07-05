@@ -103,7 +103,6 @@ def query(
         name="query handler",
         session_id=command.q_id,
     )
-
     if not command or not command.question:
         raise InvalidQuestion("No question asked")
 
