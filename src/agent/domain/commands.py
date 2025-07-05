@@ -221,7 +221,6 @@ class SQLCheck(Command):
     approved: Optional[bool] = None
     chain_of_thought: Optional[str] = None
     response: Optional[str] = None
-    schema_info: Any
 
 
 class SQLConstruction(Command):

@@ -66,6 +66,33 @@ class AbstractAdapter(ABC):
             yield event
 
 
+class RouterAdapter:
+    """Router adapter that selects the appropriate adapter based on command type."""
+
+    def __init__(self):
+        self.agent_adapter = AgentAdapter()
+        self.sql_adapter = SQLAgentAdapter()
+
+    def answer(self, command):
+        """Route to appropriate adapter based on command type."""
+        if isinstance(command, commands.SQLQuestion):
+            return self.sql_adapter.answer(command)
+        else:
+            return self.agent_adapter.answer(command)
+
+    def add(self, agent):
+        """Add agent to both adapters."""
+        self.agent_adapter.add(agent)
+        self.sql_adapter.add(agent)
+
+    def collect_new_events(self):
+        """Collect events from both adapters."""
+        events = []
+        events.extend(self.agent_adapter.collect_new_events())
+        events.extend(self.sql_adapter.collect_new_events())
+        return events
+
+
 class AgentAdapter(AbstractAdapter):
     """
     AgentAdapter is an adapter for the model agent.
@@ -427,6 +454,39 @@ class SQLAgentAdapter(AbstractAdapter):
 
         return command
 
+    def answer(self, command: commands.Command) -> commands.Command:
+        """
+        Answer a command. Processes each request by the command type
+
+        Args:
+            command: commands.Command: The command to answer.
+
+        Returns:
+            commands.Command: The command to answer.
+        """
+        match command:
+            case commands.SQLQuestion():
+                response = self.question(command)
+            case commands.SQLCheck():
+                response = self.check(command)
+            case commands.SQLGrounding():
+                response = self.grounding(command)
+            case commands.SQLFilter():
+                response = self.filter(command)
+            case commands.SQLJoinInference():
+                response = self.join_inference(command)
+            case commands.SQLAggregation():
+                response = self.aggregation(command)
+            case commands.SQLConstruction():
+                response = self.construction(command)
+            case commands.SQLValidation():
+                response = self.validation(command)
+            case _:
+                raise NotImplementedError(
+                    f"Not implemented in AgentAdapter: {type(command)}"
+                )
+        return response
+
     @observe()
     def check(self, command: commands.Check) -> commands.Check:
         """
@@ -554,39 +614,6 @@ class SQLAgentAdapter(AbstractAdapter):
         command.chain_of_thought = response.chain_of_thought
 
         return command
-
-    def query(self, command: commands.Command) -> commands.Command:
-        """
-        Answer a command. Processes each request by the command type
-
-        Args:
-            command: commands.Command: The command to answer.
-
-        Returns:
-            commands.Command: The command to answer.
-        """
-        match command:
-            case commands.SQLQuestion():
-                response = self.question(command)
-            case commands.SQLCheck():
-                response = self.check(command)
-            case commands.SQLGrounding():
-                response = self.grounding(command)
-            case commands.SQLFilter():
-                response = self.filter(command)
-            case commands.SQLJoinInference():
-                response = self.join_inference(command)
-            case commands.SQLAggregation():
-                response = self.aggregation(command)
-            case commands.SQLConstruction():
-                response = self.construction(command)
-            case commands.SQLValidation():
-                response = self.validation(command)
-            case _:
-                raise NotImplementedError(
-                    f"Not implemented in AgentAdapter: {type(command)}"
-                )
-        return response
 
     @observe()
     def question(self, command: commands.Question) -> commands.Question:

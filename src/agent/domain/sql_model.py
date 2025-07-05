@@ -58,7 +58,7 @@ class SQLBaseAgent:
         self.query = None
 
         self.base_prompts = self.init_prompts()
-        self.constructions = commands.SQLConstruction(
+        self.construction = commands.SQLConstruction(
             question=self.question,
             q_id=self.q_id,
         )
@@ -188,7 +188,7 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
-        self.constructions.joins = deepcopy(command.joins)
+        self.construction.joins = deepcopy(command.joins)
 
         new_command = commands.SQLAggregation(
             question=command.question,
@@ -211,11 +211,11 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
-        self.constructions.aggregations = deepcopy(command.aggregations)
-        self.constructions.group_by_columns = deepcopy(command.group_by_columns)
-        self.constructions.is_aggregation_query = deepcopy(command.is_aggregation_query)
+        self.construction.aggregations = deepcopy(command.aggregations)
+        self.construction.group_by_columns = deepcopy(command.group_by_columns)
+        self.construction.is_aggregation_query = deepcopy(command.is_aggregation_query)
 
-        new_command = deepcopy(self.constructions)
+        new_command = deepcopy(self.construction)
 
         new_command.question = self.create_prompt(new_command)
 
@@ -254,8 +254,8 @@ class SQLBaseAgent:
             new_command: commands.SQLFilter: The new command.
         """
 
-        self.constructions.column_mappings = deepcopy(command.column_mappings)
-        self.constructions.table_mappings = deepcopy(command.table_mappings)
+        self.construction.column_mappings = deepcopy(command.column_mappings)
+        self.construction.table_mappings = deepcopy(command.table_mappings)
 
         new_command = commands.SQLFilter(
             question=command.question,
@@ -278,7 +278,7 @@ class SQLBaseAgent:
         """
 
         if command.approved:
-            command.schema_info = deepcopy(self.constructions.schema_info)
+            command.schema_info = deepcopy(self.construction.schema_info)
 
             new_command = commands.SQLGrounding(
                 question=command.question,
@@ -310,8 +310,9 @@ class SQLBaseAgent:
             new_command: commands.Check: The new command.
         """
         # save the schema info
-        self.constructions.schema_info = deepcopy(command.schema_info)
+        self.construction.schema_info = deepcopy(command.schema_info)
 
+        breakpoint()
         # create the new command
         new_command = commands.SQLCheck(
             question=command.question,
@@ -335,13 +336,13 @@ class SQLBaseAgent:
             new_command: commands.Check: The new command.
         """
         # save the filter results
-        self.constructions.filter_results = deepcopy(command.conditions)
+        self.construction.filter_results = deepcopy(command.conditions)
 
         new_command = commands.SQLJoinInference(
             question=command.question,
             q_id=command.q_id,
-            table_mappings=deepcopy(self.constructions.table_mappings),
-            schema_info=deepcopy(self.constructions.schema_info),
+            table_mappings=deepcopy(self.construction.table_mappings),
+            schema_info=deepcopy(self.construction.schema_info),
         )
 
         new_command.question = self.create_prompt(new_command)
