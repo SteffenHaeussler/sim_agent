@@ -155,6 +155,9 @@ class SQLBaseAgent:
                 prompt,
                 {
                     "question": command.question,
+                    "sql_query": command.sql_query,
+                    "tables": command.tables,
+                    "relationships": command.relationships,
                 },
             )
         else:
@@ -361,7 +364,6 @@ class SQLBaseAgent:
         """
         self.sql_query = deepcopy(command.sql_query)
 
-        breakpoint()
         new_command = commands.SQLValidation(
             question=command.question,
             q_id=command.q_id,
@@ -427,9 +429,11 @@ class SQLBaseAgent:
             case commands.SQLAggregation():
                 new_command = self.prepare_construction(command)
             case commands.SQLConstruction():
-                new_command = self.prepare_validation(command)
-            case commands.SQLValidation():
                 new_command = self.prepare_execution(command)
+            case commands.SQLExecution():
+                new_command = self.prepare_response(command)
+            case commands.SQLValidation():
+                new_command = self.prepare_validation(command)
             case _:
                 raise NotImplementedError(
                     f"Not implemented yet for BaseAgent: {type(command)}"
