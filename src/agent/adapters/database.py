@@ -60,7 +60,7 @@ class BaseDatabaseAdapter(AbstractDatabase):
         """
         super().__init__()
         self.kwargs = kwargs
-
+        self.schema_info = None
         self.connection_string = kwargs.get("connection_string")
         self.db_type = kwargs.get("db_type", "postgres")
         self.engine = None

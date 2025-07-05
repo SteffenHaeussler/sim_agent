@@ -1,6 +1,8 @@
 from abc import ABC
 
 from langfuse import get_client, observe
+from loguru import logger
+from sqlalchemy import MetaData
 
 from src.agent import config
 from src.agent.adapters import agent_tools, database, llm, rag
@@ -66,7 +68,7 @@ class AbstractAdapter(ABC):
             yield event
 
 
-class RouterAdapter:
+class RouterAdapter(AbstractAdapter):
     """Router adapter that selects the appropriate adapter based on command type."""
 
     def __init__(self):
@@ -75,10 +77,11 @@ class RouterAdapter:
 
     def answer(self, command):
         """Route to appropriate adapter based on command type."""
-        if isinstance(command, commands.SQLQuestion):
-            return self.sql_adapter.answer(command)
-        else:
-            return self.agent_adapter.answer(command)
+        return self.agent_adapter.answer(command)
+
+    def query(self, command):
+        """Route to appropriate adapter based on command type."""
+        return self.sql_adapter.query(command)
 
     def add(self, agent):
         """Add agent to both adapters."""
@@ -445,7 +448,7 @@ class SQLAgentAdapter(AbstractAdapter):
             name="aggregation",
             session_id=command.q_id,
         )
-        response = self.llm.use(command.question, commands.SQLAggregationResponse)
+        response = self.llm.use(command.question, commands.AggregationResponse)
 
         command.aggregations = response.aggregations
         command.group_by_columns = response.group_by_columns
@@ -453,39 +456,6 @@ class SQLAgentAdapter(AbstractAdapter):
         command.chain_of_thought = response.chain_of_thought
 
         return command
-
-    def answer(self, command: commands.Command) -> commands.Command:
-        """
-        Answer a command. Processes each request by the command type
-
-        Args:
-            command: commands.Command: The command to answer.
-
-        Returns:
-            commands.Command: The command to answer.
-        """
-        match command:
-            case commands.SQLQuestion():
-                response = self.question(command)
-            case commands.SQLCheck():
-                response = self.check(command)
-            case commands.SQLGrounding():
-                response = self.grounding(command)
-            case commands.SQLFilter():
-                response = self.filter(command)
-            case commands.SQLJoinInference():
-                response = self.join_inference(command)
-            case commands.SQLAggregation():
-                response = self.aggregation(command)
-            case commands.SQLConstruction():
-                response = self.construction(command)
-            case commands.SQLValidation():
-                response = self.validation(command)
-            case _:
-                raise NotImplementedError(
-                    f"Not implemented in AgentAdapter: {type(command)}"
-                )
-        return response
 
     @observe()
     def check(self, command: commands.Check) -> commands.Check:
@@ -540,6 +510,53 @@ class SQLAgentAdapter(AbstractAdapter):
 
         return command
 
+    def convert_schema(self, schema: MetaData) -> commands.DatabaseSchema:
+        """
+        Convert the schema to a more readable format.
+        """
+
+        tables = []
+        for table_name, table in schema.tables.items():
+            # Create Column objects for each column
+            columns = []
+            for column in table.columns:
+                if column.name in ["created_at", "updated_at"]:
+                    continue
+
+                columns.append(
+                    commands.Column(
+                        name=column.name,
+                        type=str(column.type),
+                        description=column.description,
+                    )
+                )
+
+            # Create Table object
+            tables.append(
+                commands.Table(
+                    name=table_name, columns=columns, description=table.description
+                )
+            )
+
+        # Build relationships list
+        relationships = []
+        for table_name, table in schema.tables.items():
+            for fk in table.foreign_keys:
+                relationship = commands.Relationship(
+                    table_name=table_name,
+                    column_name=fk.parent.name,
+                    foreign_table_name=fk.column.table.name,
+                    foreign_column_name=fk.column.name,
+                )
+                relationships.append(relationship)
+
+        new_schema = commands.DatabaseSchema(
+            tables=tables,
+            relationships=relationships,
+        )
+
+        return new_schema
+
     @observe()
     def filter(self, command: commands.SQLFilter) -> commands.SQLFilter:
         """
@@ -583,8 +600,8 @@ class SQLAgentAdapter(AbstractAdapter):
         )
         response = self.llm.use(command.question, commands.GroundingResponse)
 
-        command.table_mappings = response.table_mappings
-        command.column_mappings = response.column_mappings
+        command.table_mapping = response.table_mapping
+        command.column_mapping = response.column_mapping
         command.chain_of_thought = response.chain_of_thought
 
         return command
@@ -615,6 +632,39 @@ class SQLAgentAdapter(AbstractAdapter):
 
         return command
 
+    def query(self, command: commands.Command) -> commands.Command:
+        """
+        Answer a command. Processes each request by the command type
+
+        Args:
+            command: commands.Command: The command to answer.
+
+        Returns:
+            commands.Command: The command to answer.
+        """
+        match command:
+            case commands.SQLQuestion():
+                response = self.question(command)
+            case commands.SQLCheck():
+                response = self.check(command)
+            case commands.SQLGrounding():
+                response = self.grounding(command)
+            case commands.SQLFilter():
+                response = self.filter(command)
+            case commands.SQLJoinInference():
+                response = self.join_inference(command)
+            case commands.SQLAggregation():
+                response = self.aggregation(command)
+            case commands.SQLConstruction():
+                response = self.construction(command)
+            case commands.SQLValidation():
+                response = self.validation(command)
+            case _:
+                raise NotImplementedError(
+                    f"Not implemented in AgentAdapter: {type(command)}"
+                )
+        return response
+
     @observe()
     def question(self, command: commands.Question) -> commands.Question:
         """
@@ -633,8 +683,16 @@ class SQLAgentAdapter(AbstractAdapter):
             session_id=command.q_id,
         )
 
-        response = self.database.get_schema()
-        command.schema_info = response
+        with self.database as db:
+            schema = db.get_schema()
+
+        schema = self.convert_schema(schema)
+
+        command.schema_info = schema
+
+        logger.info(
+            f"Schema created with {len(schema.tables)} tables and {len(schema.relationships)} relationships"
+        )
 
         return command
 
@@ -656,6 +714,7 @@ class SQLAgentAdapter(AbstractAdapter):
             session_id=command.q_id,
         )
         response = self.llm.use(command.question, commands.ValidationResponse)
+        breakpoint()
 
         command.is_valid = response.is_valid
         command.issues = response.issues

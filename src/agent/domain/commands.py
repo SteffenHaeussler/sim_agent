@@ -58,7 +58,7 @@ class AggregationFunction(BaseModel):
 
 
 class ColumnMapping(BaseModel):
-    user_term: str
+    question_term: str
     table_name: str
     column_name: str
     confidence: float
@@ -80,7 +80,7 @@ class JoinPath(BaseModel):
 
 
 class TableMapping(BaseModel):
-    user_term: str
+    question_term: str
     table_name: str
     confidence: float
 
@@ -112,8 +112,8 @@ class FilterResponse(BaseModel):
 
 
 class GroundingResponse(BaseModel):
-    table_mappings: List[TableMapping]
-    column_mappings: List[ColumnMapping]
+    table_mapping: List[TableMapping]
+    column_mapping: List[ColumnMapping]
     chain_of_thought: Optional[str] = None
 
 
@@ -128,6 +128,30 @@ class ValidationResponse(BaseModel):
     corrected_sql: Optional[str] = None
     confidence: float
     chain_of_thought: Optional[str] = None
+
+
+class Column(BaseModel):
+    name: str
+    type: str
+    description: Optional[str] = None
+
+
+class Table(BaseModel):
+    name: str
+    columns: list[Column]
+    description: Optional[str] = None
+
+
+class Relationship(BaseModel):
+    table_name: str
+    column_name: str
+    foreign_table_name: str
+    foreign_column_name: str
+
+
+class DatabaseSchema(BaseModel):
+    tables: list[Table]
+    relationships: list[Relationship]
 
 
 ################################################################################
@@ -209,6 +233,7 @@ class UseTools(Command):
 class SQLAggregation(Command):
     question: str
     q_id: str
+    column_mapping: List[ColumnMapping]
     aggregations: Optional[List[AggregationFunction]] = None
     group_by_columns: Optional[List[str]] = None
     is_aggregation_query: Optional[bool] = None
@@ -227,8 +252,8 @@ class SQLConstruction(Command):
     question: str
     q_id: str
     schema_info: Optional[Any] = None
-    column_mappings: Optional[List[ColumnMapping]] = None
-    table_mappings: Optional[List[TableMapping]] = None
+    column_mapping: Optional[List[ColumnMapping]] = None
+    table_mapping: Optional[List[TableMapping]] = None
     conditions: Optional[List[FilterCondition]] = None
     joins: Optional[List[JoinPath]] = None
     aggregations: Optional[List[AggregationFunction]] = None
@@ -246,8 +271,7 @@ class SQLExecution(Command):
 class SQLFilter(Command):
     question: str
     q_id: str
-    table_mappings: Optional[List[TableMapping]] = None
-    schema_info: Optional[Any] = None
+    column_mapping: List[ColumnMapping]
     conditions: Optional[List[FilterCondition]] = None
     chain_of_thought: Optional[str] = None
 
@@ -255,17 +279,17 @@ class SQLFilter(Command):
 class SQLGrounding(Command):
     question: str
     q_id: str
-    schema_info: Any
-    table_mappings: Optional[List[TableMapping]] = None
-    column_mappings: Optional[List[ColumnMapping]] = None
+    tables: List[Table]
+    table_mapping: Optional[List[TableMapping]] = None
+    column_mapping: Optional[List[ColumnMapping]] = None
     chain_of_thought: Optional[str] = None
 
 
 class SQLJoinInference(Command):
     question: str
     q_id: str
-    schema_info: Any
-    table_mappings: Optional[List[TableMapping]]
+    table_mapping: List[TableMapping]
+    relationships: List[Relationship]
     joins: Optional[List[JoinPath]] = None
     chain_of_thought: Optional[str] = None
 
@@ -279,8 +303,10 @@ class SQLQuestion(Command):
 class SQLValidation(Command):
     question: str
     q_id: str
+    sql_query: str
+    tables: List[Table]
+    relationships: List[Relationship]
     is_valid: Optional[bool] = None
     issues: Optional[List[str]] = None
-    corrected_sql: Optional[str] = None
     confidence: Optional[float] = None
     chain_of_thought: Optional[str] = None

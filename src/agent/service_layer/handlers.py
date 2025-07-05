@@ -121,7 +121,7 @@ def query(
                 notification.send(agent.q_id, status_event)
 
         logger.info(f"Calling Adapter with command: {type(command)}")
-        updated_command = adapter.answer(command)
+        updated_command = adapter.query(command)
         command = agent.update(updated_command)
 
         if agent.send_response:

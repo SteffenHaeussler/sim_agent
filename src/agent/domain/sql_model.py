@@ -55,7 +55,7 @@ class SQLBaseAgent:
         self.previous_command = None
         self.response = None
         self.send_response = None
-        self.query = None
+        self.sql_query = None
 
         self.base_prompts = self.init_prompts()
         self.construction = commands.SQLConstruction(
@@ -109,7 +109,7 @@ class SQLBaseAgent:
                 prompt,
                 {
                     "question": command.question,
-                    "schema_info": command.schema_info,
+                    "tables": command.tables,
                 },
             )
         elif type(command) is commands.SQLFilter:
@@ -117,8 +117,7 @@ class SQLBaseAgent:
                 prompt,
                 {
                     "question": command.question,
-                    "column_mappings": command.column_mappings,
-                    "table_mappings": command.table_mappings,
+                    "column_mapping": command.column_mapping,
                 },
             )
         elif type(command) is commands.SQLJoinInference:
@@ -126,8 +125,8 @@ class SQLBaseAgent:
                 prompt,
                 {
                     "question": command.question,
-                    "table_mappings": command.table_mappings,
-                    "schema_info": command.schema_info,
+                    "table_mapping": command.table_mapping,
+                    "relationships": command.relationships,
                 },
             )
         elif type(command) is commands.SQLAggregation:
@@ -135,7 +134,7 @@ class SQLBaseAgent:
                 prompt,
                 {
                     "question": command.question,
-                    "column_mappings": command.column_mappings,
+                    "column_mapping": command.column_mapping,
                 },
             )
         elif type(command) is commands.SQLConstruction:
@@ -143,10 +142,12 @@ class SQLBaseAgent:
                 prompt,
                 {
                     "question": command.question,
-                    "grounding_results": command.grounding_results,
-                    "filter_results": command.filter_results,
-                    "join_results": command.join_results,
-                    "aggregation_results": command.aggregation_results,
+                    "table_mapping": command.table_mapping,
+                    "column_mapping": command.column_mapping,
+                    "conditions": command.conditions,
+                    "joins": command.joins,
+                    "aggregations": command.aggregations,
+                    "group_by_columns": command.group_by_columns,
                 },
             )
         elif type(command) is commands.SQLValidation:
@@ -193,6 +194,7 @@ class SQLBaseAgent:
         new_command = commands.SQLAggregation(
             question=command.question,
             q_id=command.q_id,
+            column_mapping=deepcopy(self.construction.column_mapping),
         )
 
         new_command.question = self.create_prompt(new_command)
@@ -232,6 +234,7 @@ class SQLBaseAgent:
             None
         """
         self.is_answered = True
+        breakpoint()
 
         self.query = events.Query(
             response=self.response.response,
@@ -253,13 +256,13 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.SQLFilter: The new command.
         """
-
-        self.construction.column_mappings = deepcopy(command.column_mappings)
-        self.construction.table_mappings = deepcopy(command.table_mappings)
+        self.construction.column_mapping = deepcopy(command.column_mapping)
+        self.construction.table_mapping = deepcopy(command.table_mapping)
 
         new_command = commands.SQLFilter(
             question=command.question,
             q_id=command.q_id,
+            column_mapping=deepcopy(self.construction.column_mapping),
         )
 
         new_command.question = self.create_prompt(new_command)
@@ -276,13 +279,11 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
-
         if command.approved:
-            command.schema_info = deepcopy(self.construction.schema_info)
-
             new_command = commands.SQLGrounding(
                 question=command.question,
                 q_id=command.q_id,
+                tables=deepcopy(self.construction.schema_info.tables),
             )
 
             new_command.question = self.create_prompt(new_command)
@@ -311,8 +312,6 @@ class SQLBaseAgent:
         """
         # save the schema info
         self.construction.schema_info = deepcopy(command.schema_info)
-
-        breakpoint()
         # create the new command
         new_command = commands.SQLCheck(
             question=command.question,
@@ -335,14 +334,13 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
-        # save the filter results
-        self.construction.filter_results = deepcopy(command.conditions)
+        self.construction.conditions = deepcopy(command.conditions)
 
         new_command = commands.SQLJoinInference(
             question=command.question,
             q_id=command.q_id,
-            table_mappings=deepcopy(self.construction.table_mappings),
-            schema_info=deepcopy(self.construction.schema_info),
+            table_mapping=deepcopy(self.construction.table_mapping),
+            relationships=deepcopy(self.construction.schema_info.relationships),
         )
 
         new_command.question = self.create_prompt(new_command)
@@ -361,9 +359,15 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.Check: The new command.
         """
+        self.sql_query = deepcopy(command.sql_query)
+
+        breakpoint()
         new_command = commands.SQLValidation(
             question=command.question,
             q_id=command.q_id,
+            sql_query=self.sql_query,
+            tables=deepcopy(self.construction.schema_info.tables),
+            relationships=deepcopy(self.construction.schema_info.relationships),
         )
 
         new_command.question = self.create_prompt(new_command)

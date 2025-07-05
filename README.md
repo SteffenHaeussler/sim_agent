@@ -59,7 +59,7 @@ The SQL agent is a specialized agent that is used to answer questions about the 
     "What is the average order value?",
 
 ```
-make run Q="How many customers do we have?" tool=sql
+make run Q="What are the top 5 selling products?" tool=sql
 ```
 
 
