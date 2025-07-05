@@ -58,8 +58,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Get question.")
     parser.add_argument("question", nargs="?", type=str, help="question")
     parser.add_argument("--q", type=str, help="question")
+    parser.add_argument("mode", nargs="?", type=str, help="mode")
     parser.add_argument(
-        "--tool",
+        "--m",
         type=str,
         default="tool",
         choices=["tool", "sql"],
@@ -75,4 +76,4 @@ if __name__ == "__main__":
 
     q_id = uuid4().hex
 
-    answer(question, q_id, args.tool)
+    answer(question, q_id, args.m)
