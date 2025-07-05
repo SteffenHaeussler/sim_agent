@@ -169,7 +169,7 @@ class SQLBaseAgent:
             base_prompts: Dict: The base prompts for the agent.
         """
         try:
-            with open(self.kwargs["base_sql_prompts"], "r") as file:
+            with open(self.kwargs["sql_prompt_path"], "r") as file:
                 base_prompts = yaml.safe_load(file)
         except FileNotFoundError:
             raise ValueError("Prompt path not found")
