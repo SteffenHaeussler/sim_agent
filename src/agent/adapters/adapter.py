@@ -714,11 +714,9 @@ class SQLAgentAdapter(AbstractAdapter):
             session_id=command.q_id,
         )
         response = self.llm.use(command.question, commands.ValidationResponse)
-        breakpoint()
 
         command.is_valid = response.is_valid
         command.issues = response.issues
-        command.corrected_sql = response.corrected_sql
         command.confidence = response.confidence
         command.chain_of_thought = response.chain_of_thought
 

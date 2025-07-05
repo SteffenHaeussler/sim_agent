@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 
+import pandas as pd
 from pydantic import BaseModel
 
 ################################################################################
@@ -266,6 +267,8 @@ class SQLConstruction(Command):
 class SQLExecution(Command):
     question: str
     q_id: str
+    sql_query: str
+    data: Optional[pd.DataFrame] = None
 
 
 class SQLFilter(Command):
