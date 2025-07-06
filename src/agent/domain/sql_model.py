@@ -363,7 +363,7 @@ class SQLBaseAgent:
         Returns:
             new_command: commands.FinalCheck: The new command.
         """
-        df = command.data.get("data")
+        df = command.data.get("data", None)
 
         if df is None:
             df = pd.DataFrame()
@@ -379,7 +379,7 @@ class SQLBaseAgent:
             question=self.question,
             response=markdown,
             q_id=self.q_id,
-            data={"data": df.to_string()},
+            # data={"data": df.to_string()},
         )
 
         # duplication as a fix - i want to keep self.response for testing adn validation
@@ -410,12 +410,14 @@ class SQLBaseAgent:
         """
         self.is_answered = True
 
+        summary = command.summary + "\n\nHere is the SQL query:\n\n" + self.sql_query
+
         self.evaluation = events.Evaluation(
             response=self.response.response,
             question=self.question,
             q_id=self.q_id,
             approved=command.approved,
-            summary=command.summary,
+            summary=summary,
             issues=command.issues,
         )
 

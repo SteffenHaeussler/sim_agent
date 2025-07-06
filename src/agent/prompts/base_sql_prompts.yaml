@@ -135,9 +135,9 @@ construct: |-
   4. Use the exact table and column names from the column mapping
   5. Apply all filter conditions from the conditions
   6. Include all necessary joins from the join results
-
   7. Add aggregation functions and GROUP BY clauses as needed
   8. Provide a clear explanation of the query logic
+  9. The database is PostgreSQL. So write the query in PostgreSQL syntax.
 
   You will be given:
 
