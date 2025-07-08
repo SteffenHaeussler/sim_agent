@@ -46,15 +46,36 @@ jobs:
         uv run ruff format --check .
         echo "Ruff checks completed"
 
-    # - name: Security Scan with detect-secrets
-    #   run: |
-    #     uv pip install detect-secrets==1.5.0  # pragma: allowlist secret
-    #     if [ -f .secrets.baseline ]; then
-    #       uv run detect-secrets scan --baseline .secrets.baseline --exclude-files '.*\.lock|package-lock\.json'
-    #     else
-    #       echo "No secrets baseline found, creating one"
-    #       uv run detect-secrets scan --exclude-files '.*\.lock|package-lock\.json' > .secrets.baseline
-    #     fi
+    - name: Security Scan with detect-secrets
+      continue-on-error: true
+      run: |
+        set -x  # Enable command tracing
+        echo "Installing detect-secrets..."
+        uv pip install detect-secrets==1.5.0
+
+        echo "Checking detect-secrets version..."
+        uv run detect-secrets --version
+
+        echo "Checking if baseline exists..."
+        if [ -f .secrets.baseline ]; then
+          echo "Baseline file found at .secrets.baseline"
+          echo "File size: $(ls -lh .secrets.baseline | awk '{print $5}')"
+
+          echo "Running security scan with baseline..."
+          if uv run detect-secrets scan --baseline .secrets.baseline --exclude-files '.*\.lock|package-lock\.json'; then
+            echo "✅ Security scan passed - no new secrets detected"
+          else
+            EXIT_CODE=$?
+            echo "❌ Security scan failed with exit code: $EXIT_CODE"
+            echo "New secrets may have been detected!"
+            echo "To update baseline locally, run: detect-secrets scan > .secrets.baseline"
+            # Don't exit here, let continue-on-error handle it
+          fi
+        else
+          echo "⚠️  No secrets baseline found (.secrets.baseline missing)"
+          echo "Security scan skipped - please create baseline file"
+          echo "To create baseline locally, run: detect-secrets scan > .secrets.baseline"
+        fi
 
     - name: Set up test environment
       run: |
