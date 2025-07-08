@@ -41,7 +41,7 @@ bus = bootstrap(
 @app.get("/answer")
 async def answer(
     question: str,
-    x_session_id: str = Header(default="default-session", alias="X-Session-ID"),
+    x_session_id: str = Header(alias="X-Session-ID"),
 ):
     """
     Entrypoint for the agent.

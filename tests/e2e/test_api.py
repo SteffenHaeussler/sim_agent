@@ -94,6 +94,13 @@ class TestAPI(unittest.TestCase):
         params = {"question": "test question"}
         # Intentionally not providing X-Session-ID header
         response = client.get("/answer", params=params)
-        
-        assert response.status_code == 400
-        assert response.json()["detail"] == "Missing X-Session-ID header"
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == [
+            {
+                "type": "missing",
+                "loc": ["header", "X-Session-ID"],
+                "msg": "Field required",
+                "input": None,
+            }
+        ]
