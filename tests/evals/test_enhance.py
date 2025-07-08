@@ -40,7 +40,7 @@ class TestEvalEnhance:
             fixture["enhance"]["candidates"],
             fixture["enhance"]["response"],
         )
-        q_id = uuid.uuid4()
+        q_id = str(uuid.uuid4())
         question = commands.Question(question=question, q_id=q_id)
 
         llm = LLM(get_llm_config())
@@ -49,18 +49,21 @@ class TestEvalEnhance:
             kwargs=get_agent_config(),
         )
 
-        candidates = [
-            commands.RerankResponse(
-                question=question.question,
-                **candidate,
+        kb_candidates = []
+        for candidate in candidates:
+            kb_candidate = commands.KBResponse(
+                description=candidate.get("text", ""),
+                score=candidate.get("score", 0.0),
+                id=candidate.get("id", ""),
+                tag=candidate.get("tag", ""),
+                name=candidate.get("name", ""),
             )
-            for candidate in candidates
-        ]
+            kb_candidates.append(kb_candidate)
         agent.question = question.question
 
         command = commands.Rerank(
-            question=question,
-            candidates=candidates,
+            question=question.question,
+            candidates=kb_candidates,
             q_id=q_id,
         )
 

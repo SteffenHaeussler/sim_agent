@@ -39,7 +39,7 @@ class TestEvalGuardrails:
             fixture["pre_check"]["question"],
             fixture["pre_check"]["approved"],
         )
-        q_id = uuid.uuid4()
+        q_id = str(uuid.uuid4())
         question = commands.Question(question=question, q_id=q_id)
 
         llm = LLM(get_llm_config())
@@ -72,11 +72,12 @@ class TestEvalGuardrails:
             else:
                 criteria = JudgeCriteria()
 
-            # Use LLM Judge to evaluate the response
+            # Use LLM Judge to evaluate the guardrail decision
+            # For pre-check, we evaluate if the guardrail made the correct decision
             judge_result = judge.evaluate(
-                question=question.question,
-                expected=f"Approved: {expected_response}",
-                actual=f"Approved: {actual_approved}",
+                question=f"Should the guardrail approve this question?\nQuestion: {question.question}",
+                expected=f"Guardrail Decision: Approved={expected_response}",
+                actual=f"Guardrail Decision: Approved={actual_approved}",
                 criteria=criteria,
                 test_type="pre_check",
             )

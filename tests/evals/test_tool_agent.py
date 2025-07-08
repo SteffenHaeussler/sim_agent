@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from pathlib import Path
 from typing import Dict, List
 
@@ -44,6 +45,9 @@ class TestEvalPlanning:
 
         # Execute tool agent
         response, _ = tools.use(question)
+
+        # Add delay to avoid rate limiting (tool agent makes many small API calls)
+        time.sleep(60)
 
         if isinstance(response, list):
             response = sorted(response)
@@ -93,6 +97,9 @@ class TestEvalPlanning:
                 criteria=criteria,
                 test_type="tool_agent",
             )
+
+            # Add delay after judge evaluation to avoid rate limiting
+            time.sleep(1)
 
             # Add judge results to report
             report["judge_result"] = judge_result.model_dump()

@@ -1,7 +1,7 @@
 import json
 import os
+import time
 from pathlib import Path
-from time import sleep
 from typing import Dict, List
 
 import pytest
@@ -53,6 +53,9 @@ class TestEvalE2E:
         assert response.status_code == 200
         actual_response = response.text
 
+        # Add delay to avoid rate limiting (E2E makes many API calls internally)
+        time.sleep(60)
+
         # Create base report
         report = {
             "test_id": fixture_name,
@@ -78,6 +81,9 @@ class TestEvalE2E:
                 test_type="e2e",
             )
 
+            # Add delay after judge evaluation to avoid rate limiting
+            time.sleep(1)
+
             # Add judge results to report
             report["judge_result"] = judge_result.model_dump()
             report["passed"] = judge_result.passed
@@ -101,7 +107,6 @@ class TestEvalE2E:
             with open("report.json", "w") as f:
                 json.dump(results, f)
 
-            sleep(60)
             assert response
 
     @classmethod

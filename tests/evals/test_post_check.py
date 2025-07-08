@@ -54,7 +54,7 @@ class TestEvalPostCheck:
         agent.tool_answer = response
 
         command = commands.LLMResponse(
-            question=question,
+            question=question.question,
             response=response,
             q_id=q_id,
         )
@@ -84,11 +84,12 @@ class TestEvalPostCheck:
             else:
                 criteria = JudgeCriteria()
 
-            # Use LLM Judge to evaluate the response
+            # Use LLM Judge to evaluate the guardrail decision
+            # For post-check, we evaluate if the guardrail made the correct decision
             judge_result = judge.evaluate(
-                question=f"Question: {question.question}\nResponse: {agent.tool_answer}",
-                expected=f"Approved: {expected_response}",
-                actual=f"Approved: {actual_approved}",
+                question=f"Should the guardrail approve this response?\nOriginal Question: {question.question}\nGenerated Response: {agent.tool_answer}",
+                expected=f"Guardrail Decision: Approved={expected_response}",
+                actual=f"Guardrail Decision: Approved={actual_approved}",
                 criteria=criteria,
                 test_type="post_check",
             )
