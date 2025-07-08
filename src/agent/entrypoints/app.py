@@ -1,5 +1,8 @@
 import asyncio
+import os
 from time import time
+
+from dotenv import load_dotenv
 
 import src.agent.service_layer.handlers as handlers
 from fastapi import (
@@ -18,6 +21,9 @@ from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
 from src.agent.domain.commands import Question, SQLQuestion
 from src.agent.observability.context import connected_clients, ctx_query_id
+
+if os.getenv("IS_TESTING") != "true":
+    load_dotenv(".env")
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
 from starlette.responses import StreamingResponse

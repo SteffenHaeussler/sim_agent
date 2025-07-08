@@ -1,0 +1,12 @@
+{
+    "question": "What is the daily maximum value of PI-P0017 in April 2025?",
+    "response": "The daily maximum value of PI-P0017 in April 2025 is approximately 1.59.",
+    "judge_criteria": {
+        "accuracy_threshold": 8,
+        "relevance_threshold": 9,
+        "completeness_threshold": 8,
+        "hallucination_threshold": 9,
+        "require_exact_match": false,
+        "allow_additional_context": true
+    }
+}
