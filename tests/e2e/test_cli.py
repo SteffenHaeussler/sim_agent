@@ -84,6 +84,6 @@ class TestCLI(unittest.TestCase):
     ):
         question = ""
         try:
-            response = answer(question, "test_session_id")
+            answer(question, "test_session_id")
         except Exception as e:
             assert str(e) == "No question asked"

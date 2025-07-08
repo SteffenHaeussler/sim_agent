@@ -20,7 +20,7 @@ __all__ = [
     "create_sql_controller",
     "process_question_async",
     "GroundingResponse",
-    "FilterResponse", 
+    "FilterResponse",
     "JoinInferenceResponse",
     "AggregationResponse",
     "SQLConstructionResponse",

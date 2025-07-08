@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: 'latest'
+
+    - name: Install dependencies
+      run: |
+        uv venv
+        uv pip install -r requirements.txt
+        uv pip install -e .
+
+    - name: Run Ruff Linter
+      run: |
+        uv run ruff check . --exit-non-zero-on-fix
+        uv run ruff format --check .
+
+    - name: Security Scan with detect-secrets
+      run: |
+        uv pip install detect-secrets
+        if [ ! -f .secrets.baseline ]; then
+          uv run detect-secrets scan --baseline .secrets.baseline
+        fi
+        uv run detect-secrets scan --baseline .secrets.baseline --exclude-files '.*\.lock|package-lock\.json'
+
+    - name: Set up test environment
+      run: |
+        if [ -f .env.test ]; then
+          cp .env.test .env.tests
+        else
+          echo "Warning: .env.test file not found"
+          touch .env.tests
+        fi
+
+    - name: Run tests
+      run: |
+        uv run python -m pytest tests/ -v --envfile=.env.tests
+      env:
+        PYTHONPATH: ${{ github.workspace }}
