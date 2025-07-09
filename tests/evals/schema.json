@@ -1,0 +1,218 @@
+{
+    "tables": [
+        {
+            "name": "products",
+            "columns": [
+                {
+                    "name": "product_id",
+                    "type": "INTEGER",
+                    "description": "product_id"
+                },
+                {
+                    "name": "name",
+                    "type": "VARCHAR(255)",
+                    "description": "name"
+                },
+                {
+                    "name": "sku",
+                    "type": "VARCHAR(100)",
+                    "description": "sku"
+                },
+                {
+                    "name": "specifications",
+                    "type": "JSONB",
+                    "description": "specifications"
+                },
+                {
+                    "name": "is_active",
+                    "type": "BOOLEAN",
+                    "description": "is_active"
+                }
+            ],
+            "description": "products"
+        },
+        {
+            "name": "customers",
+            "columns": [
+                {
+                    "name": "customer_id",
+                    "type": "INTEGER",
+                    "description": "customer_id"
+                },
+                {
+                    "name": "company_name",
+                    "type": "VARCHAR(255)",
+                    "description": "company_name"
+                },
+                {
+                    "name": "contact_name",
+                    "type": "VARCHAR(150)",
+                    "description": "contact_name"
+                },
+                {
+                    "name": "contact_email",
+                    "type": "VARCHAR(255)",
+                    "description": "contact_email"
+                },
+                {
+                    "name": "contact_phone",
+                    "type": "VARCHAR(50)",
+                    "description": "contact_phone"
+                },
+                {
+                    "name": "credit_limit",
+                    "type": "NUMERIC(15, 2)",
+                    "description": "credit_limit"
+                },
+                {
+                    "name": "credit_terms",
+                    "type": "INTEGER",
+                    "description": "credit_terms"
+                },
+                {
+                    "name": "is_active",
+                    "type": "BOOLEAN",
+                    "description": "is_active"
+                }
+            ],
+            "description": "customers"
+        },
+        {
+            "name": "orders",
+            "columns": [
+                {
+                    "name": "order_id",
+                    "type": "INTEGER",
+                    "description": "order_id"
+                },
+                {
+                    "name": "order_number",
+                    "type": "VARCHAR(50)",
+                    "description": "order_number"
+                },
+                {
+                    "name": "customer_id",
+                    "type": "INTEGER",
+                    "description": "customer_id"
+                },
+                {
+                    "name": "order_date",
+                    "type": "DATE",
+                    "description": "order_date"
+                },
+                {
+                    "name": "delivery_date",
+                    "type": "DATE",
+                    "description": "delivery_date"
+                },
+                {
+                    "name": "payment_due_date",
+                    "type": "DATE",
+                    "description": "payment_due_date"
+                },
+                {
+                    "name": "status",
+                    "type": "VARCHAR(20)",
+                    "description": "status"
+                },
+                {
+                    "name": "subtotal_amount",
+                    "type": "NUMERIC(15, 2)",
+                    "description": "subtotal_amount"
+                },
+                {
+                    "name": "tax_amount",
+                    "type": "NUMERIC(15, 2)",
+                    "description": "tax_amount"
+                },
+                {
+                    "name": "shipping_cost",
+                    "type": "NUMERIC(15, 2)",
+                    "description": "shipping_cost"
+                },
+                {
+                    "name": "grand_total_amount",
+                    "type": "NUMERIC(15, 2)",
+                    "description": "grand_total_amount"
+                },
+                {
+                    "name": "billing_address",
+                    "type": "INTEGER",
+                    "description": "billing_address"
+                },
+                {
+                    "name": "currency_code",
+                    "type": "VARCHAR(3)",
+                    "description": "currency_code"
+                }
+            ],
+            "description": "orders"
+        },
+        {
+            "name": "order_details",
+            "columns": [
+                {
+                    "name": "order_detail_id",
+                    "type": "INTEGER",
+                    "description": "order_detail_id"
+                },
+                {
+                    "name": "order_id",
+                    "type": "INTEGER",
+                    "description": "order_id"
+                },
+                {
+                    "name": "product_id",
+                    "type": "INTEGER",
+                    "description": "product_id"
+                },
+                {
+                    "name": "quantity",
+                    "type": "INTEGER",
+                    "description": "quantity"
+                },
+                {
+                    "name": "unit_price",
+                    "type": "NUMERIC(12, 2)",
+                    "description": "unit_price"
+                },
+                {
+                    "name": "discount_percentage",
+                    "type": "NUMERIC(5, 2)",
+                    "description": "discount_percentage"
+                },
+                {
+                    "name": "final_unit_price",
+                    "type": "NUMERIC(12, 2)",
+                    "description": "final_unit_price"
+                },
+                {
+                    "name": "line_item_tax_amount",
+                    "type": "NUMERIC(12, 2)",
+                    "description": "line_item_tax_amount"
+                }
+            ],
+            "description": "order_details"
+        }
+    ],
+    "relationships": [
+        {
+            "table_name": "orders",
+            "column_name": "customer_id",
+            "foreign_table_name": "customers",
+            "foreign_column_name": "customer_id"
+        },
+        {
+            "table_name": "order_details",
+            "column_name": "order_id",
+            "foreign_table_name": "orders",
+            "foreign_column_name": "order_id"
+        },
+        {
+            "table_name": "order_details",
+            "column_name": "product_id",
+            "foreign_table_name": "products",
+            "foreign_column_name": "product_id"
+        }
+    ]
+}

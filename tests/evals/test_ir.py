@@ -94,7 +94,7 @@ class TestIR:
 
             # Write results with judge information
             results.append(report)
-            with open("ir_judge_report.json", "w") as f:
+            with open(current_path / "reports" / "ir_judge_report.json", "w") as f:
                 json.dump(results, f, indent=2)
 
             # Assert based on judge evaluation
@@ -109,7 +109,7 @@ class TestIR:
             passed = response == expected_response
             report["passed"] = passed
             results.append(report)
-            with open("ir_report.json", "w") as f:
+            with open(current_path / "reports" / "ir_report.json", "w") as f:
                 json.dump(results, f)
 
             assert passed, f"Test failed: expected {expected_response}, got {response}"
@@ -164,7 +164,7 @@ class TestIR:
         }
 
         # Write summary report
-        with open("ir_judge_summary.json", "w") as f:
+        with open(current_path / "reports" / "ir_judge_summary.json", "w") as f:
             json.dump(summary, f, indent=2)
 
         print("\nIR Test Summary with LLM Judge:")

@@ -89,7 +89,9 @@ class TestEvalGuardrails:
 
             # Write results with judge information
             results.append(report)
-            with open("pre_check_judge_report.json", "w") as f:
+            with open(
+                current_path / "reports" / "pre_check_judge_report.json", "w"
+            ) as f:
                 json.dump(results, f, indent=2)
 
             # Assert based on judge evaluation
@@ -104,7 +106,7 @@ class TestEvalGuardrails:
             passed = actual_approved == expected_response
             report["passed"] = passed
             results.append(report)
-            with open("pre_check_report.json", "w") as f:
+            with open(current_path / "reports" / "pre_check_report.json", "w") as f:
                 json.dump(results, f)
 
             assert passed, (
@@ -161,7 +163,7 @@ class TestEvalGuardrails:
         }
 
         # Write summary report
-        with open("pre_check_judge_summary.json", "w") as f:
+        with open(current_path / "reports" / "pre_check_judge_summary.json", "w") as f:
             json.dump(summary, f, indent=2)
 
         print("\nPre-Check Test Summary with LLM Judge:")

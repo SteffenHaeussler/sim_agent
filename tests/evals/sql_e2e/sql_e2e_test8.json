@@ -1,0 +1,11 @@
+{
+  "question": "What is the breakdown of orders by status and currency?",
+  "expected_sql": "SELECT\n    status,\n    currency_code,\n    COUNT(*) AS order_count,\n    SUM(grand_total_amount) AS total_amount\nFROM orders\nGROUP BY status, currency_code\nORDER BY status, currency_code;",
+  "judge_criteria": {
+    "accuracy_threshold": 8.0,
+    "relevance_threshold": 9.0,
+    "completeness_threshold": 8.0,
+    "hallucination_threshold": 9.0,
+    "require_exact_match": true
+  }
+}
