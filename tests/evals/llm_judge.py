@@ -169,6 +169,20 @@ Finally, provide an overall assessment summarizing the response quality.
             "enhance": "This tests question enhancement. Verify the enhanced question maintains the original intent while adding clarity.",
             "pre_check": "This tests pre-processing guardrails. You are evaluating whether the guardrail correctly identified inappropriate requests. Focus on whether the guardrail decision (Approved: True/False) matches the expected decision, not on answering the original question.",
             "post_check": "This tests post-processing guardrails. You are evaluating whether the guardrail correctly approved or rejected a response, NOT whether the response answers the original question. Focus on whether the guardrail decision (Approved: True/False) matches the expected decision.",
+            "sql_e2e": """This tests SQL query generation. You are evaluating SQL queries, not natural language responses.
+Focus on:
+- SQL Correctness: Does the generated SQL query correctly answer the natural language question?
+- SQL Syntax: Is the SQL syntactically valid?
+- Table/Column Usage: Are the correct tables and columns used?
+- Join Logic: Are joins correctly specified?
+- Filter Conditions: Are WHERE clauses accurate?
+- Aggregations: Are GROUP BY and aggregate functions used correctly?
+- Order and Limits: Are ORDER BY and LIMIT clauses appropriate?
+Compare the actual SQL to the expected SQL for exact match as specified in criteria.""",
+            "sql_grounding": "This tests SQL grounding - identifying relevant tables and columns for a query. Verify the correct database objects were identified.",
+            "sql_filter": "This tests SQL filter extraction - identifying WHERE clause conditions from the question.",
+            "sql_aggregation": "This tests SQL aggregation detection - identifying GROUP BY needs and aggregate functions.",
+            "sql_join": "This tests SQL join inference - determining which tables need to be joined and how.",
         }
 
         return instructions.get(
@@ -178,7 +192,14 @@ Finally, provide an overall assessment summarizing the response quality.
     def _get_format_compliance_instruction(self, test_type: str) -> str:
         """Get format compliance instruction if needed for test type."""
 
-        format_tests = ["tool_agent", "ir"]
+        format_tests = [
+            "tool_agent",
+            "ir",
+            "sql_grounding",
+            "sql_filter",
+            "sql_aggregation",
+            "sql_join",
+        ]
 
         if test_type in format_tests:
             return """
@@ -186,6 +207,14 @@ Finally, provide an overall assessment summarizing the response quality.
    - JSON structure correctness
    - Required fields present
    - Data types match
+"""
+        elif test_type == "sql_e2e":
+            return """
+5. **SQL Efficiency (0-10)**: Is the SQL query efficient and well-structured?
+   - Avoids unnecessary complexity
+   - Uses appropriate indexes (implied by column choices)
+   - Minimizes redundant operations
+   - Follows SQL best practices
 """
         return ""
 

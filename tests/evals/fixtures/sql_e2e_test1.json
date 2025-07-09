@@ -1,0 +1,13 @@
+{
+  "sql_e2e": {
+    "question": "What are the names and symbols of all available currencies?",
+    "expected_sql": "SELECT currency_code, name, symbol\nFROM currencies;",
+    "judge_criteria": {
+      "accuracy_threshold": 9.0,
+      "relevance_threshold": 9.0,
+      "completeness_threshold": 8.0,
+      "hallucination_threshold": 9.0,
+      "require_exact_match": true
+    }
+  }
+}

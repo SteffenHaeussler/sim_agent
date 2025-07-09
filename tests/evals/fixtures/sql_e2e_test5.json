@@ -1,0 +1,13 @@
+{
+  "sql_e2e": {
+    "question": "List all products that are below their reorder level in any territory",
+    "expected_sql": "SELECT\n    p.name AS product_name,\n    p.sku,\n    t.name AS territory_name,\n    i.quantity_on_hand,\n    i.reorder_level\nFROM\n    inventory i\nJOIN\n    products p ON i.product_id = p.product_id\nJOIN\n    territories t ON i.territory_id = t.territory_id\nWHERE\n    i.quantity_on_hand < i.reorder_level;",
+    "judge_criteria": {
+      "accuracy_threshold": 8.0,
+      "relevance_threshold": 9.0,
+      "completeness_threshold": 8.0,
+      "hallucination_threshold": 9.0,
+      "require_exact_match": true
+    }
+  }
+}

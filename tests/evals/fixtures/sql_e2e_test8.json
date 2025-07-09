@@ -1,0 +1,13 @@
+{
+  "sql_e2e": {
+    "question": "What is the total value of all received purchase orders by supplier?",
+    "expected_sql": "SELECT\n    s.company_name AS supplier_name,\n    COUNT(DISTINCT po.po_id) AS number_of_orders,\n    SUM(pod.quantity * pod.unit_cost) AS total_value,\n    po.currency_code\nFROM purchase_orders po\nJOIN suppliers s ON po.supplier_id = s.supplier_id\nJOIN purchase_order_details pod ON po.po_id = pod.po_id\nWHERE po.status = 'RECEIVED'\nGROUP BY s.supplier_id, s.company_name, po.currency_code\nORDER BY total_value DESC;",
+    "judge_criteria": {
+      "accuracy_threshold": 8.0,
+      "relevance_threshold": 9.0,
+      "completeness_threshold": 8.0,
+      "hallucination_threshold": 9.0,
+      "require_exact_match": true
+    }
+  }
+}

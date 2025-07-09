@@ -1,0 +1,13 @@
+{
+  "sql_e2e": {
+    "question": "Find the total number of unique products under the 'Electronics' category and all of its sub-categories combined",
+    "expected_sql": "WITH RECURSIVE category_hierarchy AS (\n    -- Anchor member: Select the starting category\n    SELECT\n        category_id,\n        name,\n        parent_category\n    FROM\n        product_categories\n    WHERE\n        name = 'Electronics'\n\n    UNION ALL\n\n    -- Recursive member: Find all child categories\n    SELECT\n        pc.category_id,\n        pc.name,\n        pc.parent_category\n    FROM\n        product_categories pc\n    JOIN\n        category_hierarchy ch ON pc.parent_category = ch.category_id\n)\nSELECT\n    COUNT(DISTINCT p.product_id) AS total_products_in_hierarchy\nFROM\n    products p\nJOIN\n    category_hierarchy ch ON p.category_id = ch.category_id;",
+    "judge_criteria": {
+      "accuracy_threshold": 7.0,
+      "relevance_threshold": 9.0,
+      "completeness_threshold": 8.0,
+      "hallucination_threshold": 9.0,
+      "require_exact_match": true
+    }
+  }
+}

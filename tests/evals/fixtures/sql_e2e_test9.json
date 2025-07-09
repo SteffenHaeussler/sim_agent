@@ -1,0 +1,13 @@
+{
+  "sql_e2e": {
+    "question": "List all employees, their salary (in local currency), and its equivalent in USD using the most recent exchange rate.",
+    "expected_sql": "SELECT\n    e.name AS employee_name,\n    e.salary,\n    e.salary_currency_code,\n    er.rate AS to_usd_rate,\n    ROUND(e.salary * er.rate, 2) AS salary_in_usd\nFROM employees e\nJOIN (\n    SELECT from_currency, rate\n    FROM exchange_rates\n    WHERE to_currency = 'USD'\n      AND (from_currency, effective_date) IN (\n          SELECT from_currency, MAX(effective_date)\n          FROM exchange_rates\n          WHERE to_currency = 'USD'\n          GROUP BY from_currency\n      )\n) er ON e.salary_currency_code = er.from_currency\nWHERE e.salary IS NOT NULL;",
+    "judge_criteria": {
+      "accuracy_threshold": 7.0,
+      "relevance_threshold": 9.0,
+      "completeness_threshold": 8.0,
+      "hallucination_threshold": 9.0,
+      "require_exact_match": true
+    }
+  }
+}
