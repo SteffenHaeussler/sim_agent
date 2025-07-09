@@ -4,11 +4,12 @@ import time
 import uuid
 from pathlib import Path
 from typing import Dict, List
+from unittest.mock import patch
 
 import pytest
 
 from src.agent.adapters.adapter import SQLAgentAdapter
-from src.agent.config import get_agent_config, get_llm_config
+from src.agent.config import get_agent_config
 from src.agent.domain import commands
 from src.agent.domain.sql_model import SQLBaseAgent
 from tests.utils import get_fixtures
@@ -26,6 +27,13 @@ judge_results: Dict[str, "JudgeResult"] = {}
 
 # Create judge if enabled
 judge = LLMJudge() if USE_LLM_JUDGE else None
+
+# Load database schema
+with open(current_path / "schema.json", "r") as f:
+    schema_data = json.load(f)
+
+# Create DatabaseSchema object
+db_schema = commands.DatabaseSchema(**schema_data)
 
 
 class TestEvalSQLEndToEnd:
@@ -48,42 +56,55 @@ class TestEvalSQLEndToEnd:
         q_id = str(uuid.uuid4())
         sql_question = commands.SQLQuestion(question=question, q_id=q_id)
 
-        # Initialize SQL agent
-        agent = SQLBaseAgent(
-            question=sql_question,
-            kwargs=get_agent_config(),
-        )
-
         # Initialize SQL adapter
-        adapter = SQLAgentAdapter(get_llm_config())
+        adapter = SQLAgentAdapter()
 
-        # Process through SQL pipeline
-        current_command = sql_question
+        # Mock the question method to return our schema
+        def mock_question(command):
+            command.schema_info = db_schema
+            return command
 
-        # Run through the complete SQL generation pipeline
-        while not isinstance(current_command, commands.SQLConstruction):
-            current_command = agent.update(current_command)
+        # Use patch to mock the question method
+        with patch.object(adapter, "question", side_effect=mock_question):
+            # Initialize SQL agent
+            agent = SQLBaseAgent(
+                question=sql_question,
+                kwargs=get_agent_config(),
+            )
 
-            # Process each stage through the adapter
-            if isinstance(current_command, commands.SQLCheck):
-                response = adapter.check(current_command)
-                agent.check_result = response
-            elif isinstance(current_command, commands.SQLGrounding):
-                response = adapter.grounding(current_command)
-                agent.grounding_result = response
-            elif isinstance(current_command, commands.SQLFilter):
-                response = adapter.filter(current_command)
-                agent.filter_result = response
-            elif isinstance(current_command, commands.SQLJoinInference):
-                response = adapter.join_inference(current_command)
-                agent.join_inference_result = response
-            elif isinstance(current_command, commands.SQLAggregation):
-                response = adapter.aggregation(current_command)
-                agent.aggregation_result = response
-            elif isinstance(current_command, commands.SQLConstruction):
-                response = adapter.construction(current_command)
-                agent.construction_result = response
-                break
+            # Process the SQL question command to set up schema
+            sql_question = adapter.question(sql_question)
+            agent.construction = commands.SQLConstruction(
+                question=question, q_id=q_id, schema_info=sql_question.schema_info
+            )
+
+            # Process through SQL pipeline
+            current_command = sql_question
+
+            # Run through the complete SQL generation pipeline
+            while not isinstance(current_command, commands.SQLConstruction):
+                current_command = agent.update(current_command)
+
+                # Process each stage through the adapter
+                if isinstance(current_command, commands.SQLCheck):
+                    response = adapter.check(current_command)
+                    agent.check_result = response
+                elif isinstance(current_command, commands.SQLGrounding):
+                    response = adapter.grounding(current_command)
+                    agent.grounding_result = response
+                elif isinstance(current_command, commands.SQLFilter):
+                    response = adapter.filter(current_command)
+                    agent.filter_result = response
+                elif isinstance(current_command, commands.SQLJoinInference):
+                    response = adapter.join_inference(current_command)
+                    agent.join_inference_result = response
+                elif isinstance(current_command, commands.SQLAggregation):
+                    response = adapter.aggregation(current_command)
+                    agent.aggregation_result = response
+                elif isinstance(current_command, commands.SQLConstruction):
+                    response = adapter.construction(current_command)
+                    agent.construction_result = response
+                    break
 
         # Get the final SQL query
         actual_sql = (
@@ -130,7 +151,7 @@ class TestEvalSQLEndToEnd:
 
             # Write results with judge information
             results.append(report)
-            with open("sql_e2e_judge_report.json", "w") as f:
+            with open(current_path / "reports" / "sql_e2e_judge_report.json", "w") as f:
                 json.dump(results, f, indent=2)
 
             # Assert based on judge evaluation
@@ -145,7 +166,7 @@ class TestEvalSQLEndToEnd:
             passed = actual_sql.strip() == expected_sql.strip()
             report["passed"] = passed
             results.append(report)
-            with open("sql_e2e_report.json", "w") as f:
+            with open(current_path / "reports" / "sql_e2e_report.json", "w") as f:
                 json.dump(results, f, indent=2)
 
             assert passed, (
@@ -202,7 +223,7 @@ class TestEvalSQLEndToEnd:
         }
 
         # Write summary report
-        with open("sql_e2e_judge_summary.json", "w") as f:
+        with open(current_path / "reports" / "sql_e2e_judge_summary.json", "w") as f:
             json.dump(summary, f, indent=2)
 
         print("\nSQL E2E Test Summary with LLM Judge:")

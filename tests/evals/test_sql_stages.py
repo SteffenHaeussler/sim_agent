@@ -9,7 +9,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.agent.adapters.adapter import SQLAgentAdapter
-from src.agent.config import get_llm_config
 from src.agent.domain import commands
 from tests.utils import get_fixtures
 
@@ -38,109 +37,19 @@ judge_results: Dict[str, Dict[str, "JudgeResult"]] = {
 # Create judge if enabled
 judge = LLMJudge() if USE_LLM_JUDGE else None
 
+# Load database schema
+with open(current_path / "schema.json", "r") as f:
+    schema_data = json.load(f)
 
-def create_mock_database_schema():
-    """Create a mock database schema for testing."""
-    # Mock schema based on the actual database
-    tables = [
-        commands.Table(
-            name="products",
-            columns=[
-                commands.Column(
-                    name="product_id", data_type="SERIAL", is_primary_key=True
-                ),
-                commands.Column(name="name", data_type="VARCHAR(200)"),
-                commands.Column(name="sku", data_type="VARCHAR(100)"),
-                commands.Column(name="category_id", data_type="INTEGER"),
-                commands.Column(name="is_active", data_type="BOOLEAN"),
-            ],
-        ),
-        commands.Table(
-            name="employees",
-            columns=[
-                commands.Column(
-                    name="employee_id", data_type="SERIAL", is_primary_key=True
-                ),
-                commands.Column(name="name", data_type="VARCHAR(100)"),
-                commands.Column(name="role_id", data_type="INTEGER"),
-                commands.Column(name="territory_id", data_type="INTEGER"),
-                commands.Column(name="manager_id", data_type="INTEGER"),
-                commands.Column(name="salary", data_type="DECIMAL(12,2)"),
-                commands.Column(name="salary_currency_code", data_type="VARCHAR(3)"),
-            ],
-        ),
-        commands.Table(
-            name="roles",
-            columns=[
-                commands.Column(
-                    name="role_id", data_type="SERIAL", is_primary_key=True
-                ),
-                commands.Column(name="name", data_type="VARCHAR(50)"),
-            ],
-        ),
-        commands.Table(
-            name="territories",
-            columns=[
-                commands.Column(
-                    name="territory_id", data_type="SERIAL", is_primary_key=True
-                ),
-                commands.Column(name="name", data_type="VARCHAR(100)"),
-                commands.Column(name="country_id", data_type="INTEGER"),
-            ],
-        ),
-        commands.Table(
-            name="inventory",
-            columns=[
-                commands.Column(
-                    name="inventory_id", data_type="SERIAL", is_primary_key=True
-                ),
-                commands.Column(name="product_id", data_type="INTEGER"),
-                commands.Column(name="territory_id", data_type="INTEGER"),
-                commands.Column(name="quantity_on_hand", data_type="INTEGER"),
-                commands.Column(name="reorder_level", data_type="INTEGER"),
-            ],
-        ),
-    ]
-
-    relationships = [
-        commands.Relationship(
-            from_table="employees",
-            from_column="role_id",
-            to_table="roles",
-            to_column="role_id",
-            relationship_type="many-to-one",
-        ),
-        commands.Relationship(
-            from_table="employees",
-            from_column="territory_id",
-            to_table="territories",
-            to_column="territory_id",
-            relationship_type="many-to-one",
-        ),
-        commands.Relationship(
-            from_table="inventory",
-            from_column="product_id",
-            to_table="products",
-            to_column="product_id",
-            relationship_type="many-to-one",
-        ),
-        commands.Relationship(
-            from_table="inventory",
-            from_column="territory_id",
-            to_table="territories",
-            to_column="territory_id",
-            relationship_type="many-to-one",
-        ),
-    ]
-
-    return commands.DatabaseSchema(tables=tables, relationships=relationships)
+# Create DatabaseSchema object
+db_schema = commands.DatabaseSchema(**schema_data)
 
 
 class TestEvalSQLStages:
     def setup_method(self):
         """Setup mock database schema for each test."""
-        self.schema = create_mock_database_schema()
-        self.adapter = SQLAgentAdapter(get_llm_config())
+        self.schema = db_schema
+        self.adapter = SQLAgentAdapter()
         # Mock the database adapter
         self.adapter.db = MagicMock()
         self.adapter.db.get_schema.return_value = self.schema
@@ -164,7 +73,7 @@ class TestEvalSQLStages:
         command = commands.SQLGrounding(
             question=question,
             q_id=q_id,
-            schema=self.schema,
+            tables=self.schema.tables,
         )
 
         # Execute grounding
@@ -179,8 +88,11 @@ class TestEvalSQLStages:
             "question": question,
             "expected_response": expected_response,
             "actual_response": {
-                "tables": actual_response.tables,
-                "columns": actual_response.columns,
+                "tables": [tm.table_name for tm in actual_response.table_mapping],
+                "columns": [
+                    f"{cm.table_name}.{cm.column_name}"
+                    for cm in actual_response.column_mapping
+                ],
             },
         }
 
@@ -210,7 +122,9 @@ class TestEvalSQLStages:
             judge_results["grounding"][fixture_name] = judge_result
 
             results["grounding"].append(report)
-            with open("sql_grounding_judge_report.json", "w") as f:
+            with open(
+                current_path / "reports" / "sql_grounding_judge_report.json", "w"
+            ) as f:
                 json.dump(results["grounding"], f, indent=2)
 
             assert judge_result.passed, (
@@ -221,8 +135,8 @@ class TestEvalSQLStages:
             )
         else:
             # Basic validation
-            assert actual_response.tables
-            assert actual_response.columns
+            assert actual_response.table_mapping
+            assert actual_response.column_mapping
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -239,9 +153,35 @@ class TestEvalSQLStages:
         expected_response = test_data["expected_response"]
 
         # Mock grounding result
+        grounding_tables = test_data.get("grounding_tables", ["products"])
+        grounding_columns = test_data.get("grounding_columns", ["is_active", "name"])
+
+        # Create table mappings
+        table_mappings = []
+        for table in grounding_tables:
+            table_mappings.append(
+                commands.TableMapping(
+                    question_term=table, table_name=table, confidence=0.9
+                )
+            )
+
+        # Create column mappings
+        column_mappings = []
+        for col in grounding_columns:
+            table_name = col.split(".")[0] if "." in col else grounding_tables[0]
+            column_name = col.split(".")[1] if "." in col else col
+            column_mappings.append(
+                commands.ColumnMapping(
+                    question_term=column_name,
+                    table_name=table_name,
+                    column_name=column_name,
+                    confidence=0.9,
+                )
+            )
+
         grounding_result = commands.GroundingResponse(
-            tables=test_data.get("grounding_tables", ["products"]),
-            columns=test_data.get("grounding_columns", ["is_active", "name"]),
+            table_mapping=table_mappings,
+            column_mapping=column_mappings,
         )
 
         # Create filter command
@@ -249,8 +189,7 @@ class TestEvalSQLStages:
         command = commands.SQLFilter(
             question=question,
             q_id=q_id,
-            schema=self.schema,
-            grounding=grounding_result,
+            column_mapping=grounding_result.column_mapping,
         )
 
         # Execute filter
@@ -264,8 +203,13 @@ class TestEvalSQLStages:
             "question": question,
             "expected_response": expected_response,
             "actual_response": {
-                "where_conditions": actual_response.where_conditions,
-                "having_conditions": actual_response.having_conditions,
+                "where_conditions": [
+                    f"{cond.column} {cond.operator} {cond.value}"
+                    for cond in actual_response.conditions
+                ]
+                if actual_response.conditions
+                else [],
+                "having_conditions": [],
             },
         }
 
@@ -291,7 +235,9 @@ class TestEvalSQLStages:
             judge_results["filter"][fixture_name] = judge_result
 
             results["filter"].append(report)
-            with open("sql_filter_judge_report.json", "w") as f:
+            with open(
+                current_path / "reports" / "sql_filter_judge_report.json", "w"
+            ) as f:
                 json.dump(results["filter"], f, indent=2)
 
             assert judge_result.passed, (
@@ -316,11 +262,37 @@ class TestEvalSQLStages:
         expected_response = test_data["expected_response"]
 
         # Mock grounding result
+        grounding_tables = test_data.get("grounding_tables", ["orders", "customers"])
+        grounding_columns = test_data.get(
+            "grounding_columns", ["customer_id", "grand_total_amount", "company_name"]
+        )
+
+        # Create table mappings
+        table_mappings = []
+        for table in grounding_tables:
+            table_mappings.append(
+                commands.TableMapping(
+                    question_term=table, table_name=table, confidence=0.9
+                )
+            )
+
+        # Create column mappings
+        column_mappings = []
+        for col in grounding_columns:
+            table_name = col.split(".")[0] if "." in col else grounding_tables[0]
+            column_name = col.split(".")[1] if "." in col else col
+            column_mappings.append(
+                commands.ColumnMapping(
+                    question_term=column_name,
+                    table_name=table_name,
+                    column_name=column_name,
+                    confidence=0.9,
+                )
+            )
+
         grounding_result = commands.GroundingResponse(
-            tables=test_data.get("grounding_tables", ["orders", "customers"]),
-            columns=test_data.get(
-                "grounding_columns", ["customer_id", "grand_total_amount"]
-            ),
+            table_mapping=table_mappings,
+            column_mapping=column_mappings,
         )
 
         # Create aggregation command
@@ -328,8 +300,7 @@ class TestEvalSQLStages:
         command = commands.SQLAggregation(
             question=question,
             q_id=q_id,
-            schema=self.schema,
-            grounding=grounding_result,
+            column_mapping=grounding_result.column_mapping,
         )
 
         # Execute aggregation
@@ -344,8 +315,12 @@ class TestEvalSQLStages:
             "expected_response": expected_response,
             "actual_response": {
                 "group_by_columns": actual_response.group_by_columns,
-                "aggregate_functions": actual_response.aggregate_functions,
-                "requires_aggregation": actual_response.requires_aggregation,
+                "aggregate_functions": [
+                    agg.model_dump() for agg in actual_response.aggregations
+                ]
+                if actual_response.aggregations
+                else [],
+                "requires_aggregation": actual_response.is_aggregation_query,
             },
         }
 
@@ -371,7 +346,9 @@ class TestEvalSQLStages:
             judge_results["aggregation"][fixture_name] = judge_result
 
             results["aggregation"].append(report)
-            with open("sql_aggregation_judge_report.json", "w") as f:
+            with open(
+                current_path / "reports" / "sql_aggregation_judge_report.json", "w"
+            ) as f:
                 json.dump(results["aggregation"], f, indent=2)
 
             assert judge_result.passed, (
@@ -396,13 +373,39 @@ class TestEvalSQLStages:
         expected_response = test_data["expected_response"]
 
         # Mock grounding result
+        grounding_tables = test_data.get(
+            "grounding_tables", ["customers", "orders", "order_details", "products"]
+        )
+        grounding_columns = test_data.get(
+            "grounding_columns", ["customers.company_name", "products.name"]
+        )
+
+        # Create table mappings
+        table_mappings = []
+        for table in grounding_tables:
+            table_mappings.append(
+                commands.TableMapping(
+                    question_term=table, table_name=table, confidence=0.9
+                )
+            )
+
+        # Create column mappings
+        column_mappings = []
+        for col in grounding_columns:
+            table_name = col.split(".")[0] if "." in col else grounding_tables[0]
+            column_name = col.split(".")[1] if "." in col else col
+            column_mappings.append(
+                commands.ColumnMapping(
+                    question_term=column_name,
+                    table_name=table_name,
+                    column_name=column_name,
+                    confidence=0.9,
+                )
+            )
+
         grounding_result = commands.GroundingResponse(
-            tables=test_data.get(
-                "grounding_tables", ["employees", "roles", "territories"]
-            ),
-            columns=test_data.get(
-                "grounding_columns", ["name", "role_id", "territory_id"]
-            ),
+            table_mapping=table_mappings,
+            column_mapping=column_mappings,
         )
 
         # Create join inference command
@@ -410,8 +413,8 @@ class TestEvalSQLStages:
         command = commands.SQLJoinInference(
             question=question,
             q_id=q_id,
-            schema=self.schema,
-            grounding=grounding_result,
+            table_mapping=grounding_result.table_mapping,
+            relationships=self.schema.relationships,
         )
 
         # Execute join inference
@@ -427,16 +430,16 @@ class TestEvalSQLStages:
             "actual_response": {
                 "joins": [
                     {
-                        "type": join.type,
-                        "left_table": join.left_table,
-                        "right_table": join.right_table,
-                        "on_condition": join.on_condition,
+                        "type": join.join_type,
+                        "left_table": join.from_table,
+                        "right_table": join.to_table,
+                        "on_condition": f"{join.from_table}.{join.from_column} = {join.to_table}.{join.to_column}",
                     }
                     for join in actual_response.joins
                 ]
                 if actual_response.joins
                 else [],
-                "requires_joins": actual_response.requires_joins,
+                "requires_joins": bool(actual_response.joins),
             },
         }
 
@@ -462,7 +465,9 @@ class TestEvalSQLStages:
             judge_results["join"][fixture_name] = judge_result
 
             results["join"].append(report)
-            with open("sql_join_judge_report.json", "w") as f:
+            with open(
+                current_path / "reports" / "sql_join_judge_report.json", "w"
+            ) as f:
                 json.dump(results["join"], f, indent=2)
 
             assert judge_result.passed, (
@@ -529,7 +534,9 @@ class TestEvalSQLStages:
             }
 
             # Write summary
-            with open(f"sql_{stage}_judge_summary.json", "w") as f:
+            with open(
+                current_path / "reports" / f"sql_{stage}_judge_summary.json", "w"
+            ) as f:
                 json.dump(summary, f, indent=2)
 
             print(f"\nSQL {stage.capitalize()} Test Summary with LLM Judge:")

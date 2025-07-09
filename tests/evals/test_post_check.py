@@ -101,7 +101,9 @@ class TestEvalPostCheck:
 
             # Write results with judge information
             results.append(report)
-            with open("post_check_judge_report.json", "w") as f:
+            with open(
+                current_path / "reports" / "post_check_judge_report.json", "w"
+            ) as f:
                 json.dump(results, f, indent=2)
 
             # Assert based on judge evaluation
@@ -116,7 +118,7 @@ class TestEvalPostCheck:
             passed = actual_approved == expected_response
             report["passed"] = passed
             results.append(report)
-            with open("post_check_report.json", "w") as f:
+            with open(current_path / "reports" / "post_check_report.json", "w") as f:
                 json.dump(results, f)
 
             assert passed, (
@@ -173,7 +175,7 @@ class TestEvalPostCheck:
         }
 
         # Write summary report
-        with open("post_check_judge_summary.json", "w") as f:
+        with open(current_path / "reports" / "post_check_judge_summary.json", "w") as f:
             json.dump(summary, f, indent=2)
 
         print("\nPost-Check Test Summary with LLM Judge:")

@@ -108,7 +108,9 @@ class TestEvalPlanning:
 
             # Write results with judge information
             results.append(report)
-            with open("tool_agent_judge_report.json", "w") as f:
+            with open(
+                current_path / "reports" / "tool_agent_judge_report.json", "w"
+            ) as f:
                 json.dump(results, f, indent=2)
 
             # Assert based on judge evaluation
@@ -122,7 +124,7 @@ class TestEvalPlanning:
             # Standard evaluation without judge
             report["passed"] = passed
             results.append(report)
-            with open("tool_agent_report.json", "w") as f:
+            with open(current_path / "reports" / "tool_agent_report.json", "w") as f:
                 json.dump(results, f)
 
             assert passed, f"Test failed: expected {expected_response}, got {response}"
@@ -177,7 +179,7 @@ class TestEvalPlanning:
         }
 
         # Write summary report
-        with open("tool_agent_judge_summary.json", "w") as f:
+        with open(current_path / "reports" / "tool_agent_judge_summary.json", "w") as f:
             json.dump(summary, f, indent=2)
 
         print("\nTool Agent Test Summary with LLM Judge:")

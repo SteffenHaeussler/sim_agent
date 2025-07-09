@@ -91,7 +91,7 @@ class TestEvalE2E:
 
             # Write results with judge information
             results.append(report)
-            with open("e2e_judge_report.json", "w") as f:
+            with open(current_path / "reports" / "e2e_judge_report.json", "w") as f:
                 json.dump(results, f, indent=2)
 
             # Assert based on judge evaluation
@@ -104,7 +104,7 @@ class TestEvalE2E:
         else:
             # Standard evaluation without judge
             results.append(report)
-            with open("report.json", "w") as f:
+            with open(current_path / "reports" / "e2e_report.json", "w") as f:
                 json.dump(results, f)
 
             assert response
@@ -159,7 +159,7 @@ class TestEvalE2E:
         }
 
         # Write summary report
-        with open("e2e_judge_summary.json", "w") as f:
+        with open(current_path / "reports" / "e2e_judge_summary.json", "w") as f:
             json.dump(summary, f, indent=2)
 
         print("\nE2E Test Summary with LLM Judge:")
