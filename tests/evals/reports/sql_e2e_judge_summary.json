@@ -1,0 +1,70 @@
+{
+  "test_type": "sql_e2e",
+  "total_tests": 10,
+  "passed_tests": 5,
+  "failed_tests": 5,
+  "pass_rate": "50.0%",
+  "average_scores": {
+    "accuracy": 7.3,
+    "relevance": 9.3,
+    "completeness": 7.3,
+    "hallucination": 9.9
+  },
+  "failed_tests_details": [
+    {
+      "test_id": "sql_e2e_test8",
+      "scores": {
+        "accuracy": 7.0,
+        "relevance": 9.0,
+        "completeness": 6.0,
+        "hallucination": 10.0,
+        "format_compliance": 8.0
+      },
+      "assessment": "The actual response provides a functionally correct SQL query that addresses the core question but is incomplete compared to the expected response. While it correctly groups orders by status and currency and counts them, it omits the total amount calculation (SUM(grand_total_amount)) that was included in the expected response. The query structure, syntax, and logic are sound, but the missing aggregation reduces completeness. The table prefixing (orders.column) is acceptable and doesn't affect functionality, though it differs stylistically from the expected format."
+    },
+    {
+      "test_id": "sql_e2e_test4",
+      "scores": {
+        "accuracy": 8.0,
+        "relevance": 10.0,
+        "completeness": 7.0,
+        "hallucination": 10.0,
+        "format_compliance": 6.0
+      },
+      "assessment": "The actual SQL response is functionally correct and answers the question accurately, but fails to meet the exact match requirement due to missing the SKU column and having different formatting/join order. The query demonstrates good SQL practices with proper joins, aggregation, and ordering, but the omission of the SKU field represents incomplete information compared to the expected response."
+    },
+    {
+      "test_id": "sql_e2e_test2",
+      "scores": {
+        "accuracy": 7.0,
+        "relevance": 10.0,
+        "completeness": 7.0,
+        "hallucination": 10.0,
+        "format_compliance": 6.0
+      },
+      "assessment": "The actual SQL response is functionally equivalent to the expected response but differs in two key aspects: it omits the customer_id column and uses slightly different syntax (TRUE vs true, table prefixing). While the query correctly answers the core question about listing customers with company names and contact emails, the missing customer_id column and exact match requirement result in a technically non-compliant response. The SQL is syntactically valid, efficient, and follows good practices, but fails to meet the strict matching criteria."
+    },
+    {
+      "test_id": "sql_e2e_test7",
+      "scores": {
+        "accuracy": 6.0,
+        "relevance": 8.0,
+        "completeness": 4.0,
+        "hallucination": 10.0,
+        "format_compliance": null
+      },
+      "assessment": "The actual response provides a functionally correct SQL query that answers the core question of finding orders with discounted products. However, it falls short of the expected response in terms of completeness and exact match requirements. While the query correctly identifies orders with discounts using appropriate joins and filtering, it only returns the order_id whereas the expected response provides a more comprehensive result set including order details, customer information, and proper ordering. The query is syntactically valid and efficient, but doesn't meet the exact match criteria specified in the evaluation requirements."
+    },
+    {
+      "test_id": "sql_e2e_test6",
+      "scores": {
+        "accuracy": 2.0,
+        "relevance": 6.0,
+        "completeness": 3.0,
+        "hallucination": 9.0,
+        "format_compliance": 8.0
+      },
+      "assessment": "The actual SQL query has significant logical flaws that make it incorrect for answering the question. While it uses the right tables and has valid syntax, it compares individual order amounts to credit limits rather than total order amounts, and lacks proper aggregation. The query also excludes important information like credit limits and total amounts from the output, making it incomplete for the business requirement."
+    }
+  ]
+}

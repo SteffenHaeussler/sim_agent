@@ -1,32 +1,34 @@
 import json
-import os
-import time
 import uuid
 from pathlib import Path
-from typing import Dict, List
 from unittest.mock import patch
 
 import pytest
-
 from src.agent.adapters.adapter import SQLAgentAdapter
 from src.agent.config import get_agent_config
 from src.agent.domain import commands
 from src.agent.domain.sql_model import SQLBaseAgent
+from tests.evals.base_sql_eval import (
+    SQL_COMMAND_HANDLERS,
+    USE_LLM_JUDGE,
+    BaseSQLEvalTest,
+)
 from tests.utils import get_fixtures
-
-# Import judge components only if enabled
-USE_LLM_JUDGE = os.getenv("USE_LLM_JUDGE", "true").lower() == "true"
-if USE_LLM_JUDGE:
-    from tests.evals.llm_judge import JudgeCriteria, JudgeResult, LLMJudge
 
 current_path = Path(__file__).parent
 
 fixtures = get_fixtures(current_path, keys=["sql_e2e"])
-results: List[Dict] = []
-judge_results: Dict[str, "JudgeResult"] = {}
 
-# Create judge if enabled
-judge = LLMJudge() if USE_LLM_JUDGE else None
+# Debug: Print fixture loading info
+if not fixtures:
+    print(f"WARNING: No fixtures loaded from {current_path}")
+    # Fallback: try to load fixtures
+    import os
+
+    if os.path.exists(current_path / "sql_e2e"):
+        print(f"sql_e2e directory exists at {current_path / 'sql_e2e'}")
+else:
+    print(f"Loaded {len(fixtures)} SQL E2E fixtures")
 
 # Load database schema
 with open(current_path / "schema.json", "r") as f:
@@ -36,7 +38,12 @@ with open(current_path / "schema.json", "r") as f:
 db_schema = commands.DatabaseSchema(**schema_data)
 
 
-class TestEvalSQLEndToEnd:
+class TestEvalSQLEndToEnd(BaseSQLEvalTest):
+    def setup_method(self):
+        """Setup for each test."""
+        super().setup_method()
+        self.current_path = current_path
+
     @pytest.mark.parametrize(
         "fixture_name, fixture",
         [
@@ -78,33 +85,23 @@ class TestEvalSQLEndToEnd:
                 question=question, q_id=q_id, schema_info=sql_question.schema_info
             )
 
-            # Process through SQL pipeline
+            # Process through SQL pipeline using command handlers
             current_command = sql_question
 
             # Run through the complete SQL generation pipeline
             while not isinstance(current_command, commands.SQLConstruction):
                 current_command = agent.update(current_command)
 
-                # Process each stage through the adapter
-                if isinstance(current_command, commands.SQLCheck):
-                    response = adapter.check(current_command)
-                    agent.check_result = response
-                elif isinstance(current_command, commands.SQLGrounding):
-                    response = adapter.grounding(current_command)
-                    agent.grounding_result = response
-                elif isinstance(current_command, commands.SQLFilter):
-                    response = adapter.filter(current_command)
-                    agent.filter_result = response
-                elif isinstance(current_command, commands.SQLJoinInference):
-                    response = adapter.join_inference(current_command)
-                    agent.join_inference_result = response
-                elif isinstance(current_command, commands.SQLAggregation):
-                    response = adapter.aggregation(current_command)
-                    agent.aggregation_result = response
-                elif isinstance(current_command, commands.SQLConstruction):
-                    response = adapter.construction(current_command)
-                    agent.construction_result = response
-                    break
+                # Find and execute the appropriate handler
+                for command_type, handler_name in SQL_COMMAND_HANDLERS.items():
+                    if isinstance(current_command, command_type):
+                        handler = getattr(adapter, handler_name)
+                        response = handler(current_command)
+
+                        # Store result in agent
+                        result_attr = f"{handler_name}_result"
+                        setattr(agent, result_attr, response)
+                        break
 
         # Get the final SQL query
         actual_sql = (
@@ -113,62 +110,34 @@ class TestEvalSQLEndToEnd:
             else ""
         )
 
-        # Add delay to avoid rate limiting
-        time.sleep(1)
-
-        # Create base report
-        report = {
-            "test_id": fixture_name,
-            "question": question,
-            "expected_sql": expected_sql,
-            "actual_sql": actual_sql,
-        }
-
-        # If judge is enabled, use it for evaluation
-        if USE_LLM_JUDGE and judge is not None:
-            # Extract judge criteria if present, otherwise use defaults
-            if "judge_criteria" in test_data:
-                criteria = JudgeCriteria(**test_data["judge_criteria"])
-            else:
-                criteria = JudgeCriteria()
-
-            # Use LLM Judge to evaluate the SQL query
-            judge_result = judge.evaluate(
+        # Evaluate the result
+        if self.judge:
+            # Use judge evaluation
+            self.evaluate_with_judge(
+                stage_name="e2e",
+                fixture_name=fixture_name,
                 question=question,
-                expected=expected_sql,
-                actual=actual_sql,
-                criteria=criteria,
-                test_type="sql_e2e",
-            )
-
-            # Add delay after judge evaluation to avoid rate limiting
-            time.sleep(1)
-
-            # Add judge results to report
-            report["judge_result"] = judge_result.model_dump()
-            report["passed"] = judge_result.passed
-            judge_results[fixture_name] = judge_result
-
-            # Write results with judge information
-            results.append(report)
-            with open(current_path / "reports" / "sql_e2e_judge_report.json", "w") as f:
-                json.dump(results, f, indent=2)
-
-            # Assert based on judge evaluation
-            assert judge_result.passed, (
-                f"LLM Judge evaluation failed:\n"
-                f"Scores: {judge_result.scores.model_dump()}\n"
-                f"Reasoning: {judge_result.reasoning}\n"
-                f"Assessment: {judge_result.overall_assessment}"
+                expected_response={"sql": expected_sql},
+                actual_response_dict={"sql": actual_sql},
+                test_data=test_data,
+                judge_question=question,
             )
         else:
-            # Standard evaluation without judge - exact match
+            # Simple exact match
             passed = actual_sql.strip() == expected_sql.strip()
-            report["passed"] = passed
-            results.append(report)
-            with open(current_path / "reports" / "sql_e2e_report.json", "w") as f:
-                json.dump(results, f, indent=2)
-
+            report = {
+                "test_id": fixture_name,
+                "question": question,
+                "expected_sql": expected_sql,
+                "actual_sql": actual_sql,
+                "passed": passed,
+            }
+            self.results["e2e"] = self.results.get("e2e", [])
+            self.results["e2e"].append(report)
+            self.write_report(
+                self.current_path / "reports" / "sql_e2e_report.json",
+                self.results["e2e"],
+            )
             assert passed, (
                 f"SQL mismatch:\nExpected:\n{expected_sql}\n\nActual:\n{actual_sql}"
             )
@@ -176,61 +145,15 @@ class TestEvalSQLEndToEnd:
     @classmethod
     def teardown_class(cls):
         """Generate summary report after all tests."""
-
-        # Only generate judge summary if judge was used
-        if not USE_LLM_JUDGE or not judge_results:
+        if not USE_LLM_JUDGE:
             return
 
-        # Calculate aggregate metrics
-        total_tests = len(judge_results)
-        passed_tests = sum(1 for r in judge_results.values() if r.passed)
+        # Access class-level results
+        judge_results = cls._class_judge_results
 
-        # Calculate average scores
-        avg_accuracy = (
-            sum(r.scores.accuracy for r in judge_results.values()) / total_tests
-        )
-        avg_relevance = (
-            sum(r.scores.relevance for r in judge_results.values()) / total_tests
-        )
-        avg_completeness = (
-            sum(r.scores.completeness for r in judge_results.values()) / total_tests
-        )
-        avg_hallucination = (
-            sum(r.scores.hallucination for r in judge_results.values()) / total_tests
-        )
-
-        summary = {
-            "test_type": "sql_e2e",
-            "total_tests": total_tests,
-            "passed_tests": passed_tests,
-            "failed_tests": total_tests - passed_tests,
-            "pass_rate": f"{(passed_tests / total_tests * 100):.1f}%",
-            "average_scores": {
-                "accuracy": round(avg_accuracy, 2),
-                "relevance": round(avg_relevance, 2),
-                "completeness": round(avg_completeness, 2),
-                "hallucination": round(avg_hallucination, 2),
-            },
-            "failed_tests_details": [
-                {
-                    "test_id": test_id,
-                    "scores": result.scores.model_dump(),
-                    "assessment": result.overall_assessment,
-                }
-                for test_id, result in judge_results.items()
-                if not result.passed
-            ],
-        }
-
-        # Write summary report
-        with open(current_path / "reports" / "sql_e2e_judge_summary.json", "w") as f:
-            json.dump(summary, f, indent=2)
-
-        print("\nSQL E2E Test Summary with LLM Judge:")
-        print(f"Total Tests: {total_tests}")
-        print(f"Passed: {passed_tests}")
-        print(f"Failed: {total_tests - passed_tests}")
-        print(f"Pass Rate: {summary['pass_rate']}")
-        print("\nAverage Scores:")
-        for metric, score in summary["average_scores"].items():
-            print(f"  {metric.capitalize()}: {score}/10")
+        if "e2e" in judge_results:
+            # Create a temporary instance for summary generation
+            instance = cls()
+            instance.setup_method()
+            instance.current_path = current_path
+            instance.generate_stage_summary("e2e", judge_results["e2e"])

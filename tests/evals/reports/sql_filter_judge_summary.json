@@ -1,0 +1,26 @@
+{
+  "test_type": "sql_filter",
+  "total_tests": 1,
+  "passed_tests": 0,
+  "failed_tests": 1,
+  "pass_rate": "0.0%",
+  "average_scores": {
+    "accuracy": 7.5,
+    "relevance": 9.5,
+    "completeness": 10.0,
+    "hallucination": 10.0
+  },
+  "failed_tests_details": [
+    {
+      "test_id": "sql_stages_example",
+      "scores": {
+        "accuracy": 7.5,
+        "relevance": 9.5,
+        "completeness": 10.0,
+        "hallucination": 10.0,
+        "format_compliance": 10.0
+      },
+      "assessment": "The actual response demonstrates a good understanding of the task and provides a semantically equivalent SQL WHERE condition. While the exact column name and syntax differ from the expected response, both conditions effectively filter for active products. The JSON structure is correct and complete. The main limitation is the deviation from standard SQL boolean syntax, but the intent and functionality are preserved."
+    }
+  ]
+}
