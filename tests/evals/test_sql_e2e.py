@@ -19,6 +19,17 @@ current_path = Path(__file__).parent
 
 fixtures = get_fixtures(current_path, keys=["sql_e2e"])
 
+# Debug: Print fixture loading info
+if not fixtures:
+    print(f"WARNING: No fixtures loaded from {current_path}")
+    # Fallback: try to load fixtures
+    import os
+
+    if os.path.exists(current_path / "sql_e2e"):
+        print(f"sql_e2e directory exists at {current_path / 'sql_e2e'}")
+else:
+    print(f"Loaded {len(fixtures)} SQL E2E fixtures")
+
 # Load database schema
 with open(current_path / "schema.json", "r") as f:
     schema_data = json.load(f)
@@ -30,7 +41,7 @@ db_schema = commands.DatabaseSchema(**schema_data)
 class TestEvalSQLEndToEnd(BaseSQLEvalTest):
     def setup_method(self):
         """Setup for each test."""
-        super().__init__()
+        super().setup_method()
         self.current_path = current_path
 
     @pytest.mark.parametrize(
@@ -143,6 +154,6 @@ class TestEvalSQLEndToEnd(BaseSQLEvalTest):
         if "e2e" in judge_results:
             # Create a temporary instance for summary generation
             instance = cls()
-            instance.__init__()
+            instance.setup_method()
             instance.current_path = current_path
             instance.generate_stage_summary("e2e", judge_results["e2e"])

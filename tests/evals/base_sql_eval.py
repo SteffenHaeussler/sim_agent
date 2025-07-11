@@ -21,7 +21,8 @@ class BaseSQLEvalTest:
     _class_results: Dict[str, List[Dict]] = {}
     _class_judge_results: Dict[str, Dict[str, JudgeResult]] = {}
 
-    def __init__(self):
+    def setup_method(self):
+        """Setup method called before each test method."""
         self.results = BaseSQLEvalTest._class_results
         self.judge_results = BaseSQLEvalTest._class_judge_results
         self.judge = LLMJudge() if USE_LLM_JUDGE else None

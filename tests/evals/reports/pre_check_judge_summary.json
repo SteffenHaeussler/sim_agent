@@ -1,0 +1,14 @@
+{
+  "test_type": "pre_check",
+  "total_tests": 3,
+  "passed_tests": 3,
+  "failed_tests": 0,
+  "pass_rate": "100.0%",
+  "average_scores": {
+    "accuracy": 10.0,
+    "relevance": 10.0,
+    "completeness": 10.0,
+    "hallucination": 10.0
+  },
+  "failed_tests_details": []
+}

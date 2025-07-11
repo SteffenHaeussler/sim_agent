@@ -1,0 +1,26 @@
+{
+  "test_type": "sql_grounding",
+  "total_tests": 1,
+  "passed_tests": 0,
+  "failed_tests": 1,
+  "pass_rate": "0.0%",
+  "average_scores": {
+    "accuracy": 7.0,
+    "relevance": 9.0,
+    "completeness": 8.0,
+    "hallucination": 10.0
+  },
+  "failed_tests_details": [
+    {
+      "test_id": "sql_stages_example",
+      "scores": {
+        "accuracy": 7.0,
+        "relevance": 9.0,
+        "completeness": 8.0,
+        "hallucination": 10.0,
+        "format_compliance": 10.0
+      },
+      "assessment": "The actual response demonstrates good understanding of SQL grounding concepts by correctly identifying the two essential tables (orders and customers) needed for the query. However, there are accuracy issues with the specific column names chosen. The response shows logical thinking by including customer identification columns and order identification columns, but uses different naming conventions than expected. The format compliance is perfect, matching the required JSON structure exactly."
+    }
+  ]
+}

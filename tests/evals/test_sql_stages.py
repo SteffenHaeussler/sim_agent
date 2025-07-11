@@ -26,7 +26,7 @@ db_schema = commands.DatabaseSchema(**schema_data)
 class TestEvalSQLStages(BaseSQLEvalTest):
     def setup_method(self):
         """Setup mock database schema for each test."""
-        super().__init__()
+        super().setup_method()
         self.current_path = current_path
         self.schema = db_schema
         self.adapter = SQLAgentAdapter()
@@ -53,7 +53,7 @@ class TestEvalSQLStages(BaseSQLEvalTest):
         command = commands.SQLGrounding(
             question=question,
             q_id=q_id,
-            schema=self.schema,
+            tables=self.schema.tables,
         )
 
         # Execute grounding
@@ -105,8 +105,7 @@ class TestEvalSQLStages(BaseSQLEvalTest):
         command = commands.SQLFilter(
             question=question,
             q_id=q_id,
-            schema=self.schema,
-            grounding=grounding_result,
+            column_mapping=grounding_result.column_mapping,
         )
 
         # Execute filter
@@ -162,8 +161,7 @@ class TestEvalSQLStages(BaseSQLEvalTest):
         command = commands.SQLAggregation(
             question=question,
             q_id=q_id,
-            schema=self.schema,
-            grounding=grounding_result,
+            column_mapping=grounding_result.column_mapping,
         )
 
         # Execute aggregation
@@ -221,8 +219,8 @@ class TestEvalSQLStages(BaseSQLEvalTest):
         command = commands.SQLJoinInference(
             question=question,
             q_id=q_id,
-            schema=self.schema,
-            grounding=grounding_result,
+            table_mapping=grounding_result.table_mapping,
+            relationships=self.schema.relationships,
         )
 
         # Execute join inference
@@ -232,16 +230,18 @@ class TestEvalSQLStages(BaseSQLEvalTest):
         actual_response_dict = {
             "joins": [
                 {
-                    "type": join.type,
-                    "left_table": join.left_table,
-                    "right_table": join.right_table,
-                    "on_condition": join.on_condition,
+                    "type": join.join_type,
+                    "left_table": join.from_table,
+                    "right_table": join.to_table,
+                    "on_condition": f"{join.from_table}.{join.from_column} = {join.to_table}.{join.to_column}",
                 }
                 for join in actual_response.joins
             ]
             if actual_response.joins
             else [],
-            "requires_joins": actual_response.requires_joins,
+            "requires_joins": actual_response.requires_joins
+            if hasattr(actual_response, "requires_joins")
+            else bool(actual_response.joins),
         }
 
         # Evaluate with judge
@@ -266,7 +266,7 @@ class TestEvalSQLStages(BaseSQLEvalTest):
 
         # Create a temporary instance for summary generation
         instance = cls()
-        instance.__init__()
+        instance.setup_method()
         instance.current_path = current_path
 
         # Generate summary for each stage
