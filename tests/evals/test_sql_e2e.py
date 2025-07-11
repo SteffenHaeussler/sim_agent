@@ -10,7 +10,6 @@ from src.agent.domain import commands
 from src.agent.domain.sql_model import SQLBaseAgent
 from tests.evals.base_sql_eval import (
     SQL_COMMAND_HANDLERS,
-    USE_LLM_JUDGE,
     BaseSQLEvalTest,
 )
 from tests.utils import get_fixtures
@@ -39,10 +38,16 @@ db_schema = commands.DatabaseSchema(**schema_data)
 
 
 class TestEvalSQLEndToEnd(BaseSQLEvalTest):
+    """SQL End-to-End evaluation tests."""
+
+    RUN_TYPE = "sql_e2e"
+    TEST_TYPE = "sql_e2e"
+
     def setup_method(self):
         """Setup for each test."""
         super().setup_method()
         self.current_path = current_path
+        self.schema = db_schema
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -110,50 +115,20 @@ class TestEvalSQLEndToEnd(BaseSQLEvalTest):
             else ""
         )
 
-        # Evaluate the result
-        if self.judge:
-            # Use judge evaluation
-            self.evaluate_with_judge(
-                stage_name="e2e",
-                fixture_name=fixture_name,
-                question=question,
-                expected_response={"sql": expected_sql},
-                actual_response_dict={"sql": actual_sql},
-                test_data=test_data,
-                judge_question=question,
-            )
-        else:
-            # Simple exact match
-            passed = actual_sql.strip() == expected_sql.strip()
-            report = {
-                "test_id": fixture_name,
-                "question": question,
-                "expected_sql": expected_sql,
-                "actual_sql": actual_sql,
-                "passed": passed,
-            }
-            self.results["e2e"] = self.results.get("e2e", [])
-            self.results["e2e"].append(report)
-            self.write_report(
-                self.current_path / "reports" / "sql_e2e_report.json",
-                self.results["e2e"],
-            )
-            assert passed, (
-                f"SQL mismatch:\nExpected:\n{expected_sql}\n\nActual:\n{actual_sql}"
-            )
+        # Evaluate the result using the base class method
+        self.evaluate_with_judge(
+            fixture_name=fixture_name,
+            question=question,
+            expected_response={"sql": expected_sql},
+            actual_response={"sql": actual_sql},
+            test_data=test_data,
+            judge_question=question,
+            sql_query=actual_sql,
+            schema_context=schema_data,
+        )
 
     @classmethod
     def teardown_class(cls):
         """Generate summary report after all tests."""
-        if not USE_LLM_JUDGE:
-            return
-
-        # Access class-level results
-        judge_results = cls._class_judge_results
-
-        if "e2e" in judge_results:
-            # Create a temporary instance for summary generation
-            instance = cls()
-            instance.setup_method()
-            instance.current_path = current_path
-            instance.generate_stage_summary("e2e", judge_results["e2e"])
+        # Call parent teardown which handles database completion and summary
+        super().teardown_class()

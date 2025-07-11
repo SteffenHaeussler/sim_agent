@@ -164,3 +164,75 @@ class Response(Event):
             for key, value in self.data.items():
                 message += f"$%$%{key.capitalize()}:{value}"
         return message
+
+
+class EvaluationStarted(Event):
+    """Event when an evaluation run starts."""
+
+    run_id: str
+    run_type: str
+    evaluation_category: Optional[str] = None
+    stage: Optional[str] = None
+    model_name: Optional[str] = None
+
+    def to_event_string(self) -> str:
+        return f"event: {self.to_message()}"
+
+    def to_message(self) -> str:
+        stage_info = f" - {self.stage}" if self.stage else ""
+        return f"Evaluation started: {self.run_type}{stage_info} (run_id: {self.run_id[:8]})"
+
+    def to_markdown(self) -> str:
+        return f"## Evaluation Started\n\nType: {self.run_type}\nRun ID: {self.run_id}"
+
+
+class TestResultRecorded(Event):
+    """Event when a test result is recorded."""
+
+    run_id: str
+    test_name: str
+    passed: bool
+    q_id: Optional[str] = None
+
+    def to_event_string(self) -> str:
+        return f"event: {self.to_message()}"
+
+    def to_message(self) -> str:
+        status = "PASSED" if self.passed else "FAILED"
+        return f"Test {self.test_name}: {status}"
+
+    def to_markdown(self) -> str:
+        status = "✅ PASSED" if self.passed else "❌ FAILED"
+        return f"## Test Result\n\n{self.test_name}: {status}"
+
+
+class EvaluationCompleted(Event):
+    """Event when an evaluation run completes."""
+
+    run_id: str
+    run_type: str
+    total_tests: int
+    passed_tests: int
+    failed_tests: int
+    pass_rate: float
+    q_id: Optional[str] = None
+
+    def to_event_string(self) -> str:
+        return f"data: {self.to_markdown()}"
+
+    def to_message(self) -> str:
+        return (
+            f"Evaluation completed: {self.run_type}\n"
+            f"Total: {self.total_tests}, Passed: {self.passed_tests}, "
+            f"Failed: {self.failed_tests}, Pass Rate: {self.pass_rate:.1f}%"
+        )
+
+    def to_markdown(self) -> str:
+        return (
+            f"## Evaluation Completed\n\n"
+            f"**Type:** {self.run_type}\n"
+            f"**Total Tests:** {self.total_tests}\n"
+            f"**Passed:** {self.passed_tests}\n"
+            f"**Failed:** {self.failed_tests}\n"
+            f"**Pass Rate:** {self.pass_rate:.1f}%"
+        )
