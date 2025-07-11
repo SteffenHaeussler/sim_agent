@@ -5,6 +5,10 @@
 
 *.csv
 
+# Evaluation reports
+reports/
+tests/evals/reports/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

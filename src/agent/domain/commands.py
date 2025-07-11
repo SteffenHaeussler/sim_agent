@@ -313,3 +313,51 @@ class SQLValidation(Command):
     issues: Optional[List[str]] = None
     confidence: Optional[float] = None
     chain_of_thought: Optional[str] = None
+
+
+################################################################################
+# Evaluation Commands
+################################################################################
+
+
+class StartEvaluationRun(Command):
+    """Command to start a new evaluation run."""
+
+    run_type: str
+    evaluation_category: Optional[str] = None
+    stage: Optional[str] = None
+    model_name: Optional[str] = None
+    model_temperature: Optional[float] = None
+    prompt_version: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class RecordTestResult(Command):
+    """Command to record a test result."""
+
+    run_id: str  # UUID as string
+    test_name: str
+    test_type: Optional[str] = None
+    question: str
+    expected_response: str
+    actual_response: str
+    passed: bool
+    execution_time_ms: Optional[int] = None
+    judge_scores: Optional[Dict[str, float]] = None
+    judge_reasoning: Optional[str] = None
+    error_message: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    # Tool agent specific
+    tools_used: Optional[List[str]] = None
+    tool_outputs: Optional[Dict[str, Any]] = None
+    # SQL specific
+    sql_stage: Optional[str] = None
+    sql_query: Optional[str] = None
+    schema_context: Optional[Dict[str, Any]] = None
+
+
+class CompleteEvaluationRun(Command):
+    """Command to complete an evaluation run."""
+
+    run_id: str  # UUID as string
+    fixtures_used: Optional[List[str]] = None

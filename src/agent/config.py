@@ -191,3 +191,27 @@ def get_database_config():
         connection_string=database_connection_string,
         db_type=database_type,
     )
+
+
+def get_evaluation_database_config():
+    """Get configuration for the evaluation database."""
+    db_user = getenv("PG_USER")
+    db_password = getenv("PG_PASSWORD")
+    db_host = getenv("PG_HOST")
+    db_port = getenv("PG_PORT")
+    db_name = getenv("PG_EVAL_DB", "evaluation")  # Default to 'evaluation'
+
+    evaluation_connection_string = (
+        f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    )
+
+    if not all([db_user, db_password, db_host, db_port]):
+        raise ValueError(
+            "PostgreSQL connection parameters not set in environment variables"
+        )
+
+    return dict(
+        connection_string=evaluation_connection_string,
+        db_type="postgres",
+        db_name=db_name,
+    )

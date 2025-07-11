@@ -8,7 +8,7 @@ import pytest
 from src.agent.adapters.adapter import SQLAgentAdapter
 from src.agent.domain import commands
 from tests.utils import get_fixtures
-from tests.evals.base_sql_eval import BaseSQLEvalTest, USE_LLM_JUDGE
+from tests.evals.base_sql_eval import BaseSQLEvalTest
 
 current_path = Path(__file__).parent
 
@@ -24,6 +24,11 @@ db_schema = commands.DatabaseSchema(**schema_data)
 
 
 class TestEvalSQLStages(BaseSQLEvalTest):
+    """SQL Stages evaluation tests."""
+
+    RUN_TYPE = "sql_stages"
+    TEST_TYPE = "sql_stages"
+
     def setup_method(self):
         """Setup mock database schema for each test."""
         super().setup_method()
@@ -68,15 +73,16 @@ class TestEvalSQLStages(BaseSQLEvalTest):
             ],
         }
 
-        # Evaluate with judge
+        # Evaluate with judge and record to database
         self.evaluate_with_judge(
-            stage_name="grounding",
             fixture_name=fixture_name,
             question=question,
             expected_response=expected_response,
-            actual_response_dict=actual_response_dict,
+            actual_response=actual_response_dict,
             test_data=test_data,
             judge_question=f"Identify tables and columns for SQL query: {question}",
+            sql_stage="grounding",
+            schema_context={"tables": [t.model_dump() for t in self.schema.tables]},
         )
 
     @pytest.mark.parametrize(
@@ -122,15 +128,15 @@ class TestEvalSQLStages(BaseSQLEvalTest):
             "having_conditions": [],
         }
 
-        # Evaluate with judge
+        # Evaluate with judge and record to database
         self.evaluate_with_judge(
-            stage_name="filter",
             fixture_name=fixture_name,
             question=question,
             expected_response=expected_response,
-            actual_response_dict=actual_response_dict,
+            actual_response=actual_response_dict,
             test_data=test_data,
             judge_question=f"Extract WHERE conditions from: {question}",
+            sql_stage="filter",
         )
 
     @pytest.mark.parametrize(
@@ -178,15 +184,15 @@ class TestEvalSQLStages(BaseSQLEvalTest):
             "requires_aggregation": actual_response.is_aggregation_query,
         }
 
-        # Evaluate with judge
+        # Evaluate with judge and record to database
         self.evaluate_with_judge(
-            stage_name="aggregation",
             fixture_name=fixture_name,
             question=question,
             expected_response=expected_response,
-            actual_response_dict=actual_response_dict,
+            actual_response=actual_response_dict,
             test_data=test_data,
             judge_question=f"Identify aggregation needs for: {question}",
+            sql_stage="aggregation",
         )
 
     @pytest.mark.parametrize(
@@ -244,32 +250,22 @@ class TestEvalSQLStages(BaseSQLEvalTest):
             else bool(actual_response.joins),
         }
 
-        # Evaluate with judge
+        # Evaluate with judge and record to database
         self.evaluate_with_judge(
-            stage_name="join",
             fixture_name=fixture_name,
             question=question,
             expected_response=expected_response,
-            actual_response_dict=actual_response_dict,
+            actual_response=actual_response_dict,
             test_data=test_data,
             judge_question=f"Determine joins needed for: {question}",
+            sql_stage="join",
+            schema_context={
+                "relationships": [r.model_dump() for r in self.schema.relationships]
+            },
         )
 
     @classmethod
     def teardown_class(cls):
         """Generate summary reports for all SQL stages."""
-        if not USE_LLM_JUDGE:
-            return
-
-        # Access class-level results
-        judge_results = cls._class_judge_results
-
-        # Create a temporary instance for summary generation
-        instance = cls()
-        instance.setup_method()
-        instance.current_path = current_path
-
-        # Generate summary for each stage
-        for stage in ["grounding", "filter", "aggregation", "join"]:
-            if stage in judge_results:
-                instance.generate_stage_summary(stage, judge_results[stage])
+        # Call parent teardown which handles database completion and summary
+        super().teardown_class()
