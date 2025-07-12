@@ -2,9 +2,8 @@ import asyncio
 import os
 from time import time
 
-from dotenv import load_dotenv
-
 import src.agent.service_layer.handlers as handlers
+from dotenv import load_dotenv
 from fastapi import (
     FastAPI,
     Header,
@@ -19,7 +18,7 @@ from src.agent.adapters.adapter import RouterAdapter
 from src.agent.adapters.notifications import SlackNotifications, WSNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
-from src.agent.domain.commands import Question, SQLQuestion
+from src.agent.domain.commands import Question, Scenario, SQLQuestion
 from src.agent.observability.context import connected_clients, ctx_query_id
 
 if os.getenv("IS_TESTING") != "true":
@@ -110,6 +109,43 @@ async def query(
 
     try:
         command = SQLQuestion(question=question, q_id=session_id)
+        # Run the command handling in the background
+        asyncio.create_task(asyncio.to_thread(bus.handle, command))
+        return {"status": "processing", "message": "Event triggered successfully"}
+
+    except (handlers.InvalidQuestion, ValueError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/scenario")
+async def scenario(
+    question: str,
+    x_session_id: str = Header(default="default-session", alias="X-Session-ID"),
+):
+    """
+    Entrypoint for the Scenario agent.
+
+    Args:
+        question: str: The question to answer via SQL.
+        x_session_id: str: Session ID from X-Session-ID header.
+
+    Returns:
+        response: str: The response to the question.
+
+    Raises:
+        HTTPException: If the question is invalid.
+        ValueError: If the question is invalid.
+    """
+    session_id = x_session_id
+    logger.info(f"session_id: {session_id}")
+
+    if not question:
+        raise HTTPException(status_code=400, detail="No question asked")
+
+    ctx_query_id.set(session_id)
+
+    try:
+        command = Scenario(question=question, q_id=session_id)
         # Run the command handling in the background
         asyncio.create_task(asyncio.to_thread(bus.handle, command))
         return {"status": "processing", "message": "Event triggered successfully"}

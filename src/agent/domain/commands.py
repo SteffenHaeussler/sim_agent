@@ -154,6 +154,26 @@ class DatabaseSchema(BaseModel):
     relationships: list[Relationship]
 
 
+class ScenarioCandidate(BaseModel):
+    question: str
+    endpoint: str
+
+
+class ScenarioResponse(BaseModel):
+    candidates: List[ScenarioCandidate]
+    chain_of_thought: Optional[str] = None
+
+
+class ScenarioValidationResponse(BaseModel):
+    approved: bool
+    summary: Optional[str] = None
+    issues: Optional[List[str]] = None
+    plausibility: Optional[str] = None
+    usefulness: Optional[str] = None
+    clarity: Optional[str] = None
+    chain_of_thought: Optional[str] = None
+
+
 ################################################################################
 # Internal Tool Commands
 ################################################################################
@@ -361,3 +381,35 @@ class CompleteEvaluationRun(Command):
 
     run_id: str  # UUID as string
     fixtures_used: Optional[List[str]] = None
+
+
+################################################################################
+# Internal Scenario Commands
+################################################################################
+
+
+class Scenario(Command):
+    question: str
+    q_id: str
+    schema_info: Optional[Any] = None
+    tool_info: Optional[Any] = None
+
+
+class ScenarioLLMResponse(Command):
+    question: str
+    q_id: str
+    candidates: Optional[List[ScenarioCandidate]] = None
+    chain_of_thought: Optional[str] = None
+
+
+class ScenarioFinalCheck(Command):
+    question: str
+    q_id: str
+    candidates: Optional[List[ScenarioCandidate]] = None
+    approved: Optional[bool] = None
+    summary: Optional[str] = None
+    issues: Optional[List[str]] = None
+    plausibility: Optional[str] = None
+    usefulness: Optional[str] = None
+    clarity: Optional[str] = None
+    chain_of_thought: Optional[str] = None
