@@ -2,7 +2,6 @@ from typing import Union
 
 from langfuse import get_client, observe
 from loguru import logger
-
 from src.agent import config
 from src.agent.adapters.adapter import AbstractAdapter
 from src.agent.adapters.notifications import AbstractNotifications
@@ -319,4 +318,7 @@ STEP_NAMES = {
     commands.SQLConstruction: "Constructing...",
     commands.SQLValidation: "Validating...",
     commands.SQLExecution: "Executing...",
+    commands.Scenario: "Processing...",
+    commands.ScenarioLLMResponse: "Thinking...",
+    commands.ScenarioFinalCheck: "Evaluating...",
 }
