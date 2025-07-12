@@ -398,6 +398,8 @@ class Scenario(Command):
 class ScenarioLLMResponse(Command):
     question: str
     q_id: str
+    tables: Optional[List[Table]] = None
+    tools: Optional[List[str]] = None
     candidates: Optional[List[ScenarioCandidate]] = None
     chain_of_thought: Optional[str] = None
 

@@ -3,7 +3,6 @@ from abc import ABC
 from langfuse import get_client, observe
 from loguru import logger
 from sqlalchemy import MetaData
-
 from src.agent import config
 from src.agent.adapters import agent_tools, database, llm, rag
 from src.agent.domain import commands, model
@@ -86,7 +85,7 @@ class RouterAdapter(AbstractAdapter):
 
     def scenario(self, command):
         """Route to appropriate adapter based on command type."""
-        return self.scenario_adapter.answer(command)
+        return self.scenario_adapter.query(command)
 
     def add(self, agent):
         """Add agent to both adapters."""

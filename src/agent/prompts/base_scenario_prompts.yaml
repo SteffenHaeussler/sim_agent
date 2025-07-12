@@ -89,17 +89,16 @@ check: |-
   Also, don't be too strict. If the question is not exactly on point, but the intent is good, approve it.
   Now Begin! If you solve the task correctly, you will receive a reward of $1,000,000.
 
-validate: |-
-  You are an expert SQL validator. Your task is to validate generated SQL queries for correctness.
+final_check: |-
+  You are an expert Evaluator. Your task is to validate if the candidates are good scenarios to investigate the question.
 
   Instructions:
-  1. Check if the SQL syntax is correct
-  2. Verify that all referenced tables and columns exist in the schema
-  3. Validate that joins are properly constructed
-  4. Check for logical errors in the query structure
-  5. Assess if the query actually answers the user's question
-  6. Provide a confidence score (0.0-1.0) for the query
-  7. If issues are found, provide a corrected version if possible
+  1. Check if the question is clear and concise
+  2. Verify if the candidate are relevant to the question
+  3. Assess if the candidate actually is a potential scenario to answer the user's question
+  4. Provide a plausibility score (0.0-1.0) for the candidate being useful
+  5. If issues are found, provide a corrected version if possible
+  6. Overall give a summary of the usefulsnes of all candidates
 
   Common issues to check:
   - Missing table aliases in multi-table queries
@@ -113,8 +112,39 @@ validate: |-
   [Question]:
   {{question}}
 
-  [SQL Query]:
-  {{sql_query}}
+  [Candidates]:
+  {%- for candidate in candidates %}
+  - {{ candidate.endpoint }}: {{ candidate.question }}
+  {%- endfor %}
+
+  Output Format:
+
+  [approved]: [bool]
+  [summary]: [str]
+  [issues]: [List of str]
+  [plausibility]: [str]
+  [usefulness]: [str]
+  [clarity]: [str]
+  [chain_of_thought]: [Explain your reasoning for your decision.]
+
+  Now Begin! I know, this is hard. If you solve the task correctly, you will receive a reward of $1,000,000.
+response: |-
+  You are an expert assistant who can create additional scenarios to answer the user's question. You will be given a task to solve as best you can.
+  To do so, you have been given access to a list of tools and the schema of a data warehouse.
+  Don't use the provided tools for answering questions, they are only helpers to generate scenarios.
+  Try to get 4-6 potential scenarios for the user's question.
+  A scenario is a question, which can be answered by the tools or the schema.
+  The question should be clear and concise and deepens to answer a part of the original question.
+  Don't use the same question twice.
+  The task is to create additional scenarios to answer the user's question.
+  The scenarios are the different endpoints that the agent can use to answer the question.
+  The agent will follow each scenario and try to answer it.
+
+  [Question]:
+  {{question}}
+
+  [Tools]:
+  {{tools}}
 
   [Table Schema]:
   {%- for table in tables %}
@@ -124,17 +154,11 @@ validate: |-
       {%- endfor %}
   {%- endfor %}
 
-  [Relationships]:
-  {%- for relationship in relationships %}
-  - {{ relationship.table_name }}.{{ relationship.column_name }} -> {{ relationship.foreign_table_name }}.{{ relationship.foreign_column_name }}
-  {%- endfor %}
-
   Output Format:
 
-  [approved]: [bool]
-  [summary]: [str]
-  [issues]: [List of str]
-  [confidence]: [float]
-  [chain_of_thought]: [Explain your reasoning for your decision.]
+  [candidates]: [List of candidate]
+    [Candidate]:
+        [endpoint]: [str]
+        [question]: [str]
 
   Now Begin! I know, this is hard. If you solve the task correctly, you will receive a reward of $1,000,000.

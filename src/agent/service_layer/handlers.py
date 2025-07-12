@@ -176,7 +176,7 @@ def scenario(
                 notification.send(agent.q_id, status_event)
 
         logger.info(f"Calling Adapter with command: {type(command)}")
-        updated_command = adapter.query(command)
+        updated_command = adapter.scenario(command)
         command = agent.update(updated_command)
 
         if agent.send_response:

@@ -4,8 +4,11 @@ from typing import Dict, List, Optional
 
 import yaml
 
+from src.agent.adapters import tools
 from src.agent.domain import commands, events
 from src.agent.utils import populate_template
+
+tool_names = tools.__all__
 
 
 class ScenarioBaseAgent:
@@ -69,7 +72,7 @@ class ScenarioBaseAgent:
         if type(command) is commands.Check:
             prompt = self.base_prompts.get("check", None)
         elif type(command) is commands.ScenarioLLMResponse:
-            prompt = self.base_prompts.get("llm_response", None)
+            prompt = self.base_prompts.get("response", None)
         elif type(command) is commands.ScenarioFinalCheck:
             prompt = self.base_prompts.get("final_check", None)
         else:
@@ -90,8 +93,8 @@ class ScenarioBaseAgent:
                 prompt,
                 {
                     "question": command.question,
-                    "schema_info": command.schema_info,
-                    "tool_info": command.tool_info,
+                    "tables": command.tables,
+                    "tools": "\n".join(command.tools),
                 },
             )
         elif type(command) is commands.ScenarioFinalCheck:
@@ -138,6 +141,31 @@ class ScenarioBaseAgent:
         new_command = commands.Check(
             question=command.question,
             q_id=command.q_id,
+        )
+
+        new_command.question = self.create_prompt(new_command)
+
+        return new_command
+
+    def prepare_finalization(
+        self, command: commands.ScenarioLLMResponse
+    ) -> commands.ScenarioLLMResponse:
+        """
+        Prepares the finalization for the question.
+
+        Args:
+            command: commands.ScenarioLLMResponse: The command to change the question.
+
+        Returns:
+            new_command: commands.ScenarioLLMResponse: The new command.
+        """
+        tools = self.get_tool_info()
+
+        new_command = commands.ScenarioLLMResponse(
+            question=command.question,
+            q_id=command.q_id,
+            tables=deepcopy(self.scenario.schema_info.tables),
+            tools=tools,
         )
 
         new_command.question = self.create_prompt(new_command)
@@ -202,7 +230,7 @@ class ScenarioBaseAgent:
         """
         self.is_answered = True
 
-        summary = command.summary + "\n\nHere is the SQL query:\n\n" + self.sql_query
+        summary = command.summary
 
         self.evaluation = events.Evaluation(
             response=self.response.response,
@@ -214,6 +242,20 @@ class ScenarioBaseAgent:
         )
 
         return None
+
+    def get_tool_info(self) -> List[str]:
+        """
+        Get the tool info for the agent.
+
+        Returns:
+            tool_info: List[str]: The tool info for the agent.
+        """
+        tool_info = []
+        for name in tools.__all__:
+            tool = getattr(tools, name)
+            tool_info.append(f"{tool.name}: {tool.description}")
+
+        return tool_info
 
     def _update_state(self, response: commands.Command) -> None:
         """
@@ -258,9 +300,9 @@ class ScenarioBaseAgent:
             case commands.Scenario():
                 new_command = self.prepare_guardrails_check(command)
             case commands.Check():
-                new_command = self.prepare_llm_response(command)
+                new_command = self.prepare_finalization(command)
             case commands.ScenarioLLMResponse():
-                new_command = self.prepare_final_check(command)
+                new_command = self.prepare_response(command)
             case commands.ScenarioFinalCheck():
                 new_command = self.prepare_validation(command)
             case _:
