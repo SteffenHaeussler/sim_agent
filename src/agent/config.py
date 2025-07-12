@@ -15,10 +15,20 @@ def get_agent_config():
     if sql_prompts_file is None:
         raise ValueError("sql_prompts_file not set in environment variables")
 
+    scenario_prompts_file = getenv("scenario_prompts_file")
+
+    if scenario_prompts_file is None:
+        raise ValueError("scenario_prompts_file not set in environment variables")
+
     prompt_path = Path(ROOTDIR, prompts_file)
     sql_prompt_path = Path(ROOTDIR, sql_prompts_file)
+    scenario_prompt_path = Path(ROOTDIR, scenario_prompts_file)
 
-    return dict(prompt_path=prompt_path, sql_prompt_path=sql_prompt_path)
+    return dict(
+        prompt_path=prompt_path,
+        sql_prompt_path=sql_prompt_path,
+        scenario_prompt_path=scenario_prompt_path,
+    )
 
 
 def get_llm_config():

@@ -3,7 +3,6 @@ from abc import ABC
 from langfuse import get_client, observe
 from loguru import logger
 from sqlalchemy import MetaData
-
 from src.agent import config
 from src.agent.adapters import agent_tools, database, llm, rag
 from src.agent.domain import commands, model
@@ -74,6 +73,7 @@ class RouterAdapter(AbstractAdapter):
     def __init__(self):
         self.agent_adapter = AgentAdapter()
         self.sql_adapter = SQLAgentAdapter()
+        self.scenario_adapter = ScenarioAdapter()
 
     def answer(self, command):
         """Route to appropriate adapter based on command type."""
@@ -83,16 +83,22 @@ class RouterAdapter(AbstractAdapter):
         """Route to appropriate adapter based on command type."""
         return self.sql_adapter.query(command)
 
+    def scenario(self, command):
+        """Route to appropriate adapter based on command type."""
+        return self.scenario_adapter.query(command)
+
     def add(self, agent):
         """Add agent to both adapters."""
         self.agent_adapter.add(agent)
         self.sql_adapter.add(agent)
+        self.scenario_adapter.add(agent)
 
     def collect_new_events(self):
         """Collect events from both adapters."""
         events = []
         events.extend(self.agent_adapter.collect_new_events())
         events.extend(self.sql_adapter.collect_new_events())
+        events.extend(self.scenario_adapter.collect_new_events())
         return events
 
 
@@ -741,6 +747,227 @@ class SQLAgentAdapter(AbstractAdapter):
         command.summary = response.summary
         command.issues = response.issues
         command.confidence = response.confidence
+        command.chain_of_thought = response.chain_of_thought
+
+        return command
+
+
+class ScenarioAdapter(AbstractAdapter):
+    """
+    ScenarioAdapter is an adapter for the scenario agent.
+    It defines the flow of commands from the model agent to the external service.
+
+    Question -> Check -> LLMResponse -> FinalCheck
+
+    Methods:
+        - check(command: commands.Scenario) -> commands.Scenario: Check the incoming question via guardrails.
+        - finalize(command: commands.LLMResponse) -> commands.LLMResponse: Finalize the response via LLM.
+        - question(command: commands.Scenario) -> commands.Scenario: only for tracing.
+        - validation(command: commands.Scenario) -> commands.Scenario: Validate the question to schema elements.
+
+    Adapters:
+        - guardrails: Performs checks via guardrails.
+        - llm: Calls a LLM.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        self.database = database.BaseDatabaseAdapter(
+            kwargs=config.get_database_config(),
+        )
+
+        self.guardrails = llm.LLM(
+            kwargs=config.get_guardrails_config(),
+        )
+        self.llm = llm.LLM(
+            kwargs=config.get_llm_config(),
+        )
+
+    @observe()
+    def check(self, command: commands.Scenario) -> commands.Scenario:
+        """
+        Check the incoming question via guardrails.
+
+        Args:
+            command: commands.Scenario: The command to check.
+
+        Returns:
+            commands.Scenario: The command to check.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="check",
+            session_id=command.q_id,
+        )
+        response = self.guardrails.use(
+            command.question, commands.GuardrailPreCheckModel
+        )
+
+        command.response = response.response
+        command.chain_of_thought = response.chain_of_thought
+
+        return command
+
+    @observe()
+    def finalize(
+        self, command: commands.ScenarioLLMResponse
+    ) -> commands.ScenarioLLMResponse:
+        """
+        Finalize the response via LLM.
+        This is the final step in the scenario agent.
+
+        Args:
+            command: commands.ScenarioLLMResponse: The command to finalize.
+
+        Returns:
+            commands.ScenarioLLMResponse: The command to finalize.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="finalize",
+            session_id=command.q_id,
+        )
+        response = self.llm.use(command.question, commands.ScenarioResponse)
+
+        command.chain_of_thought = response.chain_of_thought
+        command.candidates = response.candidates
+
+        return command
+
+    def convert_schema(self, schema: MetaData) -> commands.DatabaseSchema:
+        """
+        Convert the schema to a more readable format.
+        """
+
+        tables = []
+        for table_name, table in schema.tables.items():
+            # Create Column objects for each column
+            columns = []
+            for column in table.columns:
+                if column.name in ["created_at", "updated_at"]:
+                    continue
+
+                columns.append(
+                    commands.Column(
+                        name=column.name,
+                        type=str(column.type),
+                        description=column.description,
+                    )
+                )
+
+            # Create Table object
+            tables.append(
+                commands.Table(
+                    name=table_name, columns=columns, description=table.description
+                )
+            )
+
+        # Build relationships list
+        relationships = []
+        for table_name, table in schema.tables.items():
+            for fk in table.foreign_keys:
+                relationship = commands.Relationship(
+                    table_name=table_name,
+                    column_name=fk.parent.name,
+                    foreign_table_name=fk.column.table.name,
+                    foreign_column_name=fk.column.name,
+                )
+                relationships.append(relationship)
+
+        new_schema = commands.DatabaseSchema(
+            tables=tables,
+            relationships=relationships,
+        )
+
+        return new_schema
+
+    def query(self, command: commands.Command) -> commands.Command:
+        """
+        Answer a command. Processes each request by the command type
+
+        Args:
+            command: commands.Command: The command to answer.
+
+        Returns:
+            commands.Command: The command to answer.
+        """
+        match command:
+            case commands.Scenario():
+                response = self.question(command)
+            case commands.Check():
+                response = self.check(command)
+            case commands.ScenarioLLMResponse():
+                response = self.finalize(command)
+            case commands.ScenarioFinalCheck():
+                response = self.validation(command)
+            case _:
+                raise NotImplementedError(
+                    f"Not implemented in AgentAdapter: {type(command)}"
+                )
+        return response
+
+    @observe()
+    def question(self, command: commands.Question) -> commands.Question:
+        """
+        Gets the schema info from the database.
+
+        Args:
+            command: commands.Question: The command to handle a question.
+
+        Returns:
+            commands.Question: The command to handle a question.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="question",
+            session_id=command.q_id,
+        )
+
+        with self.database as db:
+            schema = db.get_schema()
+
+        schema = self.convert_schema(schema)
+
+        command.schema_info = schema
+
+        logger.info(
+            f"Schema created with {len(schema.tables)} tables and {len(schema.relationships)} relationships"
+        )
+
+        return command
+
+    @observe()
+    def validation(
+        self, command: commands.ScenarioFinalCheck
+    ) -> commands.ScenarioFinalCheck:
+        """
+        Validate the question to schema elements.
+
+        Args:
+            command: commands.ScenarioFinalCheck: The command to validate.
+
+        Returns:
+            commands.ScenarioFinalCheck: The command to validate.
+        """
+        langfuse = get_client()
+
+        langfuse.update_current_trace(
+            name="validation",
+            session_id=command.q_id,
+        )
+
+        response = self.llm.use(command.question, commands.ScenarioValidationResponse)
+
+        command.approved = response.approved
+        command.summary = response.summary
+        command.issues = response.issues
+        command.plausibility = response.plausibility
+        command.usefulness = response.usefulness
+        command.clarity = response.clarity
         command.chain_of_thought = response.chain_of_thought
 
         return command

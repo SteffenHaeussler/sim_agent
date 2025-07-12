@@ -2,14 +2,13 @@ import argparse
 import os
 from uuid import uuid4
 
-from dotenv import load_dotenv
-
 import src.agent.service_layer.handlers as handlers
+from dotenv import load_dotenv
 from src.agent.adapters.adapter import RouterAdapter
 from src.agent.adapters.notifications import CliNotifications, SlackNotifications
 from src.agent.bootstrap import bootstrap
 from src.agent.config import get_logging_config, get_tracing_config
-from src.agent.domain.commands import Question, SQLQuestion
+from src.agent.domain.commands import Question, Scenario, SQLQuestion
 from src.agent.observability.context import ctx_query_id
 from src.agent.observability.logging import setup_logging
 from src.agent.observability.tracing import setup_tracing
@@ -47,6 +46,8 @@ def answer(question: str, q_id: str, tool: str = "tool") -> str:
     try:
         if tool == "sql":
             command = SQLQuestion(question=question, q_id=q_id)
+        elif tool == "scenario":
+            command = Scenario(question=question, q_id=q_id)
         else:
             command = Question(question=question, q_id=q_id)
         bus.handle(command)
