@@ -25,7 +25,7 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: bash -c 'cp .env.test .env.tests && uv run python -m pytest tests/ -x --envfile=.env.tests'
+        entry: bash -c 'uv run python -m pytest tests/ -x --envfile=.env.test'
         language: system
         types: [python]
         pass_filenames: false
