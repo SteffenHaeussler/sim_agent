@@ -447,10 +447,6 @@ guardrails:
     Your goal is to determine if the agent's final response is plausible, factually consistent with its memory, clearly communicated, and directly addresses the user's query.
     Sometimes the [Question] is about a plot or comparison. The original response will be too long for the context window and will be replaced by a simple statement. Just accept it.
 
-    The task was to create different scenarios from an initial question.
-    The scenarios are the different endpoints that the agent can use to answer the question.
-    The agent will follow each scenario and try to answer it.
-
     Criteria:
 
     1. Plausibility:
@@ -480,8 +476,11 @@ guardrails:
     [Question]:
     {{question}}
 
-    [Candidates]:
-    {{candidates}}
+    [Response]:
+    {{response}}
+
+    [Memory]:
+    {{memory}}
 
     Output Format:
 
@@ -489,7 +488,7 @@ guardrails:
     [summary]: [One-sentence summary of the findings]
     [chain_of_thought]: [Explain your reasoning for your decision.]
     [plausibility]: [OK | CONCERN | FAIL]
-    [usefulness]: [OK | CONCERN | FAIL]
+    [factual_consistency]: [OK | CONCERN | FAIL]
     [clarity]: [OK | CONCERN | FAIL]
     [issues]: [List of specific issues, if any]
 

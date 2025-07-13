@@ -143,9 +143,6 @@ response: |-
   [Question]:
   {{question}}
 
-  [Tools]:
-  {{tools}}
-
   [Table Schema]:
   {%- for table in tables %}
   - {{ table.name }}:
