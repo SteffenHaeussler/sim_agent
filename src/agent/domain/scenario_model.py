@@ -3,7 +3,6 @@ from copy import deepcopy
 from typing import Dict, List, Optional
 
 import yaml
-
 from src.agent.adapters import tools
 from src.agent.domain import commands, events
 from src.agent.utils import populate_template
@@ -94,7 +93,7 @@ class ScenarioBaseAgent:
                 {
                     "question": command.question,
                     "tables": command.tables,
-                    "tools": "\n".join(command.tools),
+                    # "tools": "\n".join(command.tools),
                 },
             )
         elif type(command) is commands.ScenarioFinalCheck:
