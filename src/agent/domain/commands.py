@@ -271,7 +271,7 @@ class SQLCheck(Command):
 class SQLConstruction(Command):
     question: str
     q_id: str
-    schema_info: Optional[Any] = None
+    schema_info: Optional[DatabaseSchema] = None
     column_mapping: Optional[List[ColumnMapping]] = None
     table_mapping: Optional[List[TableMapping]] = None
     conditions: Optional[List[FilterCondition]] = None
@@ -287,7 +287,7 @@ class SQLExecution(Command):
     question: str
     q_id: str
     sql_query: str
-    data: Optional[Dict[str, str]] = None
+    data: Optional[Dict[str, Any]] = None
 
 
 class SQLFilter(Command):
