@@ -2,6 +2,7 @@ from typing import Union
 
 from langfuse import get_client, observe
 from loguru import logger
+
 from src.agent import config
 from src.agent.adapters.adapter import AbstractAdapter
 from src.agent.adapters.notifications import AbstractNotifications
