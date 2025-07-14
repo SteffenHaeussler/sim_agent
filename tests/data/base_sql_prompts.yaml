@@ -2,7 +2,7 @@ aggregate: |-
   test aggregate prompt
 check: |-
   test check prompt
-construction: |-
+construct: |-
   test construction prompt
 filter: |-
   test filter prompt

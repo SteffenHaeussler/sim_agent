@@ -285,56 +285,274 @@ class TestSQLAgent:
             q_id="test session id",
         )
 
-    # def test_agent_check_question(self):
-    #     question = commands.SQLQuestion(question="test query", q_id="test session id")
-    #     agent = SQLBaseAgent(question, get_agent_config())
+    def test_agent_change_grounding(self):
+        table_mapping = commands.TableMapping(
+            question_term="test_table",
+            table_name="test_table",
+            confidence=1.0,
+        )
 
-    #     response = agent.update(question)
-    #     assert response == commands.Check(
-    #         question="test guardrails pre check", q_id="test session id"
-    #     )
+        column_mapping = commands.ColumnMapping(
+            question_term="id",
+            table_name="test_table",
+            column_name="id",
+            confidence=1.0,
+        )
 
-    # @patch("src.agent.domain.model.BaseAgent.create_prompt")
-    # def test_agent_change_use_tools(self, mock_create_prompt):
-    #     question = commands.UseTools(
-    #         question="test query", q_id="test session id", response="test response"
-    #     )
+        table = commands.Table(
+            name="test_table",
+            columns=[
+                commands.Column(name="id", type="int"),
+                commands.Column(name="name", type="str"),
+            ],
+        )
 
-    #     mock_create_prompt.return_value = "test prompt"
+        command = commands.SQLGrounding(
+            question="test query",
+            q_id="test session id",
+            tables=[table],
+            table_mapping=[table_mapping],
+            column_mapping=[column_mapping],
+        )
 
-    #     agent = SQLBaseAgent(question, get_agent_config())
+        question = commands.SQLQuestion(question="test query", q_id="test session id")
 
-    #     response = agent.update(question)
-    #     assert response == commands.LLMResponse(
-    #         question="test prompt",
-    #         q_id="test session id",
-    #     )
+        agent = SQLBaseAgent(question, get_agent_config())
 
-    # @patch("src.agent.domain.model.BaseAgent.create_prompt")
-    # def test_agent_change_rerank(self, mock_create_prompt):
-    #     question = commands.Rerank(
-    #         question="test query", q_id="test session id", candidates=[]
-    #     )
+        response = agent.update(command)
 
-    #     mock_create_prompt.return_value = "test prompt"
+        assert response == commands.SQLFilter(
+            question="test filter prompt",
+            q_id="test session id",
+            column_mapping=[column_mapping],
+        )
 
-    #     agent = SQLBaseAgent(question, get_agent_config())
+    def test_agent_change_filter(self):
+        table_mapping = commands.TableMapping(
+            question_term="test_table",
+            table_name="test_table",
+            confidence=1.0,
+        )
 
-    #     response = agent.update(question)
-    #     assert response == commands.Enhance(
-    #         question="test prompt", q_id="test session id"
-    #     )
+        column_mapping = commands.ColumnMapping(
+            question_term="id",
+            table_name="test_table",
+            column_name="id",
+            confidence=1.0,
+        )
 
-    # def test_agent_change_retrieve(self):
-    #     question = commands.Retrieve(
-    #         question="test query", q_id="test session id", candidates=[]
-    #     )
-    #     agent = SQLBaseAgent(question, get_agent_config())
+        schema = commands.DatabaseSchema(
+            tables=[
+                commands.Table(
+                    name="test_table",
+                    columns=[
+                        commands.Column(name="id", type="int"),
+                        commands.Column(name="name", type="str"),
+                    ],
+                ),
+            ],
+            relationships=[
+                commands.Relationship(
+                    table_name="test_table",
+                    column_name="id",
+                    foreign_table_name="test_table",
+                    foreign_column_name="id",
+                )
+            ],
+        )
 
-    #     response = agent.update(question)
-    #     assert response == commands.Rerank(
-    #         question="test query", q_id="test session id", candidates=[]
-    #     )
+        condition = commands.FilterCondition(
+            column="id",
+            operator="=",
+            value="1",
+        )
+
+        command = commands.SQLFilter(
+            question="test query",
+            q_id="test session id",
+            column_mapping=[column_mapping],
+            conditions=[condition],
+        )
+
+        question = commands.SQLQuestion(question="test query", q_id="test session id")
+
+        agent = SQLBaseAgent(question, get_agent_config())
+
+        agent.construction.table_mapping = [table_mapping]
+        agent.construction.schema_info = schema
+
+        response = agent.update(command)
+
+        assert response == commands.SQLJoinInference(
+            question="test join prompt",
+            q_id="test session id",
+            table_mapping=[table_mapping],
+            relationships=schema.relationships,
+            joins=None,
+        )
+
+    def test_agent_change_join_inference(self):
+        table_mapping = commands.TableMapping(
+            question_term="test_table",
+            table_name="test_table",
+            confidence=1.0,
+        )
+
+        column_mapping = commands.ColumnMapping(
+            question_term="id",
+            table_name="test_table",
+            column_name="id",
+            confidence=1.0,
+        )
+
+        schema = commands.DatabaseSchema(
+            tables=[
+                commands.Table(
+                    name="test_table",
+                    columns=[
+                        commands.Column(name="id", type="int"),
+                        commands.Column(name="name", type="str"),
+                    ],
+                ),
+            ],
+            relationships=[
+                commands.Relationship(
+                    table_name="test_table",
+                    column_name="id",
+                    foreign_table_name="test_table",
+                    foreign_column_name="id",
+                )
+            ],
+        )
+
+        join = commands.JoinPath(
+            from_table="test_table",
+            to_table="test_table",
+            from_column="id",
+            to_column="id",
+            join_type="INNER",
+        )
+
+        command = commands.SQLJoinInference(
+            question="test query",
+            q_id="test session id",
+            table_mapping=[table_mapping],
+            relationships=schema.relationships,
+            joins=[join],
+        )
+
+        question = commands.SQLQuestion(question="test query", q_id="test session id")
+
+        agent = SQLBaseAgent(question, get_agent_config())
+
+        agent.construction.column_mapping = [column_mapping]
+
+        response = agent.update(command)
+
+        assert response == commands.SQLAggregation(
+            question="test aggregate prompt",
+            q_id="test session id",
+            column_mapping=[column_mapping],
+            aggregations=None,
+            group_by_columns=None,
+            is_aggregation_query=None,
+        )
+
+    def test_agent_change_aggregation(self):
+        schema = commands.DatabaseSchema(
+            tables=[
+                commands.Table(
+                    name="test_table",
+                    columns=[
+                        commands.Column(name="id", type="int"),
+                        commands.Column(name="name", type="str"),
+                    ],
+                ),
+            ],
+            relationships=[
+                commands.Relationship(
+                    table_name="test_table",
+                    column_name="id",
+                    foreign_table_name="test_table",
+                    foreign_column_name="id",
+                )
+            ],
+        )
+
+        aggregation = commands.AggregationFunction(
+            function="SUM",
+            column="id",
+            alias="sum_id",
+        )
+
+        column_mapping = commands.ColumnMapping(
+            question_term="id",
+            table_name="test_table",
+            column_name="id",
+            confidence=1.0,
+        )
+
+        question = commands.SQLAggregation(
+            question="test query",
+            q_id="test session id",
+            column_mapping=[column_mapping],
+            aggregations=[aggregation],
+            group_by_columns=["test"],
+            is_aggregation_query=False,
+        )
+        agent = SQLBaseAgent(question, get_agent_config())
+
+        agent.construction.schema_info = schema
+
+        response = agent.update(question)
+
+        assert response == commands.SQLConstruction(
+            question="test construction prompt",
+            q_id="test session id",
+            schema_info=schema,
+            column_mapping=None,
+            table_mapping=None,
+            aggregations=[aggregation],
+            group_by_columns=["test"],
+            is_aggregation_query=False,
+            sql_query=None,
+        )
+
+    def test_agent_change_construction(self):
+        schema = commands.DatabaseSchema(
+            tables=[
+                commands.Table(
+                    name="test_table",
+                    columns=[
+                        commands.Column(name="id", type="int"),
+                        commands.Column(name="name", type="str"),
+                    ],
+                ),
+            ],
+            relationships=[
+                commands.Relationship(
+                    table_name="test_table",
+                    column_name="id",
+                    foreign_table_name="test_table",
+                    foreign_column_name="id",
+                )
+            ],
+        )
+
+        question = commands.SQLConstruction(
+            question="test query",
+            q_id="test session id",
+            schema_info=schema,
+            sql_query="SELECT * FROM test_table",
+        )
+        agent = SQLBaseAgent(question, get_agent_config())
+
+        response = agent.update(question)
+        assert response == commands.SQLExecution(
+            question="test query",
+            q_id="test session id",
+            sql_query="SELECT * FROM test_table",
+        )
 
     def test_agent_final_check(self):
         schema = commands.DatabaseSchema(
