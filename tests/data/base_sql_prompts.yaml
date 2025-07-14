@@ -1,0 +1,14 @@
+aggregate: |-
+  test aggregate prompt
+check: |-
+  test check prompt
+construct: |-
+  test construction prompt
+filter: |-
+  test filter prompt
+ground: |-
+  test grounding prompt
+join: |-
+  test join prompt
+validate: |-
+  test validate prompt

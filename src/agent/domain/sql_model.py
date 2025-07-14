@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 import yaml
+from loguru import logger
 
 from src.agent.domain import commands, events
 from src.agent.utils import populate_template
@@ -368,11 +369,11 @@ class SQLBaseAgent:
         if df is None:
             df = pd.DataFrame()
 
-        df = df.copy()
-
         try:
+            df = df.copy()
             markdown = df.to_markdown(index=False)
         except Exception:
+            logger.error("No data available")
             markdown = "No data available"
 
         response = events.Response(
