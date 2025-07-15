@@ -3,6 +3,8 @@ from abc import ABC
 from langfuse import get_client, observe
 from loguru import logger
 from sqlalchemy import MetaData
+
+
 from src.agent import config
 from src.agent.adapters import agent_tools, database, llm, rag
 from src.agent.domain import commands, model
@@ -737,7 +739,7 @@ class SQLAgentAdapter(AbstractAdapter):
         langfuse = get_client()
 
         langfuse.update_current_trace(
-            name="grounding",
+            name="validation",
             session_id=command.q_id,
         )
 
