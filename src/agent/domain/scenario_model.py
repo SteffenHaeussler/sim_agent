@@ -3,6 +3,7 @@ from copy import deepcopy
 from typing import Dict, List, Optional
 
 import yaml
+
 from src.agent.adapters import tools
 from src.agent.domain import commands, events
 from src.agent.utils import populate_template
@@ -183,6 +184,7 @@ class ScenarioBaseAgent:
         Returns:
             new_command: commands.FinalCheck: The new command.
         """
+
         if command.candidates is None:
             response = "No candidates found"
         else:
@@ -217,7 +219,7 @@ class ScenarioBaseAgent:
 
         return new_command
 
-    def prepare_validation(self, command: commands.SQLValidation) -> None:
+    def prepare_validation(self, command: commands.ScenarioFinalCheck) -> None:
         """
         Prepares the guardrails check for the question.
 
