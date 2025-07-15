@@ -8,18 +8,18 @@ from src.agent.adapters.llm import LLM
 from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
 from tests.utils import get_fixtures
-from tests.evals.base_eval_db import BaseEvaluationTest
+from evals.base_eval_db import BaseEvaluationTest
 
 current_path = Path(__file__).parent
-fixtures = get_fixtures(current_path, keys=["enhance"])
+fixtures = get_fixtures(current_path, keys=["post_check"])
 
 
-class TestEvalEnhance(BaseEvaluationTest):
-    """Enhancement evaluation tests."""
+class TestEvalPostCheck(BaseEvaluationTest):
+    """Post-check guardrails evaluation tests."""
 
-    RUN_TYPE = "enhance"
-    TEST_TYPE = "enhance"
-    EVALUATION_CATEGORY = "enhancement"
+    RUN_TYPE = "post_check"
+    TEST_TYPE = "guardrails"
+    EVALUATION_CATEGORY = "guardrails"
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -28,14 +28,15 @@ class TestEvalEnhance(BaseEvaluationTest):
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval_enhance(self, fixture_name, fixture):
-        """Run enhancement test with optional LLM judge evaluation."""
+    def test_eval_guardrails(self, fixture_name, fixture):
+        """Run post-check guardrails test with optional LLM judge evaluation."""
 
         # Extract test data
-        test_data = fixture["enhance"]
+        test_data = fixture["post_check"]
         question_text = test_data["question"]
-        candidates = test_data["candidates"]
-        expected_response = test_data["response"]
+        response_text = test_data["response"]
+        memory = test_data["memory"]
+        expected_response = test_data["approved"]
 
         q_id = str(uuid.uuid4())
         question = commands.Question(question=question_text, q_id=q_id)
@@ -46,42 +47,29 @@ class TestEvalEnhance(BaseEvaluationTest):
             kwargs=get_agent_config(),
         )
 
-        # Convert candidates to KBResponse objects
-        kb_candidates = []
-        for candidate in candidates:
-            kb_candidate = commands.KBResponse(
-                description=candidate.get("text", ""),
-                score=candidate.get("score", 0.0),
-                id=candidate.get("id", ""),
-                tag=candidate.get("tag", ""),
-                name=candidate.get("name", ""),
-            )
-            kb_candidates.append(kb_candidate)
-
-        # Create Rerank command
-        rerank_command = commands.Rerank(
+        # Create LLMResponse command for post-check
+        llm_response = commands.LLMResponse(
             question=question_text,
-            candidates=kb_candidates,
             q_id=q_id,
+            response=response_text,
         )
 
         # Start timing
         start_time = time.time()
 
-        # Prepare enhancement
-        enhance_command = agent.prepare_enhancement(rerank_command)
-
-        # Execute enhancement
-        response = llm.use(
-            enhance_command.question, response_model=commands.LLMResponseModel
-        )
-        actual_response = response.response
+        # Prepare post-check
+        prompt = agent.create_prompt(llm_response, memory)
+        response = llm.use(prompt, response_model=commands.GuardrailPostCheckModel)
 
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Add delay to avoid rate limiting
         time.sleep(1)
+
+        # Extract response
+        actual_response = response.approved
+        parsed_response = response.model_dump()
 
         # Evaluate with judge and record to database
         self.evaluate_with_judge(
@@ -92,10 +80,12 @@ class TestEvalEnhance(BaseEvaluationTest):
             test_data=test_data,
             execution_time_ms=execution_time_ms,
             metadata={
-                "candidates_count": len(candidates),
-                "enhance_prompt": enhance_command.question[:200] + "..."
-                if len(enhance_command.question) > 200
-                else enhance_command.question,
+                "check_type": "post_check",
+                "response_being_checked": response_text,
+                "memory": memory,
+                "response_json": parsed_response
+                if "parsed_response" in locals()
+                else None,
             },
         )
 

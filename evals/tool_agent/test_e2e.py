@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from src.agent.entrypoints.app import app
 from tests.utils import get_fixtures
-from tests.evals.base_eval_db import BaseEvaluationTest
+from evals.base_eval_db import BaseEvaluationTest
 
 current_path = Path(__file__).parent
 fixtures = get_fixtures(current_path, keys=["e2e"])

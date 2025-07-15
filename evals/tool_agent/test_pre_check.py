@@ -8,7 +8,7 @@ from src.agent.adapters.llm import LLM
 from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
 from tests.utils import get_fixtures
-from tests.evals.base_eval_db import BaseEvaluationTest
+from evals.base_eval_db import BaseEvaluationTest
 
 current_path = Path(__file__).parent
 fixtures = get_fixtures(current_path, keys=["pre_check"])

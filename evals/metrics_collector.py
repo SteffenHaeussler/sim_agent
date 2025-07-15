@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 from pydantic import BaseModel, Field
 
-from tests.evals.llm_judge import JudgeResult, JudgeScores
+from evals.llm_judge import JudgeResult, JudgeScores
 
 
 class TestMetric(BaseModel):

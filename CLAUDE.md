@@ -87,7 +87,7 @@ The BaseAgent follows a state machine pattern:
 - `tests/unit/` - Unit tests for individual components
 - `tests/integration/` - Integration tests for adapters
 - `tests/e2e/` - End-to-end tests
-- `tests/evals/` - Evaluation tests with JSON test data
+- `evals/` - Evaluation tests with performance benchmarks and quality assessments
 
 
 # ROLE AND EXPERTISE

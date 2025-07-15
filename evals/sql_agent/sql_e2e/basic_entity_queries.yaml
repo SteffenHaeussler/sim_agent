@@ -1,0 +1,33 @@
+suite_name: "Basic Entity Queries"
+suite_description: "Tests for basic queries on individual entities"
+default_judge_criteria:
+  accuracy_threshold: 8.5
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+  require_exact_match: true
+
+tests:
+  - name: "active_products_catalog"
+    question: "What are all the active products in our catalog?"
+    sql: |
+      SELECT
+        product_id,
+        name,
+        sku
+      FROM products
+      WHERE is_active = TRUE;
+    tags: ["simple_select", "filtering", "products"]
+    judge_criteria:
+      accuracy_threshold: 9.0
+
+  - name: "active_customers_list"
+    question: "List all customers with their company names and contact emails"
+    sql: |
+      SELECT
+        customer_id,
+        company_name,
+        contact_email
+      FROM customers
+      WHERE is_active = TRUE;
+    tags: ["simple_select", "filtering", "customers"]

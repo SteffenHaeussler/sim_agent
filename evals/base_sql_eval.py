@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 from src.agent.domain import commands
-from tests.evals.base_eval_db import BaseEvaluationTest
+from evals.base_eval_db import BaseEvaluationTest
 
 
 class BaseSQLEvalTest(BaseEvaluationTest):

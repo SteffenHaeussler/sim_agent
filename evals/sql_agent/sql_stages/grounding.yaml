@@ -1,0 +1,21 @@
+suite_name: "SQL Grounding Stage Tests"
+suite_description: "Tests for SQL grounding stage - identifying relevant tables and columns"
+default_judge_criteria:
+  accuracy_threshold: 8.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+
+tests:
+  - name: "order_customer_grounding"
+    question: "List all orders with customer details"
+    expected_response:
+      tables:
+        - orders
+        - customers
+      columns:
+        - orders.order_number
+        - orders.customer_id
+        - customers.company_name
+        - customers.contact_name
+    tags: ["grounding", "join_detection", "multiple_tables"]

@@ -12,7 +12,7 @@ from loguru import logger
 from src.agent.adapters.evaluation_repository import EvaluationRepository
 from src.agent.domain.evaluation_model import TestResult, JudgeScores
 from src.agent.config import get_llm_config
-from tests.evals.llm_judge import JudgeCriteria, JudgeResult, LLMJudge
+from evals.llm_judge import JudgeCriteria, JudgeResult, LLMJudge
 
 
 USE_LLM_JUDGE = os.getenv("USE_LLM_JUDGE", "true").lower() == "true"

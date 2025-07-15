@@ -1,0 +1,35 @@
+suite_name: "SQL Join Stage Tests"
+suite_description: "Tests for SQL join inference stage - determining required joins between tables"
+default_judge_criteria:
+  accuracy_threshold: 8.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+
+tests:
+  - name: "products_by_customer_join"
+    question: "List all products bought by each customer"
+    grounding_tables:
+      - customers
+      - orders
+      - order_details
+      - products
+    grounding_columns:
+      - customers.company_name
+      - products.name
+    expected_response:
+      joins:
+        - type: "INNER JOIN"
+          left_table: "customers"
+          right_table: "orders"
+          on_condition: "customers.customer_id = orders.customer_id"
+        - type: "INNER JOIN"
+          left_table: "orders"
+          right_table: "order_details"
+          on_condition: "orders.order_id = order_details.order_id"
+        - type: "INNER JOIN"
+          left_table: "order_details"
+          right_table: "products"
+          on_condition: "order_details.product_id = products.product_id"
+      requires_joins: true
+    tags: ["join", "multiple_joins", "relationship_chain"]
