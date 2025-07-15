@@ -360,3 +360,76 @@ class TestQuery:
         assert fake_notifs.sent["test_rejected_id"][2] == rejected_request
         assert fake_notifs.sent["test_rejected_id"][3] == end_of_event
         assert len(fake_notifs.sent["test_rejected_id"]) == 4
+
+
+class TestScenario:
+    def test_scenario_answers(self):
+        bus = bootstrap_test_app()
+        bus.handle(commands.Scenario(question="test scenario", q_id="test_scenario_id"))
+
+        # get the agent from the scenario adapter
+        agent = bus.adapter.scenario_adapter.agent
+
+        assert agent.q_id == "test_scenario_id"
+        assert agent.question == "test scenario"
+
+    def test_scenario_invalid_question(self):
+        bus = bootstrap_test_app()
+
+        with pytest.raises(InvalidQuestion, match="No question asked"):
+            bus.handle(commands.Scenario(question="", q_id="test_scenario_id"))
+
+    def test_scenario_for_new_agent(self):
+        bus = bootstrap_test_app()
+
+        assert bus.adapter.scenario_adapter.agent is None
+
+        bus.handle(commands.Scenario(question="test scenario", q_id="test_scenario_id"))
+        assert bus.adapter.scenario_adapter.agent is not None
+
+    def test_scenario_return_response(self):
+        bus = bootstrap_test_app()
+        bus.handle(commands.Scenario(question="test scenario", q_id="test_scenario_id"))
+
+        agent = bus.adapter.scenario_adapter.agent
+
+        # Scenario agent should have candidates
+        assert (
+            agent.response.response
+            == '[{"sub_id": "sub-1", "question": "test scenario question", "endpoint": "test endpoint"}]'
+        )
+
+    def test_scenario_sends_notification(self):
+        fake_notifs = FakeNotifications()
+        bus = bootstrap(adapter=FakeRouterAdapter(), notifications=[fake_notifs])
+        bus.handle(commands.Scenario(question="test scenario", q_id="test_scenario_id"))
+
+        # Check that scenario-specific status updates are sent
+        status_event = events.StatusUpdate(
+            step_name="Processing...",
+            q_id="test_scenario_id",
+        )
+
+        end_of_event = events.EndOfEvent(q_id="test_scenario_id", response="end")
+
+        response = events.Response(
+            question="test scenario",
+            response='[{"sub_id": "sub-1", "question": "test scenario question", "endpoint": "test endpoint"}]',
+            q_id="test_scenario_id",
+        )
+
+        scenario_validation = events.Evaluation(
+            question="test scenario",
+            response='[{"sub_id": "sub-1", "question": "test scenario question", "endpoint": "test endpoint"}]',
+            q_id="test_scenario_id",
+            approved=True,
+            summary="Scenario validation summary",
+            issues=[],
+            confidence=None,
+        )
+
+        assert fake_notifs.sent["test_scenario_id"][0] == status_event
+        assert fake_notifs.sent["test_scenario_id"][3] == response
+        assert fake_notifs.sent["test_scenario_id"][5] == scenario_validation
+        assert fake_notifs.sent["test_scenario_id"][6] == end_of_event
+        assert len(fake_notifs.sent["test_scenario_id"]) == 7
