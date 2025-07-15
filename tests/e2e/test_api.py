@@ -104,14 +104,8 @@ class TestAPI(unittest.TestCase):
     @patch("src.agent.adapters.database.BaseDatabaseAdapter.execute_query")
     @patch("src.agent.adapters.llm.LLM.use")
     @patch("src.agent.adapters.database.BaseDatabaseAdapter.get_schema")
-    @patch("src.agent.adapters.rag.BaseRAG.retrieve")
-    @patch("src.agent.adapters.rag.BaseRAG.rerank")
-    @patch("src.agent.adapters.rag.BaseRAG.embed")
     def test_happy_path_returns_200_and_query(
         self,
-        mock_embed,
-        mock_rerank,
-        mock_retrieve,
         mock_get_schema,
         mock_LLM,
         mock_execute,
@@ -194,25 +188,6 @@ class TestAPI(unittest.TestCase):
 
         mock_execute.return_value = {"results": [{"id": 1, "name": "test_name"}]}
 
-        mock_embed.return_value = {"embedding": [0.1, 0.2, 0.3]}
-        mock_rerank.return_value = {
-            "question": "test_question",
-            "text": "test_text",
-            "score": 0.5,
-        }
-        mock_retrieve.return_value = {
-            "results": [
-                {
-                    "question": "test_question",
-                    "description": "test_text",
-                    "score": 0.5,
-                    "id": "test_id",
-                    "tag": "test_tag",
-                    "name": "test_name",
-                }
-            ]
-        }
-
         params = {"question": "test"}
         headers = {"X-Session-ID": "test-session-123"}
 
@@ -234,6 +209,73 @@ class TestAPI(unittest.TestCase):
         params = {"question": "test question"}
         # Intentionally not providing X-Session-ID header
         response = client.get("/query", params=params)
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == [
+            {
+                "type": "missing",
+                "loc": ["header", "X-Session-ID"],
+                "msg": "Field required",
+                "input": None,
+            }
+        ]
+
+    @patch("src.agent.adapters.llm.LLM.use")
+    @patch("src.agent.adapters.database.BaseDatabaseAdapter.get_schema")
+    def test_happy_path_returns_200_and_scenario(
+        self,
+        mock_get_schema,
+        mock_LLM,
+    ):
+        # Create a proper SQLAlchemy MetaData object
+        metadata = MetaData()
+        mock_get_schema.return_value = metadata
+
+        mock_LLM.side_effect = [
+            commands.GuardrailPreCheckModel(
+                approved=True,
+                chain_of_thought="chain_of_thought",
+                response="test answer",
+            ),
+            commands.ScenarioResponse(
+                candidates=[
+                    commands.ScenarioCandidate(
+                        question="test_question",
+                        endpoint="test_endpoint",
+                    )
+                ],
+                chain_of_thought="chain_of_thought",
+            ),
+            commands.ScenarioValidationResponse(
+                approved=True,
+                issues=[],
+                summary="summary",
+                confidence=0.5,
+                chain_of_thought="chain_of_thought",
+            ),
+        ]
+
+        params = {"question": "test"}
+        headers = {"X-Session-ID": "test-session-123"}
+
+        response = client.get("/scenario", params=params, headers=headers)
+
+        assert response.status_code == 200
+
+        assert response.json()["status"] == "processing"
+
+    def test_unhappy_path_returns_400_and_scenario(self):
+        params = {"question": ""}
+        headers = {"X-Session-ID": "test-session-123"}
+        response = client.get("/scenario", params=params, headers=headers)
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "No question asked"
+
+    def test_missing_session_id_header_returns_400_scenario(self):
+        params = {"question": "test question"}
+        # Intentionally not providing X-Session-ID header
+        response = client.get("/scenario", params=params)
 
         assert response.status_code == 422
         assert response.json()["detail"] == [
