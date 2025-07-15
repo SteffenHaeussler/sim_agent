@@ -83,7 +83,7 @@ async def answer(
 @app.get("/query")
 async def query(
     question: str,
-    x_session_id: str = Header(default="default-session", alias="X-Session-ID"),
+    x_session_id: str = Header(alias="X-Session-ID"),
 ):
     """
     Entrypoint for the SQL agent.
@@ -120,7 +120,7 @@ async def query(
 @app.get("/scenario")
 async def scenario(
     question: str,
-    x_session_id: str = Header(default="default-session", alias="X-Session-ID"),
+    x_session_id: str = Header(alias="X-Session-ID"),
 ):
     """
     Entrypoint for the Scenario agent.
