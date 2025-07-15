@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from tests.evals.base_sql_eval import BaseSQLEvalTest
+from evals.base_sql_eval import BaseSQLEvalTest
 
 current_path = Path(__file__).parent
 

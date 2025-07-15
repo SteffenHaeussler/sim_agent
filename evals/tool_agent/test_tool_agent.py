@@ -6,7 +6,7 @@ import pytest
 from src.agent import config
 from src.agent.adapters import agent_tools
 from tests.utils import get_fixtures
-from tests.evals.base_eval_db import BaseEvaluationTest
+from evals.base_eval_db import BaseEvaluationTest
 
 current_path = Path(__file__).parent
 fixtures = get_fixtures(current_path, keys=["tool_agent"])

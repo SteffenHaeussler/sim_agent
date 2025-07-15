@@ -4,16 +4,71 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import yaml
 
 from src.agent.adapters.adapter import SQLAgentAdapter
 from src.agent.domain import commands
-from tests.utils import get_fixtures
-from tests.evals.base_sql_eval import BaseSQLEvalTest
+from evals.base_sql_eval import BaseSQLEvalTest
 
 current_path = Path(__file__).parent
 
-# Load fixtures for different SQL stages
-fixtures = get_fixtures(current_path, keys=["sql_stages"])
+
+def load_yaml_fixtures(test_dir):
+    """Load YAML test fixtures from the sql_stages directory."""
+    fixtures = {}
+    sql_stages_dir = test_dir / "sql_stages"
+
+    if not sql_stages_dir.exists():
+        print(f"WARNING: sql_stages directory not found at {sql_stages_dir}")
+        return fixtures
+
+    # Map of stage names to their YAML files
+    stage_files = {
+        "grounding": "grounding.yaml",
+        "filter": "filter.yaml",
+        "aggregation": "aggregation.yaml",
+        "join": "join.yaml",
+    }
+
+    for stage_name, yaml_file in stage_files.items():
+        yaml_path = sql_stages_dir / yaml_file
+        if not yaml_path.exists():
+            continue
+
+        with open(yaml_path, "r") as f:
+            suite_data = yaml.safe_load(f)
+
+        # Extract tests from the suite
+        for test in suite_data.get("tests", []):
+            test_name = f"{stage_name}_{test['name']}"
+
+            # Merge suite defaults with test-specific criteria
+            judge_criteria = suite_data.get("default_judge_criteria", {}).copy()
+            if "judge_criteria" in test:
+                judge_criteria.update(test["judge_criteria"])
+
+            # Create test data in expected format
+            test_data = {
+                "question": test["question"],
+                "expected_response": test["expected_response"],
+                "judge_criteria": judge_criteria,
+            }
+
+            # Add stage-specific fields
+            if stage_name in ["filter", "aggregation", "join"]:
+                if "grounding_tables" in test:
+                    test_data["grounding_tables"] = test["grounding_tables"]
+                if "grounding_columns" in test:
+                    test_data["grounding_columns"] = test["grounding_columns"]
+
+            # Convert to expected format with stage nested structure
+            fixtures[test_name] = {"sql_stages": {stage_name: test_data}}
+
+    return fixtures
+
+
+# Load fixtures from YAML files
+fixtures = load_yaml_fixtures(current_path)
 
 # Load database schema
 with open(current_path / "schema.json", "r") as f:
