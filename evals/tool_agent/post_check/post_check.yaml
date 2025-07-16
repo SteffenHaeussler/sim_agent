@@ -9,7 +9,6 @@ tests:
     memory:
       - "The daily maximum value of PI-P0017 in April 2025 is 1.588889."
     approved: true
-    tags: ["post_check", "correct_response", "approved"]
 
   - name: "eval_2"
     question: "What is the daily maximum value of PI-P0017 in April 2025?"
@@ -17,7 +16,6 @@ tests:
     memory:
       - "Sensor PI-P0015 is next to PI-P0017."
     approved: false
-    tags: ["post_check", "irrelevant_response", "rejected"]
 
   - name: "eval_3"
     question: "What is the maximum pressure of PI-P0017 in April 2025?"
@@ -25,4 +23,3 @@ tests:
     memory:
       - "The maximum pressure of PI-P0017 in April 2025 is a temperature of 11 degrees."
     approved: false
-    tags: ["post_check", "wrong_units", "rejected"]

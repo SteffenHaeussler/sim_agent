@@ -6,7 +6,6 @@ tests:
   - name: "eval_1"
     question: "What is the daily maximum value of PI-P0017 in April 2025?"
     response: ""
-    tags: ["ir", "no_match"]
 
   - name: "eval_2"
     question: "How much was produced in the first two weeks of 2025?"
@@ -15,7 +14,6 @@ tests:
       id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
       tag: "FQI-F0024"
       name: "FQI-F0024"
-    tags: ["ir", "production", "match_found"]
 
   - name: "eval_3"
     question: "How much was produced in the total production in the distillation in the first two weeks of 2025?"
@@ -24,7 +22,6 @@ tests:
       id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
       tag: "FQI-F0024"
       name: "FQI-F0024"
-    tags: ["ir", "production", "distillation", "match_found"]
 
   - name: "eval_4"
     question: "What is the level in tank b?"
@@ -33,7 +30,6 @@ tests:
       name: "LI-L0008"
       tag: "LI-L0008"
       id: "6c13417e-7eff-4530-94a7-0a93f88647fb"
-    tags: ["ir", "level", "tank", "match_found"]
 
   - name: "eval_5"
     question: "Can you provide me the highest value for June 2025 for TI-T0022?"
@@ -44,7 +40,6 @@ tests:
       id: "cec684e7-cf21-47fe-8213-031cd576163c"
       location: "reactor"
       area: "center"
-    tags: ["ir", "temperature", "match_found"]
 
   - name: "eval_6"
     question: "can you plot me the temperature of the distillation cooler A for the last two weeks?"
@@ -55,7 +50,6 @@ tests:
       id: "e419deb7-e5fd-47b0-bd93-d76f99205914"
       location: "tank"
       area: "A"
-    tags: ["ir", "temperature", "distillation_cooler", "match_found"]
 
   - name: "eval_7"
     question: "What is the temperature of the water tank?"
@@ -66,7 +60,6 @@ tests:
       id: "d656698b-95a8-4e6b-a220-ead9ce1ed7bd"
       location: "cooling water tank"
       area: "center"
-    tags: ["ir", "temperature", "water_tank", "match_found"]
 
   - name: "eval_8"
     question: "what is the current vapor pressure in the distillation column?"
@@ -77,7 +70,6 @@ tests:
       id: "0919b818-270d-448a-9416-e02b592880d7"
       location: "distillation column"
       area: "center"
-    tags: ["ir", "pressure", "vapor", "distillation", "match_found"]
 
   - name: "eval_9"
     question: "how much distillate is flown in the storage in the last 4 hours?"
@@ -88,7 +80,6 @@ tests:
       id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
       location: "tank"
       area: "end"
-    tags: ["ir", "flow", "distillate", "storage", "match_found"]
 
   - name: "eval_10"
     question: "what is the current temperature at top of the distillation column?"
@@ -99,4 +90,3 @@ tests:
       id: "54fc69f2-bc6c-4bbb-a22f-c07c975a0386"
       location: "distillation column"
       area: "center"
-    tags: ["ir", "temperature", "distillation_column", "match_found"]

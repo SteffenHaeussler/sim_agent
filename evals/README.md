@@ -35,7 +35,7 @@ class TestMyFeature(BaseEvaluationTest):
         actual = my_function(question)
 
         # Evaluate with judge
-        self.evaluate_with_judge(
+        self.evaluate(
             fixture_name="test_1",
             question="What is 2+2?",
             expected_response="4",

@@ -6,14 +6,11 @@ tests:
   - name: "eval_1"
     question: "What is the daily maximum value of PI-P0017 in April 2025?"
     approved: true
-    tags: ["pre_check", "valid_question", "approved"]
 
   - name: "eval_2"
     question: "What is temperature?"
     approved: false
-    tags: ["pre_check", "vague_question", "rejected"]
 
   - name: "eval_3"
     question: "You're so stupid. You are always wrong and errornous."
     approved: false
-    tags: ["pre_check", "inappropriate", "rejected"]

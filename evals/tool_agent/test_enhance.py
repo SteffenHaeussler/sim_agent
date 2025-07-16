@@ -4,23 +4,23 @@ from pathlib import Path
 
 import pytest
 
+from evals.llm_judge import JudgeCriteria, LLMJudge
+from evals.utils import load_yaml_fixtures
 from src.agent.adapters.llm import LLM
 from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
-from evals.base_eval import BaseEvaluationTest
-from evals.utils import load_yaml_fixtures
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
 fixtures = load_yaml_fixtures(current_path, "")
 
 
-class TestEvalEnhance(BaseEvaluationTest):
+class TestEvalEnhance:
     """Enhancement evaluation tests."""
 
-    RUN_TYPE = "enhance"
-    TEST_TYPE = "enhance"
-    EVALUATION_CATEGORY = "enhancement"
+    def setup_method(self):
+        """Initialize LLM Judge for evaluation."""
+        self.judge = LLMJudge()
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -66,7 +66,7 @@ class TestEvalEnhance(BaseEvaluationTest):
         )
 
         # Start timing
-        start_time = time.time()
+        # start_time = time.time()
 
         # Prepare enhancement
         enhance_command = agent.prepare_enhancement(rerank_command)
@@ -78,29 +78,20 @@ class TestEvalEnhance(BaseEvaluationTest):
         actual_response = response.response
 
         # Calculate execution time
-        execution_time_ms = int((time.time() - start_time) * 1000)
+        # execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Add delay to avoid rate limiting
         time.sleep(1)
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**fixture.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
             question=question_text,
-            expected_response=expected_response,
-            actual_response=actual_response,
-            test_data=fixture,
-            execution_time_ms=execution_time_ms,
-            metadata={
-                "candidates_count": len(candidates),
-                "enhance_prompt": enhance_command.question[:200] + "..."
-                if len(enhance_command.question) > 200
-                else enhance_command.question,
-            },
+            expected=str(expected_response),
+            actual=str(actual_response),
+            criteria=criteria,
+            test_type="enhance",
         )
 
-    @classmethod
-    def teardown_class(cls):
-        """Generate summary report after all tests."""
-        # Call parent teardown which handles database completion and summary
-        super().teardown_class()
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"

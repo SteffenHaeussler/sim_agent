@@ -3,10 +3,9 @@ from pathlib import Path
 
 import pytest
 
+from evals.utils import load_yaml_fixtures
 from src.agent import config
 from src.agent.adapters import rag
-from evals.base_eval import BaseEvaluationTest
-from evals.utils import load_yaml_fixtures
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
@@ -14,12 +13,8 @@ fixtures = load_yaml_fixtures(current_path, "")
 rag_adapter = rag.BaseRAG(config.get_rag_config())
 
 
-class TestIR(BaseEvaluationTest):
+class TestIR:
     """Information Retrieval evaluation tests."""
-
-    RUN_TYPE = "ir"
-    TEST_TYPE = "information_retrieval"
-    EVALUATION_CATEGORY = "retrieval"
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -36,7 +31,7 @@ class TestIR(BaseEvaluationTest):
         expected_response = fixture["response"]
 
         # Start timing
-        start_time = time.time()
+        # start_time = time.time()
 
         # Execute retrieval and ranking
         response = rag_adapter.embed(question)
@@ -52,7 +47,7 @@ class TestIR(BaseEvaluationTest):
         candidates = sorted(candidates, key=lambda x: -x["score"])
 
         # Calculate execution time
-        execution_time_ms = int((time.time() - start_time) * 1000)
+        # execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Extract top result - handle both string and dict expected responses
         if isinstance(expected_response, dict):
@@ -65,27 +60,5 @@ class TestIR(BaseEvaluationTest):
         # Add delay to avoid rate limiting
         time.sleep(1)
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
-            question=question,
-            expected_response=expected_response,
-            actual_response=actual_response,
-            test_data=fixture,
-            execution_time_ms=execution_time_ms,
-            metadata={
-                "candidates_retrieved": len(candidates),
-                "top_5_results": [r["name"] for r in candidates[:5]]
-                if len(candidates) >= 5
-                else [r["name"] for r in candidates],
-                "top_scores": [r["score"] for r in candidates[:5]]
-                if len(candidates) >= 5
-                else [r["score"] for r in candidates],
-            },
-        )
-
-    @classmethod
-    def teardown_class(cls):
-        """Generate summary report after all tests."""
-        # Call parent teardown which handles database completion and summary
-        super().teardown_class()
+        # Simple assert for exact match
+        assert actual_response == expected_response

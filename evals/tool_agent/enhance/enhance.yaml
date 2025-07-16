@@ -16,7 +16,6 @@ tests:
         tag: "TRC-T0029"
         name: "TRC-T0029"
     response: "What is the daily maximum value of PI-P0017 in April 2025?"
-    tags: ["enhancement", "pressure", "no_match"]
 
   - name: "eval_2"
     question: "How much was produced in the first two weeks of 2025?"
@@ -27,4 +26,3 @@ tests:
         tag: "FQI-F0024"
         name: "FQI-F0024"
     response: "What is the total production rate of FQI-F0024 in the first two weeks of 2025?"
-    tags: ["enhancement", "production", "tag_found"]

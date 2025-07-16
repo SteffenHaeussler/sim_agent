@@ -4,9 +4,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from src.agent.entrypoints.app import app
-from evals.base_eval import BaseEvaluationTest
+from evals.llm_judge import JudgeCriteria, LLMJudge
 from evals.utils import load_yaml_fixtures
+from src.agent.entrypoints.app import app
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
@@ -16,12 +16,12 @@ fixtures = load_yaml_fixtures(current_path, "")
 client = TestClient(app)
 
 
-class TestEvalE2E(BaseEvaluationTest):
+class TestEvalE2E:
     """End-to-End evaluation tests."""
 
-    RUN_TYPE = "e2e"
-    TEST_TYPE = "e2e"
-    EVALUATION_CATEGORY = "e2e"
+    def setup_method(self):
+        """Initialize LLM Judge for evaluation."""
+        self.judge = LLMJudge()
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -38,7 +38,7 @@ class TestEvalE2E(BaseEvaluationTest):
         expected_response = fixture["response"]
 
         # Start timing
-        start_time = time.time()
+        # start_time = time.time()
 
         # Make API request
         params = {"question": question, "q_id": fixture_name}
@@ -46,7 +46,7 @@ class TestEvalE2E(BaseEvaluationTest):
         response = client.get("/answer", params=params, headers=headers)
 
         # Calculate execution time
-        execution_time_ms = int((time.time() - start_time) * 1000)
+        # execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Add delay to avoid rate limiting (E2E makes many API calls internally)
         time.sleep(60)
@@ -58,19 +58,18 @@ class TestEvalE2E(BaseEvaluationTest):
         else:
             actual_response = f"Error: {response.status_code}"
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**fixture.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
             question=question,
-            expected_response=expected_response,
-            actual_response=actual_response,
-            test_data=fixture,
-            execution_time_ms=execution_time_ms,
-            metadata={"status_code": response.status_code, "api_endpoint": "/answer"},
+            expected=str(expected_response),
+            actual=str(actual_response),
+            criteria=criteria,
+            test_type="e2e",
         )
 
-    @classmethod
-    def teardown_class(cls):
-        """Generate summary report after all tests."""
-        # Call parent teardown which handles database completion and summary
-        super().teardown_class()
+        # Add delay to avoid rate limiting
+        time.sleep(1)
+
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"

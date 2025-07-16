@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 import yaml
 
-from src.agent.adapters.adapter import AbstractNotifications
+from src.agent.adapters.notifications import AbstractNotifications
 from src.agent.domain import events
 
 
