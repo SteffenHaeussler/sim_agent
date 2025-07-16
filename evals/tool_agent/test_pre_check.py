@@ -63,7 +63,7 @@ class TestEvalPreCheck:
 
         # Record result
         result = {
-            "test": fixture_name,
+            "test_name": fixture_name,
             "question": question_text,
             "expected": expected_response,
             "actual": actual_response,

@@ -5,10 +5,11 @@ import os
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import yaml
 
+from src.agent.adapters.database import BaseDatabaseAdapter
 from src.agent.adapters.notifications import AbstractNotifications
 from src.agent.domain import events
 
@@ -93,14 +94,81 @@ def get_report_dir() -> Path:
 
 
 def save_test_report(results: List[Dict[str, Any]], test_name: str) -> None:
-    """Save test results to a JSON report file with timestamp."""
+    """Save test results to a JSON report file with timestamp and optionally to database."""
+    # Always save to JSON
     report_dir = get_report_dir()
     report_dir.mkdir(exist_ok=True, parents=True)
 
     timestamp = int(time.time())
-    filename = f"{test_name}_report_{timestamp}.json"
+    # Create run_id from test_name and timestamp (same as filename without .json)
+    run_id = f"{test_name}_report_{timestamp}"
+    filename = f"{run_id}.json"
 
     with open(report_dir / filename, "w") as f:
         json.dump(results, f, indent=2)
 
     print(f"Report saved to: {report_dir / filename}")
+
+    # Try to save to database if configured
+    if os.environ.get("EVALS_DB_CONNECTION"):
+        try:
+            save_to_database(results, test_name, run_id)
+        except Exception as e:
+            print(f"Failed to save to database: {e}")
+
+
+def save_to_database(
+    results: List[Dict[str, Any]], test_suite: str, run_id: str
+) -> Optional[str]:
+    """Save test results to database."""
+    connection_string = os.environ.get("EVALS_DB_CONNECTION")
+    if not connection_string:
+        return None
+
+    db = BaseDatabaseAdapter({"connection_string": connection_string})
+
+    try:
+        db.connect()
+
+        # Create test run record
+        run_data = {
+            "run_id": run_id,
+            "test_suite": test_suite,
+            "total_tests": len(results),
+            "passed_tests": sum(1 for r in results if r.get("passed", False)),
+            "failed_tests": sum(1 for r in results if not r.get("passed", False)),
+        }
+
+        if not db.insert_data("test_runs", run_data):
+            print("Failed to insert test run")
+            return None
+
+        # Insert individual test results
+        for result in results:
+            test_data = {
+                "run_id": run_id,
+                "test_name": result.get("test_name") or result.get("test", ""),
+                "question": result.get("question", ""),
+                "expected": str(result.get("expected", "")),
+                "actual": str(result.get("actual", "")),
+                "passed": result.get("passed", False),
+                "execution_time_ms": result.get("execution_time_ms"),
+                "overall_score": result.get("overall_score"),
+                "accuracy_score": result.get("accuracy"),
+                "relevance_score": result.get("relevance"),
+                "completeness_score": result.get("completeness"),
+                "hallucination_score": result.get("hallucination"),
+                "judge_assessment": result.get("judge_assessment"),
+            }
+
+            # Remove None values
+            test_data = {k: v for k, v in test_data.items() if v is not None}
+
+            if not db.insert_data("test_results", test_data):
+                print(f"Failed to insert result for {result.get('test')}")
+
+        print(f"Results saved to database with run_id: {run_id}")
+        return run_id
+
+    finally:
+        db.disconnect()

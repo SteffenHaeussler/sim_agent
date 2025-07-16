@@ -139,3 +139,32 @@ class BaseDatabaseAdapter(AbstractDatabase):
         except Exception as e:
             logger.error(f"Error reflecting metadata: {e}")
             return None
+
+    def insert_data(self, table_name: str, data: Dict[str, Any]) -> bool:
+        """
+        Insert a single row of data into a table.
+
+        Args:
+            table_name: Name of the table to insert into
+            data: Dictionary of column names and values
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.engine:
+            logger.error("Engine not available. Cannot insert data.")
+            return False
+
+        # Build INSERT query
+        columns = ", ".join(data.keys())
+        placeholders = ", ".join([f":{key}" for key in data.keys()])
+        query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+
+        try:
+            with self.engine.connect() as conn:
+                conn.execute(text(query), data)
+                conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error inserting data: {e}")
+            return False
