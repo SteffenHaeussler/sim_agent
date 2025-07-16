@@ -5,18 +5,18 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures, save_test_report
+from evals.utils import load_database_schema, load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
-from src.agent.config import get_agent_config, get_llm_config
-from src.agent.domain import commands, model
+from src.agent.domain import commands, sql_model
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
-fixtures = load_yaml_fixtures(current_path, "enhance")
+fixtures = load_yaml_fixtures(current_path, "join")
+schema = load_database_schema(current_path, "schema/schema.json")
 
 
-class TestEvalEnhance:
-    """Enhancement evaluation tests."""
+class TestEvalJoin:
+    """SQL Join Inference evaluation tests."""
 
     def setup_method(self):
         """Initialize LLM Judge for evaluation."""
@@ -28,7 +28,7 @@ class TestEvalEnhance:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "tool_enhance")
+        save_test_report(self.results, "sql_join")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -37,53 +37,63 @@ class TestEvalEnhance:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval_enhance(self, fixture_name, fixture):
-        """Run enhancement test with optional LLM judge evaluation."""
+    def test_eval_join(self, fixture_name, fixture, agent_config, llm_config):
+        """Run SQL join inference test with optional LLM judge evaluation."""
 
         # Extract test data - fixture is now the test data directly
         question_text = fixture["question"]
-        candidates = fixture["candidates"]
-        expected_response = fixture["response"]
+        table_mapping = fixture.get("table_mapping", [])
+        expected_response = fixture["expected_response"]
 
-        q_id = str(uuid.uuid4())
-        question = commands.Question(question=question_text, q_id=q_id)
+        # Convert table_mapping to TableMapping objects
+        table_mappings = [commands.TableMapping(**mapping) for mapping in table_mapping]
 
-        llm = LLM(get_llm_config())
-        agent = model.BaseAgent(
-            question=question,
-            kwargs=get_agent_config(),
+        q_id = f"test_join_{str(uuid.uuid4())}"
+        sql_question = commands.SQLQuestion(question=question_text, q_id=q_id)
+
+        llm = LLM(llm_config)
+        agent = sql_model.SQLBaseAgent(
+            question=sql_question,
+            kwargs=agent_config,
         )
 
-        # Convert candidates to KBResponse objects
-        kb_candidates = []
-        for candidate in candidates:
-            kb_candidate = commands.KBResponse(
-                description=candidate.get("text", ""),
-                score=candidate.get("score", 0.0),
-                id=candidate.get("id", ""),
-                tag=candidate.get("tag", ""),
-                name=candidate.get("name", ""),
-            )
-            kb_candidates.append(kb_candidate)
-
-        # Create Rerank command
-        rerank_command = commands.Rerank(
+        # Create SQLFilter command as input to join inference
+        # (In the SQL pipeline, join inference comes after filter)
+        filter_command = commands.SQLFilter(
             question=question_text,
-            candidates=kb_candidates,
             q_id=q_id,
+            column_mapping=[],  # Not needed for join test
+            conditions=[],  # Not needed for join test
         )
+
+        # Set up the construction state with table mappings and schema
+        agent.construction.table_mapping = table_mappings
+        agent.construction.schema_info = schema
 
         # Start timing
         start_time = time.time()
 
-        # Prepare enhancement
-        enhance_command = agent.prepare_enhancement(rerank_command)
+        # Prepare join inference command
+        join_command = agent.update(filter_command)
 
-        # Execute enhancement
+        # Execute join inference
         response = llm.use(
-            enhance_command.question, response_model=commands.LLMResponseModel
+            join_command.question, response_model=commands.SQLJoinInference
         )
-        actual_response = response.response
+
+        # Extract actual joins
+        actual_joins = []
+        if response.joins:
+            for join in response.joins:
+                actual_joins.append(
+                    {
+                        "from_table": join.from_table,
+                        "to_table": join.to_table,
+                        "from_column": join.from_column,
+                        "to_column": join.to_column,
+                        "join_type": join.join_type,
+                    }
+                )
 
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)
@@ -96,9 +106,9 @@ class TestEvalEnhance:
         judge_result = self.judge.evaluate(
             question=question_text,
             expected=str(expected_response),
-            actual=str(actual_response),
+            actual=str(actual_joins),
             criteria=criteria,
-            test_type="enhance",
+            test_type="sql_join",
         )
 
         # Record result
@@ -106,7 +116,7 @@ class TestEvalEnhance:
             "test_name": fixture_name,
             "question": question_text,
             "expected": str(expected_response),
-            "actual": str(actual_response),
+            "actual": str(actual_joins),
             "passed": judge_result.passed,
             "execution_time_ms": execution_time_ms,
             "overall_score": (

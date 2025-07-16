@@ -1,0 +1,29 @@
+suite_name: "SQL Filter Stage Tests"
+suite_description: "Tests for SQL filter stage - extracting WHERE clause conditions from natural language"
+default_judge_criteria:
+  accuracy_threshold: 9.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+schema_name: schema.json
+
+tests:
+  - name: "active_products_filter"
+    question: "What are all the active products in our catalog?"
+    column_mapping:
+      - question_term: "active"
+        table_name: "products"
+        column_name: "is_active"
+        confidence: 0.95
+      - question_term: "products"
+        table_name: "products"
+        column_name: "product_id"
+        confidence: 0.8
+      - question_term: "products"
+        table_name: "products"
+        column_name: "name"
+        confidence: 0.8
+    expected_response:
+      - column: "products.is_active"
+        operator: "="
+        value: "TRUE"

@@ -1,0 +1,56 @@
+suite_name: "SQL Aggregation Stage Tests"
+suite_description: "Tests for SQL aggregation stage - detecting GROUP BY and aggregate functions"
+default_judge_criteria:
+  accuracy_threshold: 8.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+schema_name: schema.json
+
+tests:
+  - name: "revenue_by_customer_aggregation"
+    question: "What are all the active products in our catalog?"
+    aggregations:
+      - function: ""
+        column: ""
+        alias: ""
+    column_mapping:
+      - question_term: "active"
+        table_name: "products"
+        column_name: "is_active"
+        confidence: 0.95
+      - question_term: "products"
+        table_name: "products"
+        column_name: "product_id"
+        confidence: 0.8
+      - question_term: "products"
+        table_name: "products"
+        column_name: "name"
+        confidence: 0.8
+    conditions:
+      - column: "products.is_active"
+        operator: "="
+        value: "TRUE"
+    group_by_columns: []
+    is_aggregation_query: False
+    joins:
+      - from_table: ""
+        to_table: ""
+        from_column: ""
+        to_column: ""
+        join_type: ""
+    table_mapping:
+      - question_term: "products"
+        table_name: "products"
+        confidence: 0.95
+      - question_term: "catalog"
+        table_name: "products"
+        confidence: 0.85
+    expected_response:
+      sql: |
+        SELECT
+          product_id,
+          name,
+          sku
+        FROM products
+        WHERE is_active = TRUE;

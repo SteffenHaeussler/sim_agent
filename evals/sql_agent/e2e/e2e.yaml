@@ -1,0 +1,135 @@
+suite_name: "Basic Entity Queries"
+suite_description: "Tests for basic queries on individual entities"
+database_name: "sales"
+default_judge_criteria:
+  accuracy_threshold: 9.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+  require_exact_match: true
+
+tests:
+  - name: "active_products_catalog"
+    question: "What are all the active products in our catalog?"
+    sql: |
+      SELECT
+        product_id,
+        name,
+        sku
+      FROM products
+      WHERE is_active = TRUE;
+
+  - name: "active_customers_list"
+    question: "List all customers with their company names and contact emails"
+    sql: |
+      SELECT
+        customer_id,
+        company_name,
+        contact_email
+      FROM customers
+      WHERE is_active = TRUE;
+
+  - name: "orders_with_discounts"
+    question: "Find all orders that have products with a discount applied"
+    sql: |
+      SELECT DISTINCT
+        o.order_id,
+        o.order_number,
+        c.company_name AS customer_name,
+        o.order_date
+      FROM orders o
+      JOIN customers c ON o.customer_id = c.customer_id
+      JOIN order_details od ON o.order_id = od.order_id
+      WHERE od.discount_percentage > 0
+      ORDER BY o.order_date DESC;
+
+  - name: "orders_by_status_and_currency"
+    question: "What is the breakdown of orders by status and currency?"
+    sql: |
+      SELECT
+        status,
+        currency_code,
+        COUNT(*) AS order_count,
+        SUM(grand_total_amount) AS total_amount
+      FROM orders
+      GROUP BY status, currency_code
+      ORDER BY status, currency_code;
+
+  - name: "average_order_value_monthly"
+    question: "What is the average order value by month for the last 6 months?"
+    sql: |
+      SELECT
+        DATE_TRUNC('month', order_date) AS month,
+        AVG(grand_total_amount) AS avg_order_value,
+        COUNT(*) AS order_count
+      FROM orders
+      WHERE order_date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', order_date)
+      ORDER BY month DESC;
+
+  - name: "top_customers_by_order_count"
+    question: "Which 20 customers have placed the most orders?"
+    sql: |
+      SELECT
+        c.company_name,
+        COUNT(o.order_id) as order_count
+      FROM customers c
+      JOIN orders o ON c.customer_id = o.customer_id
+      GROUP BY c.customer_id, c.company_name
+      ORDER BY order_count DESC
+      LIMIT 20;
+
+  - name: "customers_exceeding_credit_limit"
+    question: "Which customers have orders with a total amount exceeding their credit limit?"
+    sql: |
+      SELECT
+        c.customer_id,
+        c.company_name,
+        c.credit_limit,
+        SUM(o.grand_total_amount) AS total_order_amount
+      FROM customers c
+      JOIN orders o ON c.customer_id = o.customer_id
+      WHERE o.status NOT IN ('cancelled', 'refunded')
+      GROUP BY c.customer_id, c.company_name, c.credit_limit
+      HAVING SUM(o.grand_total_amount) > c.credit_limit;
+
+  - name: "top_customers_current_year"
+    question: "Find the top 5 customers by total order amount this year"
+    sql: |
+      SELECT
+        c.customer_id,
+        c.company_name,
+        SUM(o.grand_total_amount) as total_order_amount
+      FROM customers c
+      JOIN orders o ON c.customer_id = o.customer_id
+      WHERE EXTRACT(YEAR FROM o.order_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+      GROUP BY c.customer_id, c.company_name
+      ORDER BY total_order_amount DESC
+      LIMIT 5;
+
+  - name: "product_total_quantities"
+    question: "What is the total quantity ordered for each product?"
+    sql: |
+      SELECT
+        p.product_id,
+        p.name AS product_name,
+        p.sku,
+        SUM(od.quantity) AS total_quantity_ordered
+      FROM products p
+      JOIN order_details od ON p.product_id = od.product_id
+      GROUP BY p.product_id, p.name, p.sku
+      ORDER BY total_quantity_ordered DESC;
+
+  - name: "highest_revenue_product"
+    question: "Show me the product with the highest total revenue"
+    sql: |
+      SELECT
+        p.product_id,
+        p.name AS product_name,
+        p.sku,
+        SUM(od.quantity * od.final_unit_price) AS total_revenue
+      FROM products p
+      JOIN order_details od ON p.product_id = od.product_id
+      GROUP BY p.product_id, p.name, p.sku
+      ORDER BY total_revenue DESC
+      LIMIT 1;

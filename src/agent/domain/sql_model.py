@@ -461,7 +461,6 @@ class SQLBaseAgent:
 
         if self.is_answered:
             return None
-
         # following the command chain
         match command:
             case commands.SQLQuestion():

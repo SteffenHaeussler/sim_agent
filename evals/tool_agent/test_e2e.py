@@ -25,7 +25,7 @@ class TestEvalE2E:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "e2e")
+        save_test_report(self.results, "tool_e2e")
 
     def extract_final_response(self, session_id: str, test_notifications) -> str:
         """Extract the final response from collected notifications."""
@@ -93,13 +93,6 @@ class TestEvalE2E:
 
         # Extract actual response from collected notifications
         actual_response = self.extract_final_response(session_id, test_notifications)
-
-        # Debug: print collected events if no response found
-        if not actual_response:
-            print(f"\nDebug: No response found for session {session_id}")
-            print(
-                f"Collected events: {[type(e).__name__ for e in test_notifications.sent.get(session_id, [])]}"
-            )
 
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)

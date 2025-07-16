@@ -11,7 +11,7 @@ import yaml
 
 from src.agent.adapters.database import BaseDatabaseAdapter
 from src.agent.adapters.notifications import AbstractNotifications
-from src.agent.domain import events
+from src.agent.domain import commands, events
 
 
 class CollectingNotifications(AbstractNotifications):
@@ -20,6 +20,12 @@ class CollectingNotifications(AbstractNotifications):
 
     def send(self, destination, event: events.Event):
         self.sent[destination].append(event)
+
+
+def normalize_sql(sql: str) -> str:
+    """Basic SQL normalization for comparison."""
+    # Remove extra whitespace and newlines
+    return " ".join(sql.split()).strip().rstrip(";")
 
 
 def load_yaml_fixtures(
@@ -47,9 +53,15 @@ def load_yaml_fixtures(
         fixtures_dir.rglob("*.yaml") if recursive else fixtures_dir.glob("*.yaml")
     )
 
+    schema_file = None  # Track schema file for this fixture set
+
     for yaml_file in yaml_files:
         with open(yaml_file, "r") as f:
             suite_data = yaml.safe_load(f)
+
+        # Extract schema file if specified
+        if "schema_file" in suite_data and schema_file is None:
+            schema_file = suite_data["schema_file"]
 
         # Calculate relative path for nested directories
         rel_path = yaml_file.relative_to(fixtures_dir).parent
@@ -76,10 +88,38 @@ def load_yaml_fixtures(
             elif "judge_criteria" not in test:
                 test_data["judge_criteria"] = {}
 
+            # Add schema file reference if available
+            if schema_file:
+                test_data["_schema_file"] = schema_file
+
             # Return flat structure - just the test data
             fixtures[test_name] = test_data
 
     return fixtures
+
+
+def load_database_schema(
+    test_dir: Path, schema_file: str = "schema.json"
+) -> Dict[str, Any]:
+    """
+    Load database schema from JSON file.
+
+    Args:
+        test_dir: Base test directory
+        schema_file: Name of the schema file (default: schema.json)
+
+    Returns:
+        Dict containing the database schema
+    """
+    schema_path = test_dir / schema_file
+
+    if not schema_path.exists():
+        raise FileNotFoundError(f"Schema file not found: {schema_file}")
+
+    with open(schema_path, "r") as f:
+        schema = json.load(f)
+
+    return commands.DatabaseSchema(**schema)
 
 
 def get_report_dir() -> Path:

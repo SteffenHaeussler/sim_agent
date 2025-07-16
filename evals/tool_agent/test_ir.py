@@ -19,7 +19,7 @@ class TestIR:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "ir")
+        save_test_report(self.results, "tool_ir")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
