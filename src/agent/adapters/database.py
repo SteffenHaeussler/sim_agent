@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from loguru import logger
@@ -151,19 +151,41 @@ class BaseDatabaseAdapter(AbstractDatabase):
         Returns:
             bool: True if successful, False otherwise
         """
+        return self.insert_batch(table_name, [data])
+
+    def insert_batch(self, table_name: str, data_list: List[Dict[str, Any]]) -> bool:
+        """
+        Insert multiple rows of data into a table in a single transaction.
+
+        Args:
+            table_name: Name of the table to insert into
+            data_list: List of dictionaries, each containing column names and values
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
         if not self.engine:
             logger.error("Engine not available. Cannot insert data.")
             return False
 
-        # Build INSERT query
-        columns = ", ".join(data.keys())
-        placeholders = ", ".join([f":{key}" for key in data.keys()])
-        query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+        if not data_list:
+            logger.warning("No data to insert.")
+            return True
 
         try:
-            with self.engine.connect() as conn:
-                conn.execute(text(query), data)
-                conn.commit()
+            with self.engine.begin() as conn:
+                for data in data_list:
+                    # Build INSERT query for each row to handle different columns
+                    columns = ", ".join([f'"{col}"' for col in data.keys()])
+                    placeholders = ", ".join([f":{key}" for key in data.keys()])
+                    query = f'INSERT INTO "{table_name}" ({columns}) VALUES ({placeholders})'
+                    conn.execute(text(query), data)
+
+            count = len(data_list)
+            if count == 1:
+                logger.info(f"Successfully inserted 1 row into {table_name}")
+            else:
+                logger.info(f"Successfully inserted {count} rows into {table_name}")
             return True
         except Exception as e:
             logger.error(f"Error inserting data: {e}")

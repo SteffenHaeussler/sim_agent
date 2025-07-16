@@ -143,7 +143,8 @@ def save_to_database(
             print("Failed to insert test run")
             return None
 
-        # Insert individual test results
+        # Prepare all test results for batch insert
+        test_results = []
         for result in results:
             test_data = {
                 "run_id": run_id,
@@ -163,9 +164,12 @@ def save_to_database(
 
             # Remove None values
             test_data = {k: v for k, v in test_data.items() if v is not None}
+            test_results.append(test_data)
 
-            if not db.insert_data("test_results", test_data):
-                print(f"Failed to insert result for {result.get('test')}")
+        # Insert all test results in a single transaction
+        if not db.insert_batch("test_results", test_results):
+            print("Failed to insert test results")
+            return None
 
         print(f"Results saved to database with run_id: {run_id}")
         return run_id
