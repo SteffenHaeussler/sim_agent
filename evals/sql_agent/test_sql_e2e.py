@@ -153,7 +153,7 @@ class TestSQLEndToEnd:
 
         # Record result
         result = {
-            "test": fixture_name,
+            "test_name": fixture_name,
             "question": question,
             "expected": normalize_sql(expected_sql),
             "actual": normalize_sql(actual_sql) if actual_sql else "NO SQL GENERATED",

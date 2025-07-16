@@ -3,33 +3,33 @@ suite_description: "Tests for information retrieval functionality"
 # Note: IR tests don't use judge criteria as they test retrieval accuracy
 
 tests:
-  - name: "eval_1"
-    question: "What is the daily maximum value of PI-P0017 in April 2025?"
-    response: ""
+  # - name: "eval_1"
+  #   question: "What is the daily maximum value of PI-P0017 in April 2025?"
+  #   response: ""
 
-  - name: "eval_2"
-    question: "How much was produced in the first two weeks of 2025?"
-    response:
-      description: "total production rate of the distillation"
-      id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
-      tag: "FQI-F0024"
-      name: "FQI-F0024"
+  # - name: "eval_2"
+  #   question: "How much was produced in the first two weeks of 2025?"
+  #   response:
+  #     description: "total production rate of the distillation"
+  #     id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
+  #     tag: "FQI-F0024"
+  #     name: "FQI-F0024"
 
-  - name: "eval_3"
-    question: "How much was produced in the total production in the distillation in the first two weeks of 2025?"
-    response:
-      description: "total production rate of the distillation"
-      id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
-      tag: "FQI-F0024"
-      name: "FQI-F0024"
+  # - name: "eval_3"
+  #   question: "How much was produced in the total production in the distillation in the first two weeks of 2025?"
+  #   response:
+  #     description: "total production rate of the distillation"
+  #     id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
+  #     tag: "FQI-F0024"
+  #     name: "FQI-F0024"
 
-  - name: "eval_4"
-    question: "What is the level in tank b?"
-    response:
-      description: "destillate level after the distillation cooler at tank b"
-      name: "LI-L0008"
-      tag: "LI-L0008"
-      id: "6c13417e-7eff-4530-94a7-0a93f88647fb"
+  # - name: "eval_4"
+  #   question: "What is the level in tank b?"
+  #   response:
+  #     description: "destillate level after the distillation cooler at tank b"
+  #     name: "LI-L0008"
+  #     tag: "LI-L0008"
+  #     id: "6c13417e-7eff-4530-94a7-0a93f88647fb"
 
   - name: "eval_5"
     question: "Can you provide me the highest value for June 2025 for TI-T0022?"

@@ -4,13 +4,10 @@ from pathlib import Path
 import pytest
 
 from evals.utils import load_yaml_fixtures, save_test_report
-from src.agent import config
-from src.agent.adapters import rag
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
-fixtures = load_yaml_fixtures(current_path, "")
-rag_adapter = rag.BaseRAG(config.get_rag_config())
+fixtures = load_yaml_fixtures(current_path, "ir")
 
 
 class TestIR:
@@ -31,7 +28,7 @@ class TestIR:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_ir(self, fixture_name, fixture):
+    def test_ir(self, fixture_name, fixture, rag_adapter):
         """Run IR test with optional LLM judge evaluation."""
 
         # Extract test data - fixture is now the test data directly
@@ -65,12 +62,14 @@ class TestIR:
             # For string responses (empty string case), return name or empty string
             actual_response = candidates[0]["name"] if candidates else ""
 
+        actual_response.pop("score", None)
+
         # Add delay to avoid rate limiting
         time.sleep(1)
 
         # Record result
         result = {
-            "test": fixture_name,
+            "test_name": fixture_name,
             "question": question,
             "expected": expected_response,
             "actual": actual_response,

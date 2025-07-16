@@ -5,15 +5,14 @@ import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
 from evals.utils import load_yaml_fixtures, save_test_report
-from src.agent import config
 from src.agent.adapters import agent_tools
 
 current_path = Path(__file__).parent
 # Load e2e fixtures since this tests the same functionality via direct tool calls
 fixtures = load_yaml_fixtures(
-    current_path, "", recursive=False
+    current_path,
+    "tool_agent",
 )  # Load YAML files from current directory
-tools = agent_tools.Tools(config.get_tools_config())
 
 
 class TestEvalPlanning:
@@ -38,8 +37,10 @@ class TestEvalPlanning:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval_tool_agent(self, fixture_name, fixture):
+    def test_eval_tool_agent(self, fixture_name, fixture, tools_config):
         """Run tool agent test with optional LLM judge evaluation."""
+
+        tools = agent_tools.Tools(tools_config)
 
         # Extract test data - flat structure from YAML
         question = fixture["question"]
@@ -80,7 +81,7 @@ class TestEvalPlanning:
 
         # Record result
         result = {
-            "test": fixture_name,
+            "test_name": fixture_name,
             "question": question,
             "expected": str(expected_response),
             "actual": str(response),

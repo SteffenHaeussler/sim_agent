@@ -12,7 +12,7 @@ from src.agent.domain import commands, model
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
-fixtures = load_yaml_fixtures(current_path, "")
+fixtures = load_yaml_fixtures(current_path, "enhance")
 
 
 class TestEvalEnhance:
@@ -103,7 +103,7 @@ class TestEvalEnhance:
 
         # Record result
         result = {
-            "test": fixture_name,
+            "test_name": fixture_name,
             "question": question_text,
             "expected": str(expected_response),
             "actual": str(actual_response),

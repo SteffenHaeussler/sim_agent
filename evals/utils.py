@@ -95,6 +95,11 @@ def get_report_dir() -> Path:
 
 def save_test_report(results: List[Dict[str, Any]], test_name: str) -> None:
     """Save test results to a JSON report file with timestamp and optionally to database."""
+    # Skip saving if no results
+    if not results:
+        print(f"No results to save for {test_name}")
+        return
+
     # Always save to JSON
     report_dir = get_report_dir()
     report_dir.mkdir(exist_ok=True, parents=True)
@@ -121,6 +126,10 @@ def save_to_database(
     results: List[Dict[str, Any]], test_suite: str, run_id: str
 ) -> Optional[str]:
     """Save test results to database."""
+    # Skip if no results
+    if not results:
+        return None
+
     connection_string = os.environ.get("EVALS_DB_CONNECTION")
     if not connection_string:
         return None

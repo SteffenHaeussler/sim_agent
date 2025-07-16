@@ -11,7 +11,7 @@ from src.agent.domain import commands, model
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
-fixtures = load_yaml_fixtures(current_path, "")
+fixtures = load_yaml_fixtures(current_path, "post_check")
 
 
 class TestEvalPostCheck:
@@ -75,7 +75,7 @@ class TestEvalPostCheck:
 
         # Record result
         result = {
-            "test": fixture_name,
+            "test_name": fixture_name,
             "question": question_text,
             "expected": expected_response,
             "actual": actual_response,

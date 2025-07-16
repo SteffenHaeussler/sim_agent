@@ -6,7 +6,6 @@ import pytest
 
 from evals.utils import load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
-from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
 
 current_path = Path(__file__).parent
@@ -32,17 +31,17 @@ class TestEvalPreCheck:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval(self, fixture_name, fixture):
+    def test_eval(self, fixture_name, fixture, agent_config, llm_config):
         question_text = fixture["question"]
         expected_response = fixture["approved"]
 
         q_id = "eval_pre_check_" + str(uuid.uuid4())
         question = commands.Question(question=question_text, q_id=q_id)
 
-        llm = LLM(get_llm_config())
+        llm = LLM(llm_config)
         agent = model.BaseAgent(
             question=question,
-            kwargs=get_agent_config(),
+            kwargs=agent_config,
         )
 
         start_time = time.time()

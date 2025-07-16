@@ -170,7 +170,7 @@ class TestEvalSQLStages:
 
         # Record result
         result = {
-            "test": fixture_name,
+            "test_name": fixture_name,
             "question": question,
             "stage": "grounding",
             "expected": str(expected_response),
@@ -247,6 +247,29 @@ class TestEvalSQLStages:
             test_type="sql_filter",
         )
 
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "stage": "filter",
+            "expected": str(expected_response),
+            "actual": str(actual_response_dict),
+            "passed": judge_result.passed,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
+
         # Assert judge passed
         assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"
 
@@ -304,6 +327,29 @@ class TestEvalSQLStages:
             criteria=criteria,
             test_type="sql_aggregation",
         )
+
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "stage": "aggregation",
+            "expected": str(expected_response),
+            "actual": str(actual_response_dict),
+            "passed": judge_result.passed,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
 
         # Assert judge passed
         assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"
@@ -372,6 +418,29 @@ class TestEvalSQLStages:
             criteria=criteria,
             test_type="sql_join",
         )
+
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "stage": "join",
+            "expected": str(expected_response),
+            "actual": str(actual_response_dict),
+            "passed": judge_result.passed,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
 
         # Assert judge passed
         assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"
