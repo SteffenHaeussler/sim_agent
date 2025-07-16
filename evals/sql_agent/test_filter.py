@@ -5,18 +5,18 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures, save_test_report
+from evals.utils import load_database_schema, load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
-from src.agent.config import get_agent_config, get_llm_config
-from src.agent.domain import commands, model
+from src.agent.domain import commands, sql_model
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
-fixtures = load_yaml_fixtures(current_path, "enhance")
+fixtures = load_yaml_fixtures(current_path, "filter")
+schema = load_database_schema(current_path, "schema/schema.json")
 
 
-class TestEvalEnhance:
-    """Enhancement evaluation tests."""
+class TestEvalFilter:
+    """SQL Filter evaluation tests."""
 
     def setup_method(self):
         """Initialize LLM Judge for evaluation."""
@@ -28,7 +28,7 @@ class TestEvalEnhance:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "tool_enhance")
+        save_test_report(self.results, "sql_filter")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -37,53 +37,55 @@ class TestEvalEnhance:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval_enhance(self, fixture_name, fixture):
-        """Run enhancement test with optional LLM judge evaluation."""
+    def test_eval_filter(self, fixture_name, fixture, agent_config, llm_config):
+        """Run SQL filter test with optional LLM judge evaluation."""
 
         # Extract test data - fixture is now the test data directly
         question_text = fixture["question"]
-        candidates = fixture["candidates"]
-        expected_response = fixture["response"]
+        column_mapping = fixture.get("column_mapping", [])
+        expected_response = fixture["expected_response"]
 
-        q_id = str(uuid.uuid4())
-        question = commands.Question(question=question_text, q_id=q_id)
+        column_mapping = [commands.ColumnMapping(**i) for i in column_mapping]
+        # expected_response = [commands.FilterCondition(**i) for i in expected_response]
 
-        llm = LLM(get_llm_config())
-        agent = model.BaseAgent(
-            question=question,
-            kwargs=get_agent_config(),
+        q_id = f"test_filter_{str(uuid.uuid4())}"
+        sql_question = commands.SQLQuestion(question=question_text, q_id=q_id)
+
+        llm = LLM(llm_config)
+        agent = sql_model.SQLBaseAgent(
+            question=sql_question,
+            kwargs=agent_config,
         )
 
-        # Convert candidates to KBResponse objects
-        kb_candidates = []
-        for candidate in candidates:
-            kb_candidate = commands.KBResponse(
-                description=candidate.get("text", ""),
-                score=candidate.get("score", 0.0),
-                id=candidate.get("id", ""),
-                tag=candidate.get("tag", ""),
-                name=candidate.get("name", ""),
-            )
-            kb_candidates.append(kb_candidate)
-
-        # Create Rerank command
-        rerank_command = commands.Rerank(
+        # Create SQLGrounding command as input to filter
+        grounding_command = commands.SQLGrounding(
             question=question_text,
-            candidates=kb_candidates,
             q_id=q_id,
+            column_mapping=column_mapping,
+            table_mapping=[],  # Not needed for filter test
+            tables=schema.tables,
         )
 
         # Start timing
         start_time = time.time()
 
-        # Prepare enhancement
-        enhance_command = agent.prepare_enhancement(rerank_command)
+        # Prepare filter command
+        filter_command = agent.update(grounding_command)
 
-        # Execute enhancement
-        response = llm.use(
-            enhance_command.question, response_model=commands.LLMResponseModel
-        )
-        actual_response = response.response
+        # Execute filter
+        response = llm.use(filter_command.question, response_model=commands.SQLFilter)
+
+        # Extract actual conditions
+        actual_conditions = []
+        if response.conditions:
+            for condition in response.conditions:
+                actual_conditions.append(
+                    {
+                        "column": condition.column,
+                        "operator": condition.operator,
+                        "value": condition.value,
+                    }
+                )
 
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)
@@ -96,9 +98,9 @@ class TestEvalEnhance:
         judge_result = self.judge.evaluate(
             question=question_text,
             expected=str(expected_response),
-            actual=str(actual_response),
+            actual=str(actual_conditions),
             criteria=criteria,
-            test_type="enhance",
+            test_type="sql_filter",
         )
 
         # Record result
@@ -106,7 +108,7 @@ class TestEvalEnhance:
             "test_name": fixture_name,
             "question": question_text,
             "expected": str(expected_response),
-            "actual": str(actual_response),
+            "actual": str(actual_conditions),
             "passed": judge_result.passed,
             "execution_time_ms": execution_time_ms,
             "overall_score": (

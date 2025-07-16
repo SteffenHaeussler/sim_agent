@@ -5,18 +5,18 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures, save_test_report
+from evals.utils import load_database_schema, load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
-from src.agent.config import get_agent_config, get_llm_config
-from src.agent.domain import commands, model
+from src.agent.domain import commands, sql_model
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
-fixtures = load_yaml_fixtures(current_path, "enhance")
+fixtures = load_yaml_fixtures(current_path, "grounding")
+schema = load_database_schema(current_path, "schema/schema.json")
 
 
-class TestEvalEnhance:
-    """Enhancement evaluation tests."""
+class TestEvalGrounding:
+    """SQL Grounding evaluation tests."""
 
     def setup_method(self):
         """Initialize LLM Judge for evaluation."""
@@ -28,7 +28,7 @@ class TestEvalEnhance:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "tool_enhance")
+        save_test_report(self.results, "sql_grounding")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -37,53 +37,67 @@ class TestEvalEnhance:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval_enhance(self, fixture_name, fixture):
-        """Run enhancement test with optional LLM judge evaluation."""
+    def test_eval_grounding(self, fixture_name, fixture, agent_config, llm_config):
+        """Run SQL grounding test with optional LLM judge evaluation."""
 
         # Extract test data - fixture is now the test data directly
         question_text = fixture["question"]
-        candidates = fixture["candidates"]
-        expected_response = fixture["response"]
+        expected_response = fixture["expected_response"]
 
-        q_id = str(uuid.uuid4())
-        question = commands.Question(question=question_text, q_id=q_id)
+        q_id = f"test_grounding_{str(uuid.uuid4())}"
+        sql_question = commands.SQLQuestion(question=question_text, q_id=q_id)
 
-        llm = LLM(get_llm_config())
-        agent = model.BaseAgent(
-            question=question,
-            kwargs=get_agent_config(),
+        llm = LLM(llm_config)
+        agent = sql_model.SQLBaseAgent(
+            question=sql_question,
+            kwargs=agent_config,
         )
 
-        # Convert candidates to KBResponse objects
-        kb_candidates = []
-        for candidate in candidates:
-            kb_candidate = commands.KBResponse(
-                description=candidate.get("text", ""),
-                score=candidate.get("score", 0.0),
-                id=candidate.get("id", ""),
-                tag=candidate.get("tag", ""),
-                name=candidate.get("name", ""),
-            )
-            kb_candidates.append(kb_candidate)
-
-        # Create Rerank command
-        rerank_command = commands.Rerank(
+        # Create SQLCheck command as input to grounding
+        # (In the SQL pipeline, grounding comes after check)
+        check_command = commands.SQLCheck(
             question=question_text,
-            candidates=kb_candidates,
             q_id=q_id,
+            approved=True,  # Assume check passed for grounding test
         )
+
+        # Set up the construction state with schema
+        agent.construction.schema_info = schema
 
         # Start timing
         start_time = time.time()
 
-        # Prepare enhancement
-        enhance_command = agent.prepare_enhancement(rerank_command)
+        # Prepare grounding command
+        grounding_command = agent.update(check_command)
 
-        # Execute enhancement
+        # Execute grounding
         response = llm.use(
-            enhance_command.question, response_model=commands.LLMResponseModel
+            grounding_command.question, response_model=commands.SQLGrounding
         )
-        actual_response = response.response
+
+        # Extract actual table and column mappings
+        actual_response = {"table_mapping": [], "column_mapping": []}
+
+        if response.table_mapping:
+            for table_map in response.table_mapping:
+                actual_response["table_mapping"].append(
+                    {
+                        "question_term": table_map.question_term,
+                        "table_name": table_map.table_name,
+                        "confidence": table_map.confidence,
+                    }
+                )
+
+        if response.column_mapping:
+            for col_map in response.column_mapping:
+                actual_response["column_mapping"].append(
+                    {
+                        "question_term": col_map.question_term,
+                        "table_name": col_map.table_name,
+                        "column_name": col_map.column_name,
+                        "confidence": col_map.confidence,
+                    }
+                )
 
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)
@@ -98,7 +112,7 @@ class TestEvalEnhance:
             expected=str(expected_response),
             actual=str(actual_response),
             criteria=criteria,
-            test_type="enhance",
+            test_type="sql_grounding",
         )
 
         # Record result

@@ -22,7 +22,7 @@ class TestEvalPreCheck:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "pre_check")
+        save_test_report(self.results, "tool_pre_check")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",

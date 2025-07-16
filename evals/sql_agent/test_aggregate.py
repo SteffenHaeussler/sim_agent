@@ -5,18 +5,18 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures, save_test_report
+from evals.utils import load_database_schema, load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
-from src.agent.config import get_agent_config, get_llm_config
-from src.agent.domain import commands, model
+from src.agent.domain import commands, sql_model
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
-fixtures = load_yaml_fixtures(current_path, "enhance")
+fixtures = load_yaml_fixtures(current_path, "aggregate")
+schema = load_database_schema(current_path, "schema/schema.json")
 
 
-class TestEvalEnhance:
-    """Enhancement evaluation tests."""
+class TestEvalAggregate:
+    """SQL Aggregation evaluation tests."""
 
     def setup_method(self):
         """Initialize LLM Judge for evaluation."""
@@ -28,7 +28,7 @@ class TestEvalEnhance:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "tool_enhance")
+        save_test_report(self.results, "sql_aggregate")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -37,53 +37,69 @@ class TestEvalEnhance:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval_enhance(self, fixture_name, fixture):
-        """Run enhancement test with optional LLM judge evaluation."""
+    def test_eval_aggregate(self, fixture_name, fixture, agent_config, llm_config):
+        """Run SQL aggregation test with optional LLM judge evaluation."""
 
         # Extract test data - fixture is now the test data directly
         question_text = fixture["question"]
-        candidates = fixture["candidates"]
-        expected_response = fixture["response"]
+        column_mapping = fixture.get("column_mapping", [])
+        expected_response = fixture["expected_response"]
 
-        q_id = str(uuid.uuid4())
-        question = commands.Question(question=question_text, q_id=q_id)
+        # Convert column_mapping to ColumnMapping objects
+        column_mappings = [
+            commands.ColumnMapping(**mapping) for mapping in column_mapping
+        ]
 
-        llm = LLM(get_llm_config())
-        agent = model.BaseAgent(
-            question=question,
-            kwargs=get_agent_config(),
+        q_id = f"test_aggregate_{str(uuid.uuid4())}"
+        sql_question = commands.SQLQuestion(question=question_text, q_id=q_id)
+
+        llm = LLM(llm_config)
+        agent = sql_model.SQLBaseAgent(
+            question=sql_question,
+            kwargs=agent_config,
         )
 
-        # Convert candidates to KBResponse objects
-        kb_candidates = []
-        for candidate in candidates:
-            kb_candidate = commands.KBResponse(
-                description=candidate.get("text", ""),
-                score=candidate.get("score", 0.0),
-                id=candidate.get("id", ""),
-                tag=candidate.get("tag", ""),
-                name=candidate.get("name", ""),
-            )
-            kb_candidates.append(kb_candidate)
-
-        # Create Rerank command
-        rerank_command = commands.Rerank(
+        # Create SQLJoinInference command as input to aggregation
+        # (In the SQL pipeline, aggregation comes after join inference)
+        join_command = commands.SQLJoinInference(
             question=question_text,
-            candidates=kb_candidates,
             q_id=q_id,
+            table_mapping=[],  # Not needed for aggregation test
+            relationships=[],  # Not needed for aggregation test
+            joins=[],  # Not needed for aggregation test
         )
+
+        # Set up the construction state with column mappings
+        agent.construction.column_mapping = column_mappings
+        agent.construction.schema_info = schema
 
         # Start timing
         start_time = time.time()
 
-        # Prepare enhancement
-        enhance_command = agent.prepare_enhancement(rerank_command)
+        # Prepare aggregation command
+        aggregation_command = agent.update(join_command)
 
-        # Execute enhancement
+        # Execute aggregation
         response = llm.use(
-            enhance_command.question, response_model=commands.LLMResponseModel
+            aggregation_command.question, response_model=commands.SQLAggregation
         )
-        actual_response = response.response
+
+        # Extract actual aggregations and group by
+        actual_response = {
+            "aggregations": [],
+            "group_by_columns": response.group_by_columns or [],
+            "is_aggregation_query": response.is_aggregation_query,
+        }
+
+        if response.aggregations:
+            for agg in response.aggregations:
+                actual_response["aggregations"].append(
+                    {
+                        "function": agg.function,
+                        "column": agg.column,
+                        "alias": agg.alias,
+                    }
+                )
 
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)
@@ -98,7 +114,7 @@ class TestEvalEnhance:
             expected=str(expected_response),
             actual=str(actual_response),
             criteria=criteria,
-            test_type="enhance",
+            test_type="sql_aggregate",
         )
 
         # Record result

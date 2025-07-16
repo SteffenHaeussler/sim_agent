@@ -1,32 +1,26 @@
 """SQL E2E tests using FastAPI endpoint."""
 
-import json
 import time
 from pathlib import Path
 
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures, save_test_report
+from evals.utils import load_yaml_fixtures, normalize_sql, save_test_report
+from src.agent.domain import events
 
 current_path = Path(__file__).parent
 
 # Load fixtures from YAML files using the utility function
-fixtures = load_yaml_fixtures(current_path, "sql_e2e/temp")
-
-# Load database schema
-with open(current_path / "sql_e2e/schema.json", "r") as f:
-    schema_data = json.load(f)
+fixtures = load_yaml_fixtures(current_path, "e2e")
 
 
 class TestSQLEndToEnd:
     """SQL End-to-End evaluation tests using FastAPI endpoint."""
 
     def setup_method(self):
-        """Setup for each test."""
+        """Initialize LLM Judge for evaluation."""
         self.judge = LLMJudge()
-        self.current_path = current_path
-        self.schema = schema_data
 
     def setup_class(self):
         """Setup report file."""
@@ -36,44 +30,17 @@ class TestSQLEndToEnd:
         """Save results to report file."""
         save_test_report(self.results, "sql_e2e")
 
-    def extract_sql_from_response(self, session_id: str, test_notifications) -> str:
-        """
-        Extract SQL response from collected notifications.
-
-        Args:
-            session_id: The session ID to look for
-            test_notifications: The CollectingNotifications instance
-
-        Returns:
-            The extracted SQL query
-        """
+    def extract_final_response(self, session_id: str, test_notifications) -> str:
+        """Extract the final response from collected notifications."""
         # Get all events sent to this session
         session_events = test_notifications.sent.get(session_id, [])
 
-        # Find SQL response event
+        # Find the final response event
         for event in reversed(session_events):  # Check from most recent
-            if hasattr(event, "to_message"):
-                message = event.to_message()
+            if isinstance(event, events.Evaluation):
+                summary = event.summary
 
-                # Look for SQL in the message
-                if "```sql" in message:
-                    start = message.find("```sql") + 6
-                    end = message.find("```", start)
-                    if end > start:
-                        return message[start:end].strip()
-
-                # Look for SELECT statement
-                lines = message.split("\n")
-                for line in lines:
-                    if "SELECT" in line.upper():
-                        sql_start = line.upper().find("SELECT")
-                        return line[sql_start:].strip()
-
-            # Check if event has SQL directly
-            if hasattr(event, "sql"):
-                return event.sql
-            elif hasattr(event, "response") and "SELECT" in str(event.response).upper():
-                return event.response
+                return summary.split("\n\nHere is the SQL query:\n\n")[-1]
 
         return ""
 
@@ -84,11 +51,14 @@ class TestSQLEndToEnd:
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_sql_e2e(self, fixture_name, fixture):
-        """Run SQL E2E test via FastAPI endpoint."""
+    def test_sql_e2e(self, fixture_name, fixture, test_client, test_notifications):
+        """Run E2E test with optional LLM judge evaluation."""
 
-        # breakpoint()
-        # Direct access to test data - no nested structure
+        # Clear all previous notifications
+        # Since sent is a defaultdict, we need to clear its contents properly
+        for key in list(test_notifications.sent.keys()):
+            del test_notifications.sent[key]
+
         question = fixture["question"]
         expected_sql = fixture["sql"]
 
@@ -100,24 +70,41 @@ class TestSQLEndToEnd:
         start_time = time.time()
 
         # Make API request
-        # response = client.get("/query", params={"question": question}, headers=headers)
-        response = ""
+        params = {"question": question, "q_id": fixture_name}
+        headers = {"X-Session-ID": session_id}
+        response = test_client.get("/query", params=params, headers=headers)
 
-        # Check initial response
+        # API should return processing status
         assert response.status_code == 200
         assert response.json()["status"] == "processing"
 
+        # Wait for async processing to complete
+        # You may need to adjust this based on typical processing time
+        max_wait_time = 30  # Maximum wait time in seconds
+        wait_interval = 1  # Check interval in seconds
+        elapsed_time = 0
+
+        while elapsed_time < max_wait_time:
+            # Check if we have received a response event
+            session_events = test_notifications.sent.get(session_id, [])
+            has_response = any(
+                isinstance(event, events.Response) or hasattr(event, "response")
+                for event in session_events
+            )
+
+            if has_response:
+                break
+
+            time.sleep(wait_interval)
+            elapsed_time += wait_interval
+
         # Extract SQL from SSE response
-        actual_sql = self.extract_sql_from_response(session_id)
+        actual_sql = self.extract_final_response(session_id, test_notifications)
 
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Normalize SQL for comparison (basic normalization)
-        def normalize_sql(sql: str) -> str:
-            """Basic SQL normalization for comparison."""
-            # Remove extra whitespace and newlines
-            return " ".join(sql.split()).strip().rstrip(";")
 
         # Use LLM Judge for evaluation
         criteria = JudgeCriteria(**fixture.get("judge_criteria", {}))

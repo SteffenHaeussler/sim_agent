@@ -1,0 +1,20 @@
+suite_name: "SQL Join Stage Tests"
+suite_description: "Tests for SQL join inference stage - determining required joins between tables"
+default_judge_criteria:
+  accuracy_threshold: 8.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+schema_name: schema.json
+
+tests:
+  - name: "products_by_customer_join"
+    question: "What are all the active products in our catalog?"
+    table_mapping:
+      - question_term: "products"
+        table_name: "products"
+        confidence: 0.95
+      - question_term: "catalog"
+        table_name: "products"
+        confidence: 0.85
+    expected_response:

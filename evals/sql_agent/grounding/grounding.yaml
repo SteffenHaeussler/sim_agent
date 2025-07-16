@@ -1,0 +1,33 @@
+suite_name: "SQL Grounding Stage Tests"
+suite_description: "Tests for SQL grounding stage - identifying relevant tables and columns"
+default_judge_criteria:
+  accuracy_threshold: 8.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+schema_name: schema.json
+
+tests:
+  - name: "order_customer_grounding"
+    question: "What are all the active products in our catalog?"
+    expected_response:
+      column_mapping:
+        - question_term: "active"
+          table_name: "products"
+          column_name: "is_active"
+          confidence: 0.95
+        - question_term: "products"
+          table_name: "products"
+          column_name: "product_id"
+          confidence: 0.8
+        - question_term: "products"
+          table_name: "products"
+          column_name: "name"
+          confidence: 0.8
+      table_mapping:
+        - question_term: "products"
+          table_name: "products"
+          confidence: 0.95
+        - question_term: "catalog"
+          table_name: "products"
+          confidence: 0.85
