@@ -8,7 +8,8 @@ import yaml
 
 from src.agent.adapters.adapter import SQLAgentAdapter
 from src.agent.domain import commands
-from evals.base_sql_eval import BaseSQLEvalTest
+from evals.llm_judge import LLMJudge, JudgeCriteria
+from evals.utils import save_test_report
 
 current_path = Path(__file__).parent
 
@@ -78,21 +79,50 @@ with open(current_path / "schema.json", "r") as f:
 db_schema = commands.DatabaseSchema(**schema_data)
 
 
-class TestEvalSQLStages(BaseSQLEvalTest):
+class TestEvalSQLStages:
     """SQL Stages evaluation tests."""
-
-    RUN_TYPE = "sql_stages"
-    TEST_TYPE = "sql_stages"
 
     def setup_method(self):
         """Setup mock database schema for each test."""
-        super().setup_method()
+        self.judge = LLMJudge()
         self.current_path = current_path
         self.schema = db_schema
         self.adapter = SQLAgentAdapter()
         # Mock the database adapter
         self.adapter.db = MagicMock()
         self.adapter.db.get_schema.return_value = self.schema
+
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "sql_stages")
+
+    def create_grounding_result(self, tables, columns):
+        """Helper to create a mock grounding result."""
+        table_mapping = [
+            commands.TableMapping(table_name=table, relevance_score=0.9)
+            for table in tables
+        ]
+
+        column_mapping = []
+        for col in columns:
+            if "." in col:
+                table_name, column_name = col.split(".")
+            else:
+                table_name = tables[0] if tables else "unknown"
+                column_name = col
+            column_mapping.append(
+                commands.ColumnMapping(
+                    table_name=table_name, column_name=column_name, relevance_score=0.9
+                )
+            )
+
+        return commands.GroundingResult(
+            table_mapping=table_mapping, column_mapping=column_mapping
+        )
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -128,17 +158,41 @@ class TestEvalSQLStages(BaseSQLEvalTest):
             ],
         }
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
-            question=question,
-            expected_response=expected_response,
-            actual_response=actual_response_dict,
-            test_data=test_data,
-            judge_question=f"Identify tables and columns for SQL query: {question}",
-            sql_stage="grounding",
-            schema_context={"tables": [t.model_dump() for t in self.schema.tables]},
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**test_data.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
+            question=f"Identify tables and columns for SQL query: {question}",
+            expected=str(expected_response),
+            actual=str(actual_response_dict),
+            criteria=criteria,
+            test_type="sql_grounding",
         )
+
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "stage": "grounding",
+            "expected": str(expected_response),
+            "actual": str(actual_response_dict),
+            "passed": judge_result.passed,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
+
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -183,16 +237,41 @@ class TestEvalSQLStages(BaseSQLEvalTest):
             "having_conditions": [],
         }
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
-            question=question,
-            expected_response=expected_response,
-            actual_response=actual_response_dict,
-            test_data=test_data,
-            judge_question=f"Extract WHERE conditions from: {question}",
-            sql_stage="filter",
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**test_data.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
+            question=f"Extract WHERE conditions from: {question}",
+            expected=str(expected_response),
+            actual=str(actual_response_dict),
+            criteria=criteria,
+            test_type="sql_filter",
         )
+
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "stage": "filter",
+            "expected": str(expected_response),
+            "actual": str(actual_response_dict),
+            "passed": judge_result.passed,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
+
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -239,16 +318,41 @@ class TestEvalSQLStages(BaseSQLEvalTest):
             "requires_aggregation": actual_response.is_aggregation_query,
         }
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
-            question=question,
-            expected_response=expected_response,
-            actual_response=actual_response_dict,
-            test_data=test_data,
-            judge_question=f"Identify aggregation needs for: {question}",
-            sql_stage="aggregation",
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**test_data.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
+            question=f"Identify aggregation needs for: {question}",
+            expected=str(expected_response),
+            actual=str(actual_response_dict),
+            criteria=criteria,
+            test_type="sql_aggregation",
         )
+
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "stage": "aggregation",
+            "expected": str(expected_response),
+            "actual": str(actual_response_dict),
+            "passed": judge_result.passed,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
+
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -305,22 +409,38 @@ class TestEvalSQLStages(BaseSQLEvalTest):
             else bool(actual_response.joins),
         }
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
-            question=question,
-            expected_response=expected_response,
-            actual_response=actual_response_dict,
-            test_data=test_data,
-            judge_question=f"Determine joins needed for: {question}",
-            sql_stage="join",
-            schema_context={
-                "relationships": [r.model_dump() for r in self.schema.relationships]
-            },
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**test_data.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
+            question=f"Determine joins needed for: {question}",
+            expected=str(expected_response),
+            actual=str(actual_response_dict),
+            criteria=criteria,
+            test_type="sql_join",
         )
 
-    @classmethod
-    def teardown_class(cls):
-        """Generate summary reports for all SQL stages."""
-        # Call parent teardown which handles database completion and summary
-        super().teardown_class()
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "stage": "join",
+            "expected": str(expected_response),
+            "actual": str(actual_response_dict),
+            "passed": judge_result.passed,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
+
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"

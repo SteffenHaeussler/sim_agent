@@ -1,0 +1,28 @@
+suite_name: "Tool Agent Enhancement Tests"
+suite_description: "Tests for question enhancement functionality"
+default_judge_criteria:
+  accuracy_threshold: 6.0
+  relevance_threshold: 7.0
+  completeness_threshold: 6.0
+  hallucination_threshold: 8.0
+
+tests:
+  - name: "eval_1"
+    question: "What is the daily maximum value of PI-P0017 in April 2025?"
+    candidates:
+      - text: "temperature in the upper part of the distillation column"
+        score: -5.1993913650512695
+        id: "54fc69f2-bc6c-4bbb-a22f-c07c975a0386"
+        tag: "TRC-T0029"
+        name: "TRC-T0029"
+    response: "What is the daily maximum value of PI-P0017 in April 2025?"
+
+  - name: "eval_2"
+    question: "How much was produced in the first two weeks of 2025?"
+    candidates:
+      - text: "total production rate of the distillation"
+        score: -10.114917755126953
+        id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
+        tag: "FQI-F0024"
+        name: "FQI-F0024"
+    response: "What is the total production rate of FQI-F0024 in the first two weeks of 2025?"

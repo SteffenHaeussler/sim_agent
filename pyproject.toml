@@ -41,3 +41,6 @@ dev = [
 addopts = [
     "--ignore=evals",
 ]
+env = [
+    "EVALS_REPORT_DIR=evals/reports",
+]

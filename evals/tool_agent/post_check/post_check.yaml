@@ -1,0 +1,25 @@
+suite_name: "Tool Agent Post-Check Tests"
+suite_description: "Tests for post-check guardrails functionality"
+# Note: Post-check tests don't use judge criteria as they test boolean approval
+
+tests:
+  - name: "eval_1"
+    question: "What is the daily maximum value of PI-P0017 in April 2025?"
+    response: "The daily maximum value of PI-P0017 in April 2025 is 1.588889."
+    memory:
+      - "The daily maximum value of PI-P0017 in April 2025 is 1.588889."
+    approved: true
+
+  - name: "eval_2"
+    question: "What is the daily maximum value of PI-P0017 in April 2025?"
+    response: "Sensor PI-P0015 is next to PI-P0017."
+    memory:
+      - "Sensor PI-P0015 is next to PI-P0017."
+    approved: false
+
+  - name: "eval_3"
+    question: "What is the maximum pressure of PI-P0017 in April 2025?"
+    response: "The maximum pressure of PI-P0017 in April 2025 is a temperature of 11 degrees."
+    memory:
+      - "The maximum pressure of PI-P0017 in April 2025 is a temperature of 11 degrees."
+    approved: false

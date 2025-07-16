@@ -4,22 +4,31 @@ from pathlib import Path
 
 import pytest
 
+from evals.llm_judge import JudgeCriteria, LLMJudge
+from evals.utils import load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
 from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
-from tests.utils import get_fixtures
-from evals.base_eval_db import BaseEvaluationTest
 
 current_path = Path(__file__).parent
-fixtures = get_fixtures(current_path, keys=["enhance"])
+# Load fixtures from YAML file
+fixtures = load_yaml_fixtures(current_path, "enhance")
 
 
-class TestEvalEnhance(BaseEvaluationTest):
+class TestEvalEnhance:
     """Enhancement evaluation tests."""
 
-    RUN_TYPE = "enhance"
-    TEST_TYPE = "enhance"
-    EVALUATION_CATEGORY = "enhancement"
+    def setup_method(self):
+        """Initialize LLM Judge for evaluation."""
+        self.judge = LLMJudge()
+
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "enhance")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -31,11 +40,10 @@ class TestEvalEnhance(BaseEvaluationTest):
     def test_eval_enhance(self, fixture_name, fixture):
         """Run enhancement test with optional LLM judge evaluation."""
 
-        # Extract test data
-        test_data = fixture["enhance"]
-        question_text = test_data["question"]
-        candidates = test_data["candidates"]
-        expected_response = test_data["response"]
+        # Extract test data - fixture is now the test data directly
+        question_text = fixture["question"]
+        candidates = fixture["candidates"]
+        expected_response = fixture["response"]
 
         q_id = str(uuid.uuid4())
         question = commands.Question(question=question_text, q_id=q_id)
@@ -83,24 +91,38 @@ class TestEvalEnhance(BaseEvaluationTest):
         # Add delay to avoid rate limiting
         time.sleep(1)
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**fixture.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
             question=question_text,
-            expected_response=expected_response,
-            actual_response=actual_response,
-            test_data=test_data,
-            execution_time_ms=execution_time_ms,
-            metadata={
-                "candidates_count": len(candidates),
-                "enhance_prompt": enhance_command.question[:200] + "..."
-                if len(enhance_command.question) > 200
-                else enhance_command.question,
-            },
+            expected=str(expected_response),
+            actual=str(actual_response),
+            criteria=criteria,
+            test_type="enhance",
         )
 
-    @classmethod
-    def teardown_class(cls):
-        """Generate summary report after all tests."""
-        # Call parent teardown which handles database completion and summary
-        super().teardown_class()
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question_text,
+            "expected": str(expected_response),
+            "actual": str(actual_response),
+            "passed": judge_result.passed,
+            "execution_time_ms": execution_time_ms,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
+
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"

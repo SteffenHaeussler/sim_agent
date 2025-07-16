@@ -2,25 +2,42 @@ import time
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
-from src.agent.entrypoints.app import app
-from tests.utils import get_fixtures
-from evals.base_eval_db import BaseEvaluationTest
+from evals.llm_judge import JudgeCriteria, LLMJudge
+from evals.utils import load_yaml_fixtures, save_test_report
+from src.agent.domain import events
 
 current_path = Path(__file__).parent
-fixtures = get_fixtures(current_path, keys=["e2e"])
-
-# Create test client
-client = TestClient(app)
+# Load fixtures from YAML file
+fixtures = load_yaml_fixtures(current_path, "e2e")
 
 
-class TestEvalE2E(BaseEvaluationTest):
+class TestEvalE2E:
     """End-to-End evaluation tests."""
 
-    RUN_TYPE = "e2e"
-    TEST_TYPE = "e2e"
-    EVALUATION_CATEGORY = "e2e"
+    def setup_method(self):
+        """Initialize LLM Judge for evaluation."""
+        self.judge = LLMJudge()
+
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "e2e")
+
+    def extract_final_response(self, session_id: str, test_notifications) -> str:
+        """Extract the final response from collected notifications."""
+        # Get all events sent to this session
+        session_events = test_notifications.sent.get(session_id, [])
+
+        # Find the final response event
+        for event in reversed(session_events):  # Check from most recent
+            if isinstance(event, events.Response):
+                return event.response
+
+        return ""
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -29,48 +46,102 @@ class TestEvalE2E(BaseEvaluationTest):
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval_e2e(self, fixture_name, fixture):
+    def test_eval_e2e(self, fixture_name, fixture, test_client, test_notifications):
         """Run E2E test with optional LLM judge evaluation."""
 
-        # Extract test data
-        test_data = fixture["e2e"]
-        question = test_data["question"]
-        expected_response = test_data["response"]
+        # Clear all previous notifications
+        # Since sent is a defaultdict, we need to clear its contents properly
+        for key in list(test_notifications.sent.keys()):
+            del test_notifications.sent[key]
+
+        # Extract test data - fixture is now the test data directly
+        question = fixture["question"]
+        expected_response = fixture["response"]
+        session_id = f"test-{fixture_name}"
 
         # Start timing
         start_time = time.time()
 
         # Make API request
         params = {"question": question, "q_id": fixture_name}
-        headers = {"X-Session-ID": f"test-{fixture_name}"}
-        response = client.get("/answer", params=params, headers=headers)
+        headers = {"X-Session-ID": session_id}
+        response = test_client.get("/answer", params=params, headers=headers)
+
+        # API should return processing status
+        assert response.status_code == 200
+        assert response.json()["status"] == "processing"
+
+        # Wait for async processing to complete
+        # You may need to adjust this based on typical processing time
+        max_wait_time = 30  # Maximum wait time in seconds
+        wait_interval = 1  # Check interval in seconds
+        elapsed_time = 0
+
+        while elapsed_time < max_wait_time:
+            # Check if we have received a response event
+            session_events = test_notifications.sent.get(session_id, [])
+            has_response = any(
+                isinstance(event, events.Response) or hasattr(event, "response")
+                for event in session_events
+            )
+
+            if has_response:
+                break
+
+            time.sleep(wait_interval)
+            elapsed_time += wait_interval
+
+        # Extract actual response from collected notifications
+        actual_response = self.extract_final_response(session_id, test_notifications)
+
+        # Debug: print collected events if no response found
+        if not actual_response:
+            print(f"\nDebug: No response found for session {session_id}")
+            print(
+                f"Collected events: {[type(e).__name__ for e in test_notifications.sent.get(session_id, [])]}"
+            )
 
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Add delay to avoid rate limiting (E2E makes many API calls internally)
-        time.sleep(60)
+        time.sleep(55)  # Reduced since we already waited 5 seconds
 
-        # Extract actual response
-        if response.status_code == 200:
-            data = response.json()
-            actual_response = data.get("response", "")
-        else:
-            actual_response = f"Error: {response.status_code}"
-
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**fixture.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
             question=question,
-            expected_response=expected_response,
-            actual_response=actual_response,
-            test_data=test_data,
-            execution_time_ms=execution_time_ms,
-            metadata={"status_code": response.status_code, "api_endpoint": "/answer"},
+            expected=str(expected_response),
+            actual=str(actual_response),
+            criteria=criteria,
+            test_type="e2e",
         )
 
-    @classmethod
-    def teardown_class(cls):
-        """Generate summary report after all tests."""
-        # Call parent teardown which handles database completion and summary
-        super().teardown_class()
+        # Add delay to avoid rate limiting
+        time.sleep(1)
+
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "expected": str(expected_response),
+            "actual": str(actual_response),
+            "passed": judge_result.passed,
+            "execution_time_ms": execution_time_ms,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
+
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"

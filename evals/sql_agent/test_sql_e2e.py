@@ -1,103 +1,81 @@
-"""Simple SQL E2E tests that call the actual CLI."""
+"""SQL E2E tests using FastAPI endpoint."""
 
 import json
-import os
+import time
 from pathlib import Path
 
 import pytest
-import yaml
 
-from evals.base_sql_eval import BaseSQLEvalTest
+from evals.llm_judge import JudgeCriteria, LLMJudge
+from evals.utils import load_yaml_fixtures, save_test_report
 
 current_path = Path(__file__).parent
 
-
-def load_yaml_fixtures(test_dir):
-    """Load YAML test fixtures from the sql_e2e directory."""
-    fixtures = {}
-    sql_e2e_dir = test_dir / "sql_e2e"
-
-    if not sql_e2e_dir.exists():
-        print(f"WARNING: sql_e2e directory not found at {sql_e2e_dir}")
-        return fixtures
-
-    # Load all YAML files in the sql_e2e directory
-    for yaml_file in sql_e2e_dir.glob("*.yaml"):
-        with open(yaml_file, "r") as f:
-            suite_data = yaml.safe_load(f)
-
-        # Extract tests from the suite
-        for test in suite_data.get("tests", []):
-            test_name = f"{yaml_file.stem}_{test['name']}"
-
-            # Merge suite defaults with test-specific criteria
-            judge_criteria = suite_data.get("default_judge_criteria", {}).copy()
-            if "judge_criteria" in test:
-                judge_criteria.update(test["judge_criteria"])
-
-            # Convert to expected format
-            fixtures[test_name] = {
-                "sql_e2e": {
-                    "question": test["question"],
-                    "expected_sql": test["sql"],
-                    "judge_criteria": judge_criteria,
-                }
-            }
-
-    return fixtures
-
-
-# Load fixtures from YAML files
-fixtures = load_yaml_fixtures(current_path)
+# Load fixtures from YAML files using the utility function
+fixtures = load_yaml_fixtures(current_path, "sql_e2e/temp")
 
 # Load database schema
 with open(current_path / "sql_e2e/schema.json", "r") as f:
     schema_data = json.load(f)
 
 
-class TestSQLEndToEndSimple(BaseSQLEvalTest):
-    """Simple SQL End-to-End evaluation tests using CLI."""
-
-    RUN_TYPE = "sql_e2e"
-    TEST_TYPE = "sql_e2e"
+class TestSQLEndToEnd:
+    """SQL End-to-End evaluation tests using FastAPI endpoint."""
 
     def setup_method(self):
         """Setup for each test."""
-        super().setup_method()
+        self.judge = LLMJudge()
         self.current_path = current_path
         self.schema = schema_data
 
-        # Set environment to use test database
-        env = os.environ.copy()
-        env["IS_TESTING"] = "true"
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
 
-    def extract_sql_from_output(self, output: str) -> str:
-        """Extract SQL query from CLI output."""
-        # Look for SQL between ```sql markers or after "Generated SQL:" line
-        lines = output.split("\n")
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "sql_e2e")
 
-        # Try to find SQL block
-        in_sql_block = False
-        sql_lines = []
+    def extract_sql_from_response(self, session_id: str, test_notifications) -> str:
+        """
+        Extract SQL response from collected notifications.
 
-        for line in lines:
-            if line.strip().startswith("```sql"):
-                in_sql_block = True
-                continue
-            elif line.strip() == "```" and in_sql_block:
-                break
-            elif in_sql_block:
-                sql_lines.append(line)
-            elif "Generated SQL:" in line or "SQL Query:" in line:
-                # Sometimes the SQL is on the next lines
-                idx = lines.index(line)
-                for next_line in lines[idx + 1 :]:
-                    if next_line.strip() and not next_line.startswith(
-                        "2025-"
-                    ):  # Skip log lines
-                        sql_lines.append(next_line)
+        Args:
+            session_id: The session ID to look for
+            test_notifications: The CollectingNotifications instance
 
-        return "\n".join(sql_lines).strip()
+        Returns:
+            The extracted SQL query
+        """
+        # Get all events sent to this session
+        session_events = test_notifications.sent.get(session_id, [])
+
+        # Find SQL response event
+        for event in reversed(session_events):  # Check from most recent
+            if hasattr(event, "to_message"):
+                message = event.to_message()
+
+                # Look for SQL in the message
+                if "```sql" in message:
+                    start = message.find("```sql") + 6
+                    end = message.find("```", start)
+                    if end > start:
+                        return message[start:end].strip()
+
+                # Look for SELECT statement
+                lines = message.split("\n")
+                for line in lines:
+                    if "SELECT" in line.upper():
+                        sql_start = line.upper().find("SELECT")
+                        return line[sql_start:].strip()
+
+            # Check if event has SQL directly
+            if hasattr(event, "sql"):
+                return event.sql
+            elif hasattr(event, "response") and "SELECT" in str(event.response).upper():
+                return event.response
+
+        return ""
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -106,41 +84,76 @@ class TestSQLEndToEndSimple(BaseSQLEvalTest):
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_sql_e2e_via_cli(self, fixture_name, fixture):
-        """Run SQL E2E test via CLI."""
+    def test_sql_e2e(self, fixture_name, fixture):
+        """Run SQL E2E test via FastAPI endpoint."""
 
-        # Extract test data
-        test_data = fixture["sql_e2e"]
-        question = test_data["question"]
-        expected_sql = test_data["expected_sql"]
+        # breakpoint()
+        # Direct access to test data - no nested structure
+        question = fixture["question"]
+        expected_sql = fixture["sql"]
 
-        # Run CLI command
-        output = self.run_cli_command(question)
+        # Create session ID for this test
+        session_id = f"test-sql-{fixture_name}"
+        # headers = {"X-Session-ID": session_id}
 
-        # Extract SQL from output
-        actual_sql = self.extract_sql_from_output(output)
+        # Start timing
+        start_time = time.time()
 
-        # If we couldn't extract SQL, try to find it in the raw output
-        if not actual_sql:
-            # Sometimes the SQL is just printed directly
-            for line in output.split("\n"):
-                if "SELECT" in line.upper():
-                    actual_sql = line.strip()
-                    break
+        # Make API request
+        # response = client.get("/query", params={"question": question}, headers=headers)
+        response = ""
 
-        # Evaluate the result using the base class method
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
+        # Check initial response
+        assert response.status_code == 200
+        assert response.json()["status"] == "processing"
+
+        # Extract SQL from SSE response
+        actual_sql = self.extract_sql_from_response(session_id)
+
+        # Calculate execution time
+        execution_time_ms = int((time.time() - start_time) * 1000)
+
+        # Normalize SQL for comparison (basic normalization)
+        def normalize_sql(sql: str) -> str:
+            """Basic SQL normalization for comparison."""
+            # Remove extra whitespace and newlines
+            return " ".join(sql.split()).strip().rstrip(";")
+
+        # Use LLM Judge for evaluation
+        criteria = JudgeCriteria(**fixture.get("judge_criteria", {}))
+        judge_result = self.judge.evaluate(
             question=question,
-            expected_response={"sql": expected_sql},
-            actual_response={"sql": actual_sql},
-            test_data=test_data,
-            judge_question=question,
-            sql_query=actual_sql,
-            schema_context=schema_data,
+            expected=normalize_sql(expected_sql),
+            actual=normalize_sql(actual_sql) if actual_sql else "NO SQL GENERATED",
+            criteria=criteria,
+            test_type="sql_e2e",
         )
 
-    @classmethod
-    def teardown_class(cls):
-        """Generate summary report after all tests."""
-        super().teardown_class()
+        # Add delay to avoid rate limiting
+        time.sleep(1)
+
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question,
+            "expected": normalize_sql(expected_sql),
+            "actual": normalize_sql(actual_sql) if actual_sql else "NO SQL GENERATED",
+            "passed": judge_result.passed,
+            "execution_time_ms": execution_time_ms,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
+
+        # Assert judge passed
+        assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"

@@ -17,13 +17,3 @@ tests:
         sku
       FROM products
       WHERE is_active = TRUE;
-
-  - name: "active_customers_list"
-    question: "List all customers with their company names and contact emails"
-    sql: |
-      SELECT
-        customer_id,
-        company_name,
-        contact_email
-      FROM customers
-      WHERE is_active = TRUE;

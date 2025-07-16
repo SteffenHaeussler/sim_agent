@@ -1,0 +1,56 @@
+suite_name: "Tool Agent E2E Tests"
+suite_description: "End-to-end tests for tool agent functionality"
+default_judge_criteria:
+  accuracy_threshold: 8.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+
+tests:
+  - name: "eval_agg_data_1"
+    question: "How much was did asset FQI-F0024 measure in the first two weeks of 2025?"
+    response: "3423.570451"
+
+  - name: "eval_compare_data_1"
+    question: "Can you compare PI-P0017 and PI-P0016 for the first 10 days in 2025?"
+    response: {"comparison": "comparison.png"}
+
+  - name: "eval_get_data_1"
+    question: "What is the daily maximum value of PI-P0017 in April 2025?"
+    response: "1.588889"
+
+  - name: "eval_get_data_2"
+    question: "Can you provide me the highest value for June 2025 for TI-T0022?"
+    response: "49.046333"
+
+  - name: "eval_get_data_3"
+    question: "What is the current pressure in the distillation for asset PDI-P0018?"
+    response: "258.43"
+
+  - name: "eval_get_data_4"
+    question: "What is the level in asset LI-L0008?"
+    response: "0.0"
+
+  - name: "eval_get_data_5"
+    question: "how much measured FRC-F0025 in the last 4 hours?"
+    response: "104.08"
+
+  - name: "eval_get_id_1"
+    question: "What is the id of TI-T0022?"
+    response: "cec684e7-cf21-47fe-8213-031cd576163c"
+
+  - name: "eval_information_1"
+    question: "What is the name of asset id c831fadb-d620-4007-bdda-4593038c87f9?"
+    response: "PA101"
+
+  - name: "eval_location_asset_1"
+    question: "What assets are next to asset BA100?"
+    response: ["LIC-L0012", "PA103", "PA104", "TI-T0021"]
+
+  - name: "eval_plot_data_1"
+    question: "Can you create a plot for the adjacent sensors of asset BA101 for 1st January 2025?"
+    response: {"plot": "plot.png"}
+
+  - name: "eval_plot_data_2"
+    question: "can you plot me the temperature of TRC-T0029 for the last two weeks?"
+    response: {"plot": "plot.png"}

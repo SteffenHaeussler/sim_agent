@@ -4,22 +4,25 @@ from pathlib import Path
 
 import pytest
 
+from evals.utils import load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
-from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
-from tests.utils import get_fixtures
-from evals.base_eval_db import BaseEvaluationTest
 
 current_path = Path(__file__).parent
-fixtures = get_fixtures(current_path, keys=["pre_check"])
+# Load fixtures from YAML file
+fixtures = load_yaml_fixtures(current_path, "pre_check")
 
 
-class TestEvalPreCheck(BaseEvaluationTest):
+class TestEvalPreCheck:
     """Pre-check guardrails evaluation tests."""
 
-    RUN_TYPE = "pre_check"
-    TEST_TYPE = "guardrails"
-    EVALUATION_CATEGORY = "guardrails"
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "pre_check")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -28,24 +31,19 @@ class TestEvalPreCheck(BaseEvaluationTest):
             for fixture_name, fixture in fixtures.items()
         ],
     )
-    def test_eval_guardrails(self, fixture_name, fixture):
-        """Run pre-check guardrails test with optional LLM judge evaluation."""
+    def test_eval(self, fixture_name, fixture, agent_config, llm_config):
+        question_text = fixture["question"]
+        expected_response = fixture["approved"]
 
-        # Extract test data
-        test_data = fixture["pre_check"]
-        question_text = test_data["question"]
-        expected_response = test_data["approved"]
-
-        q_id = str(uuid.uuid4())
+        q_id = "eval_pre_check_" + str(uuid.uuid4())
         question = commands.Question(question=question_text, q_id=q_id)
 
-        llm = LLM(get_llm_config())
+        llm = LLM(llm_config)
         agent = model.BaseAgent(
             question=question,
-            kwargs=get_agent_config(),
+            kwargs=agent_config,
         )
 
-        # Start timing
         start_time = time.time()
 
         # Prepare guardrails check
@@ -59,29 +57,20 @@ class TestEvalPreCheck(BaseEvaluationTest):
 
         # Add delay to avoid rate limiting
         time.sleep(1)
-
         # Extract response
         actual_response = response.approved
-        parsed_response = response.model_dump()
 
-        # Evaluate with judge and record to database
-        self.evaluate_with_judge(
-            fixture_name=fixture_name,
-            question=question_text,
-            expected_response=expected_response,
-            actual_response=actual_response,
-            test_data=test_data,
-            execution_time_ms=execution_time_ms,
-            metadata={
-                "check_type": "pre_check",
-                "response_json": parsed_response
-                if "parsed_response" in locals()
-                else None,
-            },
-        )
+        # Record result
+        result = {
+            "test_name": fixture_name,
+            "question": question_text,
+            "expected": expected_response,
+            "actual": actual_response,
+            "passed": actual_response == expected_response,
+            "execution_time_ms": execution_time_ms,
+        }
 
-    @classmethod
-    def teardown_class(cls):
-        """Generate summary report after all tests."""
-        # Call parent teardown which handles database completion and summary
-        super().teardown_class()
+        self.__class__.results.append(result)
+
+        # Simple assert for exact match
+        assert actual_response == expected_response

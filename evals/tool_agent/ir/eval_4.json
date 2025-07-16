@@ -1,9 +1,0 @@
-{
-    "question": "What is the level in tank b?",
-    "response": {
-        "description": "destillate level after the distillation cooler at tank b",
-        "name": "LI-L0008",
-        "tag": "LI-L0008",
-        "id": "6c13417e-7eff-4530-94a7-0a93f88647fb"
-    }
-}
