@@ -5,11 +5,12 @@ import pytest
 
 from src.agent import config
 from src.agent.adapters import rag
-from tests.utils import get_fixtures
-from evals.base_eval_db import BaseEvaluationTest
+from evals.base_eval import BaseEvaluationTest
+from evals.utils import load_yaml_fixtures
 
 current_path = Path(__file__).parent
-fixtures = get_fixtures(current_path, keys=["ir"])
+# Load fixtures from YAML file
+fixtures = load_yaml_fixtures(current_path, "")
 rag_adapter = rag.BaseRAG(config.get_rag_config())
 
 
@@ -30,10 +31,9 @@ class TestIR(BaseEvaluationTest):
     def test_ir(self, fixture_name, fixture):
         """Run IR test with optional LLM judge evaluation."""
 
-        # Extract test data
-        test_data = fixture["ir"]
-        question = test_data["question"]
-        expected_response = test_data["response"]
+        # Extract test data - fixture is now the test data directly
+        question = fixture["question"]
+        expected_response = fixture["response"]
 
         # Start timing
         start_time = time.time()
@@ -54,8 +54,13 @@ class TestIR(BaseEvaluationTest):
         # Calculate execution time
         execution_time_ms = int((time.time() - start_time) * 1000)
 
-        # Extract top result
-        actual_response = candidates[0]["name"] if candidates else ""
+        # Extract top result - handle both string and dict expected responses
+        if isinstance(expected_response, dict):
+            # For dict responses, we should return the top candidate as a dict
+            actual_response = candidates[0] if candidates else {}
+        else:
+            # For string responses (empty string case), return name or empty string
+            actual_response = candidates[0]["name"] if candidates else ""
 
         # Add delay to avoid rate limiting
         time.sleep(1)
@@ -66,7 +71,7 @@ class TestIR(BaseEvaluationTest):
             question=question,
             expected_response=expected_response,
             actual_response=actual_response,
-            test_data=test_data,
+            test_data=fixture,
             execution_time_ms=execution_time_ms,
             metadata={
                 "candidates_retrieved": len(candidates),

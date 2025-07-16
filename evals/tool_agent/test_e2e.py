@@ -5,11 +5,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.agent.entrypoints.app import app
-from tests.utils import get_fixtures
-from evals.base_eval_db import BaseEvaluationTest
+from evals.base_eval import BaseEvaluationTest
+from evals.utils import load_yaml_fixtures
 
 current_path = Path(__file__).parent
-fixtures = get_fixtures(current_path, keys=["e2e"])
+# Load fixtures from YAML file
+fixtures = load_yaml_fixtures(current_path, "")
 
 # Create test client
 client = TestClient(app)
@@ -32,10 +33,9 @@ class TestEvalE2E(BaseEvaluationTest):
     def test_eval_e2e(self, fixture_name, fixture):
         """Run E2E test with optional LLM judge evaluation."""
 
-        # Extract test data
-        test_data = fixture["e2e"]
-        question = test_data["question"]
-        expected_response = test_data["response"]
+        # Extract test data - fixture is now the test data directly
+        question = fixture["question"]
+        expected_response = fixture["response"]
 
         # Start timing
         start_time = time.time()
@@ -64,7 +64,7 @@ class TestEvalE2E(BaseEvaluationTest):
             question=question,
             expected_response=expected_response,
             actual_response=actual_response,
-            test_data=test_data,
+            test_data=fixture,
             execution_time_ms=execution_time_ms,
             metadata={"status_code": response.status_code, "api_endpoint": "/answer"},
         )

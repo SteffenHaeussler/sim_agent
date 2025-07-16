@@ -7,11 +7,12 @@ import pytest
 from src.agent.adapters.llm import LLM
 from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
-from tests.utils import get_fixtures
-from evals.base_eval_db import BaseEvaluationTest
+from evals.base_eval import BaseEvaluationTest
+from evals.utils import load_yaml_fixtures
 
 current_path = Path(__file__).parent
-fixtures = get_fixtures(current_path, keys=["post_check"])
+# Load fixtures from YAML file
+fixtures = load_yaml_fixtures(current_path, "")
 
 
 class TestEvalPostCheck(BaseEvaluationTest):
@@ -31,12 +32,11 @@ class TestEvalPostCheck(BaseEvaluationTest):
     def test_eval_guardrails(self, fixture_name, fixture):
         """Run post-check guardrails test with optional LLM judge evaluation."""
 
-        # Extract test data
-        test_data = fixture["post_check"]
-        question_text = test_data["question"]
-        response_text = test_data["response"]
-        memory = test_data["memory"]
-        expected_response = test_data["approved"]
+        # Extract test data - fixture is now the test data directly
+        question_text = fixture["question"]
+        response_text = fixture["response"]
+        memory = fixture["memory"]
+        expected_response = fixture["approved"]
 
         q_id = str(uuid.uuid4())
         question = commands.Question(question=question_text, q_id=q_id)
@@ -77,7 +77,7 @@ class TestEvalPostCheck(BaseEvaluationTest):
             question=question_text,
             expected_response=expected_response,
             actual_response=actual_response,
-            test_data=test_data,
+            test_data=fixture,
             execution_time_ms=execution_time_ms,
             metadata={
                 "check_type": "post_check",

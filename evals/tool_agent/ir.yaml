@@ -1,0 +1,102 @@
+suite_name: "Tool Agent Information Retrieval Tests"
+suite_description: "Tests for information retrieval functionality"
+# Note: IR tests don't use judge criteria as they test retrieval accuracy
+
+tests:
+  - name: "eval_1"
+    question: "What is the daily maximum value of PI-P0017 in April 2025?"
+    response: ""
+    tags: ["ir", "no_match"]
+
+  - name: "eval_2"
+    question: "How much was produced in the first two weeks of 2025?"
+    response:
+      description: "total production rate of the distillation"
+      id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
+      tag: "FQI-F0024"
+      name: "FQI-F0024"
+    tags: ["ir", "production", "match_found"]
+
+  - name: "eval_3"
+    question: "How much was produced in the total production in the distillation in the first two weeks of 2025?"
+    response:
+      description: "total production rate of the distillation"
+      id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
+      tag: "FQI-F0024"
+      name: "FQI-F0024"
+    tags: ["ir", "production", "distillation", "match_found"]
+
+  - name: "eval_4"
+    question: "What is the level in tank b?"
+    response:
+      description: "destillate level after the distillation cooler at tank b"
+      name: "LI-L0008"
+      tag: "LI-L0008"
+      id: "6c13417e-7eff-4530-94a7-0a93f88647fb"
+    tags: ["ir", "level", "tank", "match_found"]
+
+  - name: "eval_5"
+    question: "Can you provide me the highest value for June 2025 for TI-T0022?"
+    response:
+      description: "temperature of the washing water"
+      name: "TI-T0022"
+      tag: "TI-T0022"
+      id: "cec684e7-cf21-47fe-8213-031cd576163c"
+      location: "reactor"
+      area: "center"
+    tags: ["ir", "temperature", "match_found"]
+
+  - name: "eval_6"
+    question: "can you plot me the temperature of the distillation cooler A for the last two weeks?"
+    response:
+      description: "destillate temperature after the distillation cooler at tank a"
+      name: "TI-T0027"
+      tag: "TI-T0027"
+      id: "e419deb7-e5fd-47b0-bd93-d76f99205914"
+      location: "tank"
+      area: "A"
+    tags: ["ir", "temperature", "distillation_cooler", "match_found"]
+
+  - name: "eval_7"
+    question: "What is the temperature of the water tank?"
+    response:
+      description: "measures the cooling water tank temperature after the residue cooler"
+      name: "TI-T0026"
+      tag: "TI-T0026"
+      id: "d656698b-95a8-4e6b-a220-ead9ce1ed7bd"
+      location: "cooling water tank"
+      area: "center"
+    tags: ["ir", "temperature", "water_tank", "match_found"]
+
+  - name: "eval_8"
+    question: "what is the current vapor pressure in the distillation column?"
+    response:
+      description: "vapor pressure in the distillations column"
+      name: "PDI-P0018"
+      tag: "PDI-P0018"
+      id: "0919b818-270d-448a-9416-e02b592880d7"
+      location: "distillation column"
+      area: "center"
+    tags: ["ir", "pressure", "vapor", "distillation", "match_found"]
+
+  - name: "eval_9"
+    question: "how much distillate is flown in the storage in the last 4 hours?"
+    response:
+      description: "amount of distillate flow towards tank storage"
+      name: "FQI-F0024"
+      tag: "FQI-F0024"
+      id: "0c2b4d6c-32b0-45ad-89a9-0e8e07a1eb64"
+      location: "tank"
+      area: "end"
+    tags: ["ir", "flow", "distillate", "storage", "match_found"]
+
+  - name: "eval_10"
+    question: "what is the current temperature at top of the distillation column?"
+    response:
+      description: "temperature in the upper part of the distillation column"
+      name: "TRC-T0029"
+      tag: "TRC-T0029"
+      id: "54fc69f2-bc6c-4bbb-a22f-c07c975a0386"
+      location: "distillation column"
+      area: "center"
+    tags: ["ir", "temperature", "distillation_column", "match_found"]

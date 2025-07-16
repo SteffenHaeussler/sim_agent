@@ -5,11 +5,14 @@ import pytest
 
 from src.agent import config
 from src.agent.adapters import agent_tools
-from tests.utils import get_fixtures
-from evals.base_eval_db import BaseEvaluationTest
+from evals.utils import load_yaml_fixtures
+from evals.base_eval import BaseEvaluationTest
 
 current_path = Path(__file__).parent
-fixtures = get_fixtures(current_path, keys=["tool_agent"])
+# Load e2e fixtures since this tests the same functionality via direct tool calls
+fixtures = load_yaml_fixtures(
+    current_path, "", recursive=False
+)  # Load YAML files from current directory
 tools = agent_tools.Tools(config.get_tools_config())
 
 
@@ -30,10 +33,9 @@ class TestEvalPlanning(BaseEvaluationTest):
     def test_eval_tool_agent(self, fixture_name, fixture):
         """Run tool agent test with optional LLM judge evaluation."""
 
-        # Extract test data
-        test_data = fixture["tool_agent"]
-        question = test_data["question"]
-        expected_response = test_data["response"]
+        # Extract test data - flat structure from YAML
+        question = fixture["question"]
+        expected_response = fixture["response"]
 
         # Start timing
         start_time = time.time()
@@ -83,7 +85,7 @@ class TestEvalPlanning(BaseEvaluationTest):
                 question=question,
                 expected_response=expected_response,
                 actual_response=response,
-                test_data=test_data,
+                test_data=fixture,  # Pass fixture directly
                 execution_time_ms=execution_time_ms,
                 tools_used=tools_used,
                 tool_outputs={"response_type": type(response).__name__},

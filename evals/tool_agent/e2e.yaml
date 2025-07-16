@@ -1,0 +1,85 @@
+suite_name: "Tool Agent E2E Tests"
+suite_description: "End-to-end tests for tool agent functionality"
+default_judge_criteria:
+  accuracy_threshold: 8.0
+  relevance_threshold: 9.0
+  completeness_threshold: 8.0
+  hallucination_threshold: 9.0
+
+tests:
+  - name: "eval_agg_data_1"
+    question: "How much was produced in the first two weeks of 2025?"
+    response: "The total production rate of FQI-F0024 in the first two weeks of 2025 is approximately 3423.57 units."
+    tags: ["production", "aggregation", "time_series"]
+
+  - name: "eval_agg_data_2"
+    question: "How much was the total production in the distillation first two weeks of 2025?"
+    response: "The total production of FQI-F0024 in the first two weeks of 2025 was approximately 3423.57 units."
+    tags: ["production", "distillation", "aggregation", "time_series"]
+
+  - name: "eval_compare_data_1"
+    question: "Can you compare PI-P0017 and PI-P0016 for the first 10 days in 2025?"
+    response: "For the first 10 days of 2025, a comparison between PI-P0017 and PI-P0016 reveals the following: Both datasets contain 10 data points. PI-P0017 has a mean of 1.37 with a standard deviation of 0.12, while PI-P0016 has a mean of 0.45 with a standard deviation of 0.08. The minimum value for PI-P0017 is 1.20, and the maximum is 1.56. For PI-P0016, the minimum is 0.30, and the maximum is 0.56. The 25th percentile for PI-P0017 is 1.29, the 50th percentile is 1.36, and the 75th percentile is 1.46. For PI-P0016, the 25th percentile is 0.41, the 50th percentile is 0.42, and the 75th percentile is 0.53. Note that the IDs associated with the data are 84200101-d718-45bf-bfae-529513586ddd and 18b04353-839d-40a1-84c1-9b547d09dd80, respectively."
+    tags: ["comparison", "pressure", "statistics", "time_series"]
+
+  - name: "eval_get_data_1"
+    question: "What is the daily maximum value of PI-P0017 in April 2025?"
+    response: "The daily maximum value of PI-P0017 in April 2025 is approximately 1.59."
+    tags: ["data_retrieval", "pressure", "maximum", "daily"]
+
+  - name: "eval_get_data_1_enhanced"
+    question: "What is the daily maximum value of PI-P0017 in April 2025?"
+    response: "The daily maximum value of PI-P0017 in April 2025 is approximately 1.59."
+    judge_criteria:
+      accuracy_threshold: 8.0
+      relevance_threshold: 9.0
+      completeness_threshold: 8.0
+      hallucination_threshold: 9.0
+      require_exact_match: false
+      allow_additional_context: true
+    tags: ["data_retrieval", "pressure", "maximum", "daily", "enhanced"]
+
+  - name: "eval_get_data_2"
+    question: "Can you provide me the highest value for June 2025 for TI-T0022?"
+    response: "The highest value for June 2025 for TI-T0022 is 49.05."
+    tags: ["data_retrieval", "temperature", "maximum", "monthly"]
+
+  - name: "eval_get_data_3"
+    question: "What is the current pressure in the distillation?"
+    response: "The vapor pressure of PDI-P0018 is 258.43 units."
+    tags: ["data_retrieval", "pressure", "distillation", "current"]
+
+  - name: "eval_get_data_4"
+    question: "What is the level in tank b?"
+    response: "The destillate level of LI-L0008 is 0.0."
+    tags: ["data_retrieval", "level", "tank", "current"]
+
+  - name: "eval_get_data_5"
+    question: "how much distillate is flown in the storage in the last 4 hours?"
+    response: "104.08 units of FRC-F0025 were flown in storage in the last 4 hours."
+    tags: ["data_retrieval", "flow", "distillate", "time_range"]
+
+  - name: "eval_get_id_1"
+    question: "What is the id of TI-T0022?"
+    response: "cec684e7-cf21-47fe-8213-031cd576163c."
+    tags: ["metadata", "tag_id", "temperature"]
+
+  - name: "eval_information_1"
+    question: "What is the name of asset id c831fadb-d620-4007-bdda-4593038c87f9?"
+    response: "PA101."
+    tags: ["metadata", "asset_name", "asset_id"]
+
+  - name: "eval_location_asset_1"
+    question: "What assets are next to asset BA100?"
+    response: "TThe assets next to asset BA100 are LIC-L0012, PA103, TI-T0021, and PA104."
+    tags: ["metadata", "asset_location", "adjacent_assets"]
+
+  - name: "eval_plot_data_1"
+    question: "Can you create a plot for the adjacent sensors of asset BA101 for 1st January 2025?"
+    response: "I am unable to provide the temperature data in text format, but I can provide the plot of the temperature data for TRC-T0029 for the last two weeks as an image."
+    tags: ["visualization", "plot", "adjacent_sensors", "time_series"]
+
+  - name: "eval_plot_data_2"
+    question: "can you plot me the temperature of the distillation cooler A for the last two weeks?"
+    response: "I am unable to provide the temperature data in text format, but I can provide the plot of the temperature data for TRC-T0029 for the last two weeks as an image."
+    tags: ["visualization", "plot", "temperature", "distillation_cooler", "time_series"]
