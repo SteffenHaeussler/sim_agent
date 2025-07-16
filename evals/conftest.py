@@ -206,3 +206,38 @@ def agent_config():
 def tools_config():
     """Provide LLM configuration for tests."""
     return get_tools_config()
+
+
+@pytest.fixture(scope="session")
+def test_notifications():
+    """Provide a CollectingNotifications instance for tests."""
+    from evals.utils import CollectingNotifications
+
+    return CollectingNotifications()
+
+
+@pytest.fixture(scope="session")
+def test_app(test_notifications):
+    """Provide a test app with CollectingNotifications."""
+    import src.agent.entrypoints.app
+    from src.agent import bootstrap
+    from src.agent.adapters.adapter import RouterAdapter
+    from src.agent.entrypoints.app import app
+
+    # Create test messagebus
+    test_bus = bootstrap.bootstrap(
+        adapter=RouterAdapter(), notifications=[test_notifications]
+    )
+
+    # Replace the app's bus
+    src.agent.entrypoints.app.bus = test_bus
+
+    return app
+
+
+@pytest.fixture
+def test_client(test_app):
+    """Provide a test client with CollectingNotifications."""
+    from fastapi.testclient import TestClient
+
+    return TestClient(test_app)

@@ -5,11 +5,9 @@ import time
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
 from evals.utils import load_yaml_fixtures, save_test_report
-from src.agent.entrypoints.app import app
 
 current_path = Path(__file__).parent
 
@@ -19,9 +17,6 @@ fixtures = load_yaml_fixtures(current_path, "sql_e2e/temp")
 # Load database schema
 with open(current_path / "sql_e2e/schema.json", "r") as f:
     schema_data = json.load(f)
-
-# Create test client
-client = TestClient(app)
 
 
 class TestSQLEndToEnd:
@@ -41,59 +36,44 @@ class TestSQLEndToEnd:
         """Save results to report file."""
         save_test_report(self.results, "sql_e2e")
 
-    def extract_sql_from_response(self, session_id: str, max_retries: int = 10) -> str:
+    def extract_sql_from_response(self, session_id: str, test_notifications) -> str:
         """
-        Poll the SSE endpoint to get the SQL response.
+        Extract SQL response from collected notifications.
 
         Args:
-            session_id: The session ID to poll
-            max_retries: Maximum number of polling attempts
+            session_id: The session ID to look for
+            test_notifications: The CollectingNotifications instance
 
         Returns:
             The extracted SQL query
         """
-        # Give the async processing some time to start
+        # Get all events sent to this session
+        session_events = test_notifications.sent.get(session_id, [])
 
-        # Try to get the response from SSE endpoint
-        for retry in range(max_retries):
-            try:
-                # Get SSE stream
-                response = client.get(f"/sse/{session_id}", stream=True)
+        # Find SQL response event
+        for event in reversed(session_events):  # Check from most recent
+            if hasattr(event, "to_message"):
+                message = event.to_message()
 
-                if response.status_code == 200:
-                    sql_response = ""
-                    for line in response.iter_lines():
-                        if line and line.startswith("data: "):
-                            try:
-                                data = json.loads(line[6:])  # Skip "data: " prefix
-                                if data.get("type") == "sql_response":
-                                    sql_response = data.get("content", "")
-                                    break
-                            except json.JSONDecodeError:
-                                continue
+                # Look for SQL in the message
+                if "```sql" in message:
+                    start = message.find("```sql") + 6
+                    end = message.find("```", start)
+                    if end > start:
+                        return message[start:end].strip()
 
-                    if sql_response:
-                        # Extract SQL from the response
-                        # Look for SQL between ```sql markers
-                        if "```sql" in sql_response:
-                            start = sql_response.find("```sql") + 6
-                            end = sql_response.find("```", start)
-                            if end > start:
-                                return sql_response[start:end].strip()
+                # Look for SELECT statement
+                lines = message.split("\n")
+                for line in lines:
+                    if "SELECT" in line.upper():
+                        sql_start = line.upper().find("SELECT")
+                        return line[sql_start:].strip()
 
-                        # Otherwise look for SELECT statement
-                        lines = sql_response.split("\n")
-                        for line in lines:
-                            if "SELECT" in line.upper():
-                                # Find the full SQL query starting from SELECT
-                                sql_start = line.upper().find("SELECT")
-                                return line[sql_start:].strip()
-
-                        return sql_response.strip()
-            except Exception as e:
-                print(f"Retry {retry + 1}: {e}")
-
-            time.sleep(1)  # Wait before retry
+            # Check if event has SQL directly
+            if hasattr(event, "sql"):
+                return event.sql
+            elif hasattr(event, "response") and "SELECT" in str(event.response).upper():
+                return event.response
 
         return ""
 
@@ -114,13 +94,14 @@ class TestSQLEndToEnd:
 
         # Create session ID for this test
         session_id = f"test-sql-{fixture_name}"
-        headers = {"X-Session-ID": session_id}
+        # headers = {"X-Session-ID": session_id}
 
         # Start timing
         start_time = time.time()
 
         # Make API request
-        response = client.get("/query", params={"question": question}, headers=headers)
+        # response = client.get("/query", params={"question": question}, headers=headers)
+        response = ""
 
         # Check initial response
         assert response.status_code == 200
