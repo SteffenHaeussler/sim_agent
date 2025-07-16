@@ -8,6 +8,7 @@
 # Evaluation reports
 reports/
 tests/evals/reports/
+evals/reports/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

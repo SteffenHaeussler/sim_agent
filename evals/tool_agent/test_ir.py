@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from evals.utils import load_yaml_fixtures
+from evals.utils import load_yaml_fixtures, save_test_report
 from src.agent import config
 from src.agent.adapters import rag
 
@@ -15,6 +15,14 @@ rag_adapter = rag.BaseRAG(config.get_rag_config())
 
 class TestIR:
     """Information Retrieval evaluation tests."""
+
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "ir")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -31,7 +39,7 @@ class TestIR:
         expected_response = fixture["response"]
 
         # Start timing
-        # start_time = time.time()
+        start_time = time.time()
 
         # Execute retrieval and ranking
         response = rag_adapter.embed(question)
@@ -47,7 +55,7 @@ class TestIR:
         candidates = sorted(candidates, key=lambda x: -x["score"])
 
         # Calculate execution time
-        # execution_time_ms = int((time.time() - start_time) * 1000)
+        execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Extract top result - handle both string and dict expected responses
         if isinstance(expected_response, dict):
@@ -59,6 +67,17 @@ class TestIR:
 
         # Add delay to avoid rate limiting
         time.sleep(1)
+
+        # Record result
+        result = {
+            "test": fixture_name,
+            "question": question,
+            "expected": expected_response,
+            "actual": actual_response,
+            "passed": actual_response == expected_response,
+            "execution_time_ms": execution_time_ms,
+        }
+        self.__class__.results.append(result)
 
         # Simple assert for exact match
         assert actual_response == expected_response

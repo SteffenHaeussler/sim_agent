@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from evals.utils import load_yaml_fixtures
+from evals.utils import load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
 from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
@@ -16,6 +16,14 @@ fixtures = load_yaml_fixtures(current_path, "pre_check")
 
 class TestEvalPreCheck:
     """Pre-check guardrails evaluation tests."""
+
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "pre_check")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -37,8 +45,7 @@ class TestEvalPreCheck:
             kwargs=get_agent_config(),
         )
 
-        # Start timing
-        # start_time = time.time()
+        start_time = time.time()
 
         # Prepare guardrails check
         check = agent.prepare_guardrails_check(question)
@@ -47,18 +54,24 @@ class TestEvalPreCheck:
         )
 
         # Calculate execution time
-        # execution_time_ms = int((time.time() - start_time) * 1000)
+        execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Add delay to avoid rate limiting
         time.sleep(1)
-
         # Extract response
         actual_response = response.approved
-        # parsed_response = response.model_dump()
 
-        # approved = response.approved
+        # Record result
+        result = {
+            "test": fixture_name,
+            "question": question_text,
+            "expected": expected_response,
+            "actual": actual_response,
+            "passed": actual_response == expected_response,
+            "execution_time_ms": execution_time_ms,
+        }
 
-        # breakpoint()
+        self.__class__.results.append(result)
 
         # Simple assert for exact match
         assert actual_response == expected_response

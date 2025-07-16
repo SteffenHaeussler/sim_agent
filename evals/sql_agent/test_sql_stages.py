@@ -9,6 +9,7 @@ import yaml
 from src.agent.adapters.adapter import SQLAgentAdapter
 from src.agent.domain import commands
 from evals.llm_judge import LLMJudge, JudgeCriteria
+from evals.utils import save_test_report
 
 current_path = Path(__file__).parent
 
@@ -91,6 +92,14 @@ class TestEvalSQLStages:
         self.adapter.db = MagicMock()
         self.adapter.db.get_schema.return_value = self.schema
 
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "sql_stages")
+
     def create_grounding_result(self, tables, columns):
         """Helper to create a mock grounding result."""
         table_mapping = [
@@ -158,6 +167,29 @@ class TestEvalSQLStages:
             criteria=criteria,
             test_type="sql_grounding",
         )
+
+        # Record result
+        result = {
+            "test": fixture_name,
+            "question": question,
+            "stage": "grounding",
+            "expected": str(expected_response),
+            "actual": str(actual_response_dict),
+            "passed": judge_result.passed,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
 
         # Assert judge passed
         assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"

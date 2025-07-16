@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures
+from evals.utils import load_yaml_fixtures, save_test_report
 from src.agent.entrypoints.app import app
 
 current_path = Path(__file__).parent
@@ -32,6 +32,14 @@ class TestSQLEndToEnd:
         self.judge = LLMJudge()
         self.current_path = current_path
         self.schema = schema_data
+
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "sql_e2e")
 
     def extract_sql_from_response(self, session_id: str, max_retries: int = 10) -> str:
         """
@@ -109,7 +117,7 @@ class TestSQLEndToEnd:
         headers = {"X-Session-ID": session_id}
 
         # Start timing
-        # start_time = time.time()
+        start_time = time.time()
 
         # Make API request
         response = client.get("/query", params={"question": question}, headers=headers)
@@ -122,7 +130,7 @@ class TestSQLEndToEnd:
         actual_sql = self.extract_sql_from_response(session_id)
 
         # Calculate execution time
-        # execution_time_ms = int((time.time() - start_time) * 1000)
+        execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Normalize SQL for comparison (basic normalization)
         def normalize_sql(sql: str) -> str:
@@ -142,6 +150,29 @@ class TestSQLEndToEnd:
 
         # Add delay to avoid rate limiting
         time.sleep(1)
+
+        # Record result
+        result = {
+            "test": fixture_name,
+            "question": question,
+            "expected": normalize_sql(expected_sql),
+            "actual": normalize_sql(actual_sql) if actual_sql else "NO SQL GENERATED",
+            "passed": judge_result.passed,
+            "execution_time_ms": execution_time_ms,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
 
         # Assert judge passed
         assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"

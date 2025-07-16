@@ -1,8 +1,11 @@
 """Minimal utilities for evaluation tests."""
 
+import json
+import os
+import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import yaml
 
@@ -76,3 +79,28 @@ def load_yaml_fixtures(
             fixtures[test_name] = test_data
 
     return fixtures
+
+
+def get_report_dir() -> Path:
+    """Get the report directory from environment variable or use default."""
+    # Check environment variable first
+    report_dir = os.environ.get("EVALS_REPORT_DIR")
+    if report_dir:
+        return Path(report_dir)
+
+    # Default: evals/reports relative to this file
+    return Path(__file__).parent / "reports"
+
+
+def save_test_report(results: List[Dict[str, Any]], test_name: str) -> None:
+    """Save test results to a JSON report file with timestamp."""
+    report_dir = get_report_dir()
+    report_dir.mkdir(exist_ok=True, parents=True)
+
+    timestamp = int(time.time())
+    filename = f"{test_name}_report_{timestamp}.json"
+
+    with open(report_dir / filename, "w") as f:
+        json.dump(results, f, indent=2)
+
+    print(f"Report saved to: {report_dir / filename}")

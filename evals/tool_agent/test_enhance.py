@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures
+from evals.utils import load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
 from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
@@ -21,6 +21,14 @@ class TestEvalEnhance:
     def setup_method(self):
         """Initialize LLM Judge for evaluation."""
         self.judge = LLMJudge()
+
+    def setup_class(self):
+        """Setup report file."""
+        self.results = []
+
+    def teardown_class(self):
+        """Save results to report file."""
+        save_test_report(self.results, "enhance")
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -66,7 +74,7 @@ class TestEvalEnhance:
         )
 
         # Start timing
-        # start_time = time.time()
+        start_time = time.time()
 
         # Prepare enhancement
         enhance_command = agent.prepare_enhancement(rerank_command)
@@ -78,7 +86,7 @@ class TestEvalEnhance:
         actual_response = response.response
 
         # Calculate execution time
-        # execution_time_ms = int((time.time() - start_time) * 1000)
+        execution_time_ms = int((time.time() - start_time) * 1000)
 
         # Add delay to avoid rate limiting
         time.sleep(1)
@@ -92,6 +100,29 @@ class TestEvalEnhance:
             criteria=criteria,
             test_type="enhance",
         )
+
+        # Record result
+        result = {
+            "test": fixture_name,
+            "question": question_text,
+            "expected": str(expected_response),
+            "actual": str(actual_response),
+            "passed": judge_result.passed,
+            "execution_time_ms": execution_time_ms,
+            "overall_score": (
+                judge_result.scores.accuracy
+                + judge_result.scores.relevance
+                + judge_result.scores.completeness
+                + judge_result.scores.hallucination
+            )
+            / 4,
+            "accuracy": judge_result.scores.accuracy,
+            "relevance": judge_result.scores.relevance,
+            "completeness": judge_result.scores.completeness,
+            "hallucination": judge_result.scores.hallucination,
+            "judge_assessment": judge_result.overall_assessment,
+        }
+        self.__class__.results.append(result)
 
         # Assert judge passed
         assert judge_result.passed, f"Judge failed: {judge_result.overall_assessment}"
