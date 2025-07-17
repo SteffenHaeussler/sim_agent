@@ -6,7 +6,12 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures, normalize_sql, save_test_report
+from evals.utils import (
+    get_model_info_for_test,
+    load_yaml_fixtures,
+    normalize_sql,
+    save_test_report,
+)
 from src.agent.domain import events
 
 current_path = Path(__file__).parent
@@ -28,7 +33,8 @@ class TestSQLEndToEnd:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "sql_e2e")
+        model_info = get_model_info_for_test("sql_e2e")
+        save_test_report(self.results, "sql_e2e", model_info)
 
     def extract_final_response(self, session_id: str, test_notifications) -> str:
         """Extract the final response from collected notifications."""

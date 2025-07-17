@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures, save_test_report
+from evals.utils import get_model_info_for_test, load_yaml_fixtures, save_test_report
 from src.agent.adapters.llm import LLM
 from src.agent.config import get_agent_config, get_llm_config
 from src.agent.domain import commands, model
@@ -28,7 +28,8 @@ class TestEvalEnhance:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "tool_enhance")
+        model_info = get_model_info_for_test("tool_enhance")
+        save_test_report(self.results, "tool_enhance", model_info)
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",

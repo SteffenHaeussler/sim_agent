@@ -4,17 +4,30 @@ from pathlib import Path
 
 import pytest
 
-from evals.utils import get_model_info_for_test, load_yaml_fixtures, save_test_report
+from evals.utils import (
+    get_model_info_for_test,
+    load_database_schema,
+    load_yaml_fixtures,
+    save_test_report,
+)
 from src.agent.adapters.llm import LLM
-from src.agent.domain import commands, model
+from src.agent.domain import commands, scenario_model
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
 fixtures = load_yaml_fixtures(current_path, "pre_check")
 
+# Load database schema for scenario context
+try:
+    schema = load_database_schema(
+        current_path.parent / "sql_agent", "schema/schema.json"
+    )
+except FileNotFoundError:
+    schema = None
 
-class TestEvalPreCheck:
-    """Pre-check guardrails evaluation tests."""
+
+class TestScenarioPreCheck:
+    """Scenario pre-check guardrails evaluation tests."""
 
     def setup_class(self):
         """Setup report file."""
@@ -22,8 +35,8 @@ class TestEvalPreCheck:
 
     def teardown_class(self):
         """Save results to report file."""
-        model_info = get_model_info_for_test("tool_pre_check")
-        save_test_report(self.results, "tool_pre_check", model_info)
+        model_info = get_model_info_for_test("scenario_pre_check")
+        save_test_report(self.results, "scenario_pre_check", model_info)
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
@@ -36,19 +49,22 @@ class TestEvalPreCheck:
         question_text = fixture["question"]
         expected_response = fixture["approved"]
 
-        q_id = "eval_pre_check_" + str(uuid.uuid4())
-        question = commands.Question(question=question_text, q_id=q_id)
+        q_id = "eval_scenario_pre_check_" + str(uuid.uuid4())
+        # Create scenario command with schema info
+        scenario_question = commands.Scenario(
+            question=question_text, q_id=q_id, schema_info=schema
+        )
 
         llm = LLM(llm_config)
-        agent = model.BaseAgent(
-            question=question,
+        agent = scenario_model.ScenarioBaseAgent(
+            question=scenario_question,
             kwargs=agent_config,
         )
 
         start_time = time.time()
 
         # Prepare guardrails check
-        check = agent.prepare_guardrails_check(question)
+        check = agent.prepare_guardrails_check(scenario_question)
         response = llm.use(
             check.question, response_model=commands.GuardrailPreCheckModel
         )
@@ -58,6 +74,7 @@ class TestEvalPreCheck:
 
         # Add delay to avoid rate limiting
         time.sleep(1)
+
         # Extract response
         actual_response = response.approved
 

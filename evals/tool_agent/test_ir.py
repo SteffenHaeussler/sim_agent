@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from evals.utils import load_yaml_fixtures, save_test_report
+from evals.utils import get_model_info_for_test, load_yaml_fixtures, save_test_report
 
 current_path = Path(__file__).parent
 # Load fixtures from YAML file
@@ -19,7 +19,8 @@ class TestIR:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "tool_ir")
+        model_info = get_model_info_for_test("tool_ir")
+        save_test_report(self.results, "tool_ir", model_info)
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
