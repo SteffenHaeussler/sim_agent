@@ -98,6 +98,23 @@ def load_yaml_fixtures(
     return fixtures
 
 
+def get_model_info_for_test(test_type: str) -> Dict[str, str]:
+    """Get model information based on test type."""
+    model_info = {}
+
+    # Determine which model is being used based on test type
+    if "tool" in test_type:
+        model_info["model_id"] = os.environ.get("tools_model_id", "unknown")
+        model_info["model_api_base"] = os.environ.get("tools_model_api_base", "")
+    else:
+        model_info["model_id"] = os.environ.get("llm_model_id", "unknown")
+        model_info["model_api_base"] = os.environ.get("llm_api_base", "")
+
+    model_info["temperature"] = os.environ.get("llm_temperature", "unknown")
+
+    return model_info
+
+
 def load_database_schema(
     test_dir: Path, schema_file: str = "schema.json"
 ) -> Dict[str, Any]:
@@ -133,12 +150,23 @@ def get_report_dir() -> Path:
     return Path(__file__).parent / "reports"
 
 
-def save_test_report(results: List[Dict[str, Any]], test_name: str) -> None:
+def save_test_report(
+    results: List[Dict[str, Any]],
+    test_name: str,
+    model_info: Optional[Dict[str, str]] = None,
+) -> None:
     """Save test results to a JSON report file with timestamp and optionally to database."""
     # Skip saving if no results
     if not results:
         print(f"No results to save for {test_name}")
         return
+
+    # Get model information from environment if not provided
+    if model_info is None:
+        model_info = {
+            "llm_model_id": os.environ.get("llm_model_id", "unknown"),
+            "tools_model_id": os.environ.get("tools_model_id", "unknown"),
+        }
 
     # Always save to JSON
     report_dir = get_report_dir()
@@ -149,21 +177,33 @@ def save_test_report(results: List[Dict[str, Any]], test_name: str) -> None:
     run_id = f"{test_name}_report_{timestamp}"
     filename = f"{run_id}.json"
 
+    # Create report with metadata
+    report = {
+        "run_id": run_id,
+        "test_suite": test_name,
+        "timestamp": timestamp,
+        "model_info": model_info,
+        "results": results,
+    }
+
     with open(report_dir / filename, "w") as f:
-        json.dump(results, f, indent=2)
+        json.dump(report, f, indent=2)
 
     print(f"Report saved to: {report_dir / filename}")
 
     # Try to save to database if configured
     if os.environ.get("EVALS_DB_CONNECTION"):
         try:
-            save_to_database(results, test_name, run_id)
+            save_to_database(results, test_name, run_id, model_info)
         except Exception as e:
             print(f"Failed to save to database: {e}")
 
 
 def save_to_database(
-    results: List[Dict[str, Any]], test_suite: str, run_id: str
+    results: List[Dict[str, Any]],
+    test_suite: str,
+    run_id: str,
+    model_info: Optional[Dict[str, str]] = None,
 ) -> Optional[str]:
     """Save test results to database."""
     # Skip if no results
@@ -187,6 +227,12 @@ def save_to_database(
             "passed_tests": sum(1 for r in results if r.get("passed", False)),
             "failed_tests": sum(1 for r in results if not r.get("passed", False)),
         }
+
+        # Add model info fields if available
+        if model_info:
+            run_data["model_id"] = model_info.get("model_id")
+            run_data["model_api_base"] = model_info.get("model_api_base")
+            run_data["model_temperature"] = model_info.get("temperature")
 
         if not db.insert_data("test_runs", run_data):
             print("Failed to insert test run")

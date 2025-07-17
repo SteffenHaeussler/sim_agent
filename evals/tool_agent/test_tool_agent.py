@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_yaml_fixtures, save_test_report
+from evals.utils import get_model_info_for_test, load_yaml_fixtures, save_test_report
 from src.agent.adapters import agent_tools
 
 current_path = Path(__file__).parent
@@ -28,7 +28,8 @@ class TestEvalPlanning:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "tool_agent")
+        model_info = get_model_info_for_test("tool_agent")
+        save_test_report(self.results, "tool_agent", model_info)
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",

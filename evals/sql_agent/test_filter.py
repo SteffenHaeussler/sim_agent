@@ -5,7 +5,12 @@ from pathlib import Path
 import pytest
 
 from evals.llm_judge import JudgeCriteria, LLMJudge
-from evals.utils import load_database_schema, load_yaml_fixtures, save_test_report
+from evals.utils import (
+    get_model_info_for_test,
+    load_database_schema,
+    load_yaml_fixtures,
+    save_test_report,
+)
 from src.agent.adapters.llm import LLM
 from src.agent.domain import commands, sql_model
 
@@ -28,7 +33,8 @@ class TestEvalFilter:
 
     def teardown_class(self):
         """Save results to report file."""
-        save_test_report(self.results, "sql_filter")
+        model_info = get_model_info_for_test("sql_filter")
+        save_test_report(self.results, "sql_filter", model_info)
 
     @pytest.mark.parametrize(
         "fixture_name, fixture",
