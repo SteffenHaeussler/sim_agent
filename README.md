@@ -43,7 +43,21 @@ Both approaches are built on a robust event-driven foundation:
 
 ## External Dependencies
 
-Both agent approaches rely on external services and APIs to function properly:
+Both agent approaches rely on external services and APIs to function properly.
+
+To run the external services locally, run the following command:
+
+```
+docker compose up
+```
+
+from the [Sim Project](https://github.com/SteffenHaeussler/sim_project) root directory.
+
+Repositories for the external services are located in:
+- the [Sim Project](https://github.com/SteffenHaeussler/sim_project) repository for generating the data and the database schema
+- the [Sim API](https://github.com/SteffenHaeussler/sim_api) repository for the API that provides the tools to the agentic ai framework
+- the [Sim RAG](https://github.com/SteffenHaeussler/sim_rag) repository for the RAG that provides the knowledge to the agentic ai framework
+- the [Sim Frontend](https://github.com/SteffenHaeussler/sim_frontend) repository for the Frontend that provides the UI for the agentic ai framework
 
 ### Required Services
 
@@ -75,16 +89,12 @@ Both agent approaches rely on external services and APIs to function properly:
 
 ### Configuration
 
-All external dependencies are configured through environment variables. See `.env.example` or `.env.tests` for configuration templates. Key configurations include:
+All external dependencies are configured through environment variables. See `.env.tests` for configuration templates. Key configurations include:
 - API endpoints and credentials
 - Database connection strings
 - Model selection and parameters
 - Service timeouts and limits
 
-Repositories for the external services are located in:
-- the [Sim Project](https://github.com/SteffenHaeussler/sim_project) repository for generating the data and the database schema
-- the [Sim API](https://github.com/SteffenHaeussler/sim_api) repository for the API that provides the tools and RAG to the agentic ai framework
-- the [Sim Frontend](https://github.com/SteffenHaeussler/sim_frontend) repository for the Frontend that provides the UI for the agentic ai framework
 
 ### Docker Setup
 
