@@ -41,6 +41,55 @@ Both approaches are built on a robust event-driven foundation:
 - **Real-time Updates**: WebSocket support for live status updates
 - **Observability**: Integrated tracing with Langfuse and OpenTelemetry
 
+## External Dependencies
+
+Both agent approaches rely on external services and APIs to function properly:
+
+### Required Services
+
+1. **LLM Providers** (for both approaches)
+   - Supports multiple LLM providers via `litellm`: Anthropic, OpenAI, Google Gemini
+   - Used for reasoning, query generation, and response synthesis
+   - Configurable models for different tasks (main LLM, tools LLM, guardrails LLM)
+
+2. **PostgreSQL Database** (for SQL Agent)
+   - Required for SQL query execution
+   - Stores business data that agents query
+   - Connection configured via environment variables
+
+3. **Information Retrieval Services** (for LLM Workflow)
+   - Embedding API for document vectorization
+   - Ranking API for relevance scoring
+   - Retrieval API for semantic search
+   - Default endpoints: `http://localhost:5051`
+
+4. **Tool API** (for Tool Agent)
+   - External API providing data access tools
+   - Sensor data, time-series queries, asset information
+   - Default endpoint: `http://localhost:5000`
+
+5. **Observability Services** (optional)
+   - Langfuse for LLM tracing and monitoring
+   - OpenTelemetry for distributed tracing
+   - Configurable via environment variables
+
+### Configuration
+
+All external dependencies are configured through environment variables. See `.env.example` or `.env.tests` for configuration templates. Key configurations include:
+- API endpoints and credentials
+- Database connection strings
+- Model selection and parameters
+- Service timeouts and limits
+
+Repositories for the external services are located in:
+- the [Sim Project](https://github.com/SteffenHaeussler/sim_project) repository for generating the data and the database schema
+- the [Sim API](https://github.com/SteffenHaeussler/sim_api) repository for the API that provides the tools and RAG to the agentic ai framework
+- the [Sim Frontend](https://github.com/SteffenHaeussler/sim_frontend) repository for the Frontend that provides the UI for the agentic ai framework
+
+### Docker Setup
+
+The framework includes Docker configurations to help set up some of these dependencies locally. Use `make up` to start containerized services.
+
 ## Running service manually
 
 To run the service manually in debug mode install the required python dependencies:
