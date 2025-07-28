@@ -1,7 +1,45 @@
 # Agentic AI Framework
 
-This is a generalized framework for building agentic AI systems for internal question answering.
+An event-driven architecture framework for building agentic AI systems for internal question answering. This framework demonstrates two distinct approaches to building AI agents: Tool-based Agents and LLM Workflows, both leveraging Domain-Driven Design principles from the "Cosmic Python" book.
 
+## Architecture Overview
+
+This framework showcases event-driven architecture patterns for building AI systems with two main approaches:
+
+### 1. Tool Agent Approach
+The tool agent uses external tools and APIs to gather information and execute actions. This approach:
+- Leverages the `smolagents` library for tool orchestration
+- Supports multiple tools for data retrieval, conversion, and analysis
+- Uses a planning and execution model with tool selection
+- Ideal for tasks requiring real-time data access, calculations, or external system integration
+
+Example use cases:
+- Fetching sensor data and creating visualizations
+- Querying time-series databases
+- Performing calculations on retrieved data
+- Integrating with external APIs
+
+### 2. LLM Workflow Approach
+The LLM workflow uses a state machine pattern to build SQL queries through multiple stages. This approach:
+- Implements a structured pipeline with defined stages (Check → Ground → Filter → Aggregate → Join → Construct → Execute)
+- Writes SQL queries based on a decomposition of the question into a series of steps based on the database schema
+- Includes guardrails at entry and exit points
+- Ideal for knowledge-based Q&A and controlled response generation
+
+Example use cases:
+- Answering questions from a knowledge base
+- SQL query generation and execution
+- Document-based question answering
+- Controlled and validated response generation
+
+### Event-Driven Architecture
+
+Both approaches are built on a robust event-driven foundation:
+- **Message Bus**: Central command and event handling system
+- **Domain Events**: Clear separation of commands and events
+- **Dependency Injection**: Clean architecture with swappable adapters
+- **Real-time Updates**: WebSocket support for live status updates
+- **Observability**: Integrated tracing with Langfuse and OpenTelemetry
 
 ## Running service manually
 
@@ -19,49 +57,48 @@ and access via [http://127.0.0.1:5055/docs](http://127.0.0.1:5055/docs)
 
 via cli:
 
+### Tool Agent Examples
+
+Run the tool agent for real-time data access and calculations:
 ```
 make run Q="What is the daily maximum value of PI-P0017 in April 2025?" M="tool"
 ```
 
-or for rag retrieval:
+### LLM Workflow Examples
+
+Run the LLM workflow for knowledge-based queries:
 ```
-make run Q="How much was produced in the first two weeks of 2025?" M="tool"
+make run Q="How much was produced in the first two weeks of 2025?" M="sql"
 ```
 
-Examples:
+### More Tool Agent Examples
+
+Tool Agent queries (real-time data, calculations, visualizations):
 ```
 - "What is the daily maximum value of PI-P0017 in April 2025?"
-- "How much was produced in the first two weeks of 2025?"
 - "Can you compare PI-P0017 and PI-P0016 for the first 10 days in 2025?"
 - "What assets are next to asset BA100?"
 - "Can you create a plot for the adjacent sensors of asset BA101 for 1st January 2025?"
 - "What is the id of TI-T0022?"
 - "What is the name of asset id c831fadb-d620-4007-bdda-4593038c87f9?"
 - "Can you provide me the highest value for June 2025 for TI-T0022?"
-- "How much was the total production in the first two weeks of 2025?"
-- "How much was the total production in the distillation first two weeks of 2025?"
 - "What is the current pressure in the distillation?"
 - "What is the level in tank b?"
-- "can you plot me the temperature of the distillation cooler A for the last two weeks?"
+- "Can you plot me the temperature of the distillation cooler A for the last two weeks?"
 - "What is the current temperature in the water tank?"
-- "how much distillate is flown in the storage in the last 4 hours?"
-- Can you plot me data for 18b04353-839d-40a1-84c1-9b547d09dd80 in Febuary?
-
+- "Can you plot me data for 18b04353-839d-40a1-84c1-9b547d09dd80 in February?"
 ```
 
-## SQL Agent
 
-The SQL agent is a specialized agent that is used to answer questions about the database. It is designed to be used in a pipeline with the following steps:
+### More SQL Agent Examples
 
-    "How many customers do we have?",
-    "What are the top 5 selling products?",
-    "Show me orders from 2024",
-    "What is the average order value?",
-
+The SQL agent is a specialized LLM workflow implementation for database queries. It uses a multi-stage pipeline to:
 ```
-make run Q="What are the top 5 selling products?" tool=sql
+- "How many customers do we have?"
+- "What are the top 5 selling products?"
+- "Show me orders from 2024"
+- "What is the average order value?"
 ```
-
 
 ## Running service in Docker
 
@@ -76,18 +113,56 @@ and to shut down the service:
 make down
 ```
 
-
-## Local querying
-
-
-## API Documentation
-
-
 ## Testing
 
 To run the tests:
 
 `uv run python -m pytest --verbose --cov=./`
+
+## Evaluation Framework
+
+This framework includes a comprehensive evaluation system to assess the quality and performance of both agent approaches. The evaluation framework uses an LLM judge to score responses across multiple dimensions.
+
+### Evaluation Components
+
+1. **LLM Judge Evaluation**
+   - Scores responses on 4 dimensions: accuracy, relevance, completeness, and hallucination
+   - Configurable thresholds for pass/fail criteria
+   - Provides detailed reasoning for each score
+   - Results are stored in JSON format in `evals/reports/`
+
+2. **Evaluation Types**
+
+   **Tool Agent Evaluations:**
+   - `make eval_tool_e2e` - End-to-end evaluation of complete tool agent workflow
+   - `make eval_tool_enhance` - Tests question enhancement capabilities
+   - `make eval_tool_pre_check` - Evaluates input validation and guardrails
+   - `make eval_tool_post_check` - Tests output validation
+   - `make eval_tool_ir` - Information retrieval evaluation
+   - `make eval_tool_tools` - Tool selection and execution evaluation
+
+   **SQL Agent Evaluations:**
+   - `make eval_sql_e2e` - End-to-end SQL workflow evaluation
+   - `make eval_sql_aggregate` - Tests aggregation query generation
+   - `make eval_sql_construct` - SQL query construction evaluation
+   - `make eval_sql_filter` - Filter clause generation testing
+   - `make eval_sql_grounding` - Entity name to schema mapping
+   - `make eval_sql_join` - Join inference evaluation
+   - `make eval_sql_pre_check` - Input validation for SQL queries
+
+3. **Running All Evaluations**
+   - `make eval_tool` - Run all tool agent evaluations
+   - `make eval_sql` - Run all SQL agent evaluations
+
+### Evaluation Reports
+
+Evaluation results are stored in `evals/reports/` with timestamps and include:
+- Individual test results with scores
+- Pass/fail status based on configured thresholds
+- Detailed reasoning from the LLM judge
+- Aggregate statistics for the evaluation run
+
+The evaluation framework helps ensure consistent quality across different agent implementations and provides insights into areas for improvement.
 
 
 ## Agent Design
@@ -101,4 +176,6 @@ To run the tests:
 
 
 
-This is a personal project inspired by my past work, but built independently from scratch. This project is oriented by this[book](https://www.cosmicpython.com/)
+## Acknowledgments
+
+This is a personal project inspired by my past work, but built independently from scratch. The architecture is based on Domain-Driven Design principles from the ["Cosmic Python" book](https://www.cosmicpython.com/), demonstrating how event-driven patterns can be effectively applied to AI agent systems.
